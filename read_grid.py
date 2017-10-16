@@ -152,6 +152,6 @@ def rebin(lam0, spec0, newlam, resolution):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix', type=str, default='./', dest='prefix')
-    parser.add_argument('--filesdb', type=str, default='files.db')
+    parser.add_argument('--templdb', type=str, default='files.db')
     args = parser.parse_args()
-    makedb(args.prefix, dbfile=args.filesdb)
+    makedb(args.prefix, dbfile=args.templdb)

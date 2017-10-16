@@ -3,5 +3,11 @@
 
 The first step is to read the template grid into the sqlite database
 
-python read_grid.py --prefix /home/skoposov/science/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/  --filesdb ../templ_data/files.db
+python read_grid.py --prefix /home/skoposov/science/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/  --templdb ../templ_data/files.db
 
+
+Then we create the interpolated spectra for different instrument setups
+python make_interpol.py --setup test_setup --lambda0 4000 --lambda1 5000 --resol 5000 --step 0.5 --templdb ../templ_data/files.db --oprefix ../templ_data/ --templprefix /home/skoposov/science/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --wavefile /home/skoposov/science/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
+
+Create the triangulation
+python make_nd.py  --prefix ../templ_data/ --setup test_setup

@@ -1,0 +1,3 @@
+template_lib:
+    savefile : '/home/skoposov/psavs/interp_%s.pkl'
+    npyfile : '/home/skoposov/psavs/interpdat_%s.npy'
