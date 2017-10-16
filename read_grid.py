@@ -6,10 +6,14 @@ import sqlutil
 import sqlite3
 import numpy as np
 import astropy.wcs as pywcs
+import argparse
 
-def makedb(prefix = '/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/'):
+def makedb(prefix = '/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
+           dbfile='files.db'):
     """ Create an sqlite database of the templates """
     id = 0
+    sqlutil.execute('CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);', db=dbfile, driver='sqlite3')
+
     for f in sorted(glob.glob(prefix + '*/*fits')):
         hdr = pyfits.getheader(f)
         teff = hdr['PHXTEFF']
@@ -18,7 +22,7 @@ def makedb(prefix = '/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v
         met = float(hdr['PHXM_H'])
 
         sqlutil.execute('insert into files  values (?, ? , ? , ? , ?, ? )',
-                        (f.replace(prefix, ''), teff, logg, met, alpha, id), driver='sqlite3', db='files.db')
+                        (f.replace(prefix, ''), teff, logg, met, alpha, id), driver='sqlite3', db=dbfile)
         id += 1
 
 
@@ -144,3 +148,10 @@ def rebin(lam0, spec0, newlam, resolution):
     mat = make_rebinner(lam0, newlam, resolution)
     ret = apply_rebinner(mat, spec0)
     return ret
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--prefix', type=str, default='./', dest='prefix')
+    parser.add_argument('--filesdb', type=str, default='files.db')
+    args = parser.parse_args()
+    makedb(args.prefix, dbfile=args.filesdb)
