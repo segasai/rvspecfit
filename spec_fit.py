@@ -15,6 +15,8 @@ import yaml
 from tempfile import mkdtemp
 from joblib import Memory
 import frozendict
+import random
+import pylru
 
 
 def freezeDict(d):
@@ -28,17 +30,35 @@ def freezeDict(d):
         return d
 
 
-#cachedir = mkdtemp(dir="./")
-#memory = Memory(cachedir=cachedir, verbose=0)
-
-
 class SpecData:
     def __init__(self, name, lam, spec, espec):
-        self.name = name
-        self.lam = lam
-        self.spec = spec
-        self.espec = espec
+        self.fd = {}
+        self.fd['name'] = name
+        self.fd['lam'] = lam
+        self.fd['spec'] = spec
+        self.fd['espec'] = espec
+        self.fd = freezeDict(self.fd)
+        # id of the object to ensure that I can cache calls on a given data
+        self.id = random.getrandbits(128)
 
+    @property
+    def name(self):
+        return self.fd['name']
+
+    @property
+    def lam(self):
+        return self.fd['lam']
+
+    @property
+    def spec(self):
+        return self.fd['spec']
+
+    @property
+    def espec(self):
+        return self.fd['espec']
+
+    def __hash__(self):
+        return self.id
 
 def eval_vel_grid(vels_grid, interpol, lam_object):
     # obtain the interpolators for each template in the list
@@ -49,8 +69,9 @@ def eval_vel_grid(vels_grid, interpol, lam_object):
     return interpols_grid
 
 
-#@memory.cache
-def get_polys(lam, npoly):
+@functools.lru_cache(100)
+def get_polys(specdata, npoly):
+    lam = specdata.lam
     # get polynomials for continuum
     polys = np.zeros((npoly, len(lam)))
     coeffs = {}
@@ -130,30 +151,26 @@ def get_chisq_many(spec, espec, templgrid, polys):
                               polys, getCoeffs=False, espec=None)
     return chisqs
 
-
 @functools.lru_cache(100)
-def getCurTempl(name, atm_param, config):
+def getCurTempl(name, atm_param, rot_params, resol_params, config):
+    """ get the spectrum in the given setup
+    with given atmospheric parameters and given config
+    """
     curInterp = spec_inter.getInterpolator(name, config)
     outside = curInterp.outsideFlag(atm_param)
     spec = curInterp.eval(atm_param)
-    return outside, curInterp.lam, spec
+    
+    # take into account the resolution
+    if resol_params is not None:
+        spec = convolve_resol(
+            templ_spec, resol_params, rot_params, atm_params)
 
+    # take into account the rotation of the star
+    if rot_params is not None:
+        spec = convolve_vrot(templ_spec, rot_params, atm_params)
 
-#@memory.cache
-def getRVInterpol(lam_templ, templ):
-    """ Return the spectrum interpolator"""
-    interpol = scipy.interpolate.UnivariateSpline(
-        lam_templ, templ, s=0, k=3, ext=2)
-    return interpol
-
-
-#@memory.cache
-def evalRV(interpol, vel, lams):
-    """ Evaluate the spectrum interpolator at a given velocity
-    and given wavelengths
-    """
-    return interpol(lams / (1 + vel * 1000. / speed_of_light))
-
+    templ_tag = random.getrandbits(128)
+    return outside, curInterp.lam, spec, templ_tag
 
 def convolve_resol(*args):
     raise Exception("not implemented yet")
@@ -167,6 +184,20 @@ def convolve_vrot(*args):
     return 1
 
 
+def getRVInterpol(lam_templ, templ):
+    """ Return the spectrum interpolator"""
+    interpol = scipy.interpolate.UnivariateSpline(
+        lam_templ, templ, s=0, k=3, ext=2)
+    tag = random.getrandbits(128)
+    return interpol, tag
+
+def evalRV(interpol, vel, lams):
+    """ Evaluate the spectrum interpolator at a given velocity
+    and given wavelengths
+    """
+    return interpol(lams / (1 + vel * 1000. / speed_of_light))
+
+
 def read_config(fname=None):
     if fname is None:
         fname = 'config.yaml'
@@ -175,7 +206,7 @@ def read_config(fname=None):
 
 
 def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
-              config=None, getModel=False):
+              config=None, getModel=False, cache=None):
     """ Find the chi-square of the dataset at a given velocity
     atmospheric parameters, rotation parameters
     and resolution parameters
@@ -185,37 +216,56 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
     outsides = 0
     models = []
     badchi = 1e6
-    for curdata in specdata:
-        name = curdata.name
-        outside, templ_lam, templ_spec = getCurTempl(
-            name, tuple(atm_params), config)
+    if rot_params is not None:
+        rot_params = tuple(rot_params)
+    if resol_params is not None:
+        resol_params = tuple (resol_params)
+    atm_params = tuple (atm_params)
 
+    # iterate over multiple datasets
+    for curdata in specdata:
+        
+        name = curdata.name
+
+        outside, templ_lam, templ_spec, templ_tag = getCurTempl(
+            name, atm_params, rot_params, 
+            resol_params, config)
+        
+        #if the current point is outside the template grid 
+        # add bad value and bail out
+
+        outsides += np.asscalar(outside)
         if not np.isfinite(outside):
             chisq += badchi
             continue
-        outsides += np.asscalar(outside)
 
         if (curdata.lam[0] < templ_lam[0] or curdata.lam[0] > templ_lam[-1] or
                 curdata.lam[-1] < templ_lam[0] or curdata.lam[-1] > templ_lam[-1]):
             raise Exception(
                 "The template library doesn't cover this wavelength")
+        
+        # current template interpolator object
+        if cache is None or templ_tag not in cache:
+            curtemplI, templ_tag = getRVInterpol(templ_lam, templ_spec)
+            if cache is not None:
+                cache[templ_tag] = curtemplI
+        else:
+            curtemplI, templ_tag = cache[templ_tag]
 
-        if rot_params is not None:
-            templ_spec = convolve_vrot(templ_spec, rot_params, atm_params)
-        if resol_params is not None:
-            templ_spec = convolve_resol(
-                templ_spec, resol_params, rot_params, atm_params)
-        curtempl = getRVInterpol(templ_lam, templ_spec)
-        evalTempl = evalRV(curtempl, vel, curdata.lam)
-        polys = get_polys(curdata.lam, npoly)
+        evalTempl = evalRV(curtemplI, vel, curdata.lam)
+        
+        polys = get_polys(curdata, npoly)
+
         curchisq = get_chisq0(curdata.spec, evalTempl,
                               polys, getCoeffs=getModel, espec=curdata.espec)
         if getModel:
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
             models.append(curmodel)
+
         assert(np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
+
     chisq += 1e5 * outsides
     if getModel:
         ret = chisq, models
@@ -227,11 +277,13 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
 def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options=None,
               config=None):
     # find the best fit template and velocity from a grid
+    cache = pylru.lrucache(100)
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):
         for i, v in enumerate(vel_grid):
-            chisq[i, j] = get_chisq(specdata, v, curparam, rot_params, resol_params, options=options,
-                                    config=config)
+            chisq[i, j] = get_chisq(specdata, v, curparam, rot_params, 
+                                    resol_params, options=options,
+                                    config=config, cache=cache)
     xind = np.argmin(chisq)
     i1, i2 = np.unravel_index(xind, chisq.shape)
     return vel_grid[i1], params_list[i2]

@@ -56,9 +56,9 @@ class interp_cache:
 
 
 def getInterpolator(HR, config):
-        """ return the spectrum interpolation object for a given instrument
-        setup HR and config
-        """ 
+    """ return the spectrum interpolation object for a given instrument
+    setup HR and config
+    """ 
     if HR not in interp_cache.interps:
         with open(config['template_lib']['savefile'] % HR, 'rb') as fd0:
             fd = pickle.load(fd0)
