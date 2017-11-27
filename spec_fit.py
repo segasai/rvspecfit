@@ -7,6 +7,7 @@ import scipy.interpolate
 import numpy.random
 import functools
 from scipy.constants.constants import speed_of_light
+import scipy.signal
 import gc
 import os
 import math
@@ -17,18 +18,30 @@ from joblib import Memory
 import frozendict
 import random
 import pylru
-
+import scipy.sparse 
 
 def freezeDict(d):
     if isinstance(d, dict):
         d1 = {}
         for k, v in d.items():
             d1[k] = freezeDict(v)
-
         return frozendict.frozendict(d1)
     else:
         return d
 
+# resolution matrix 
+class ResolMatrix:
+    def __init__(self, mat):
+        self.fd = {}
+        self.fd['mat'] = mat
+        # id of the object to ensure that I can cache calls on a given data
+        self.id = random.getrandbits(128)
+    def __hash__(self):
+        return self.id
+
+    @property
+    def mat(self):
+        return self.fd['mat']
 
 class SpecData:
     def __init__(self, name, lam, spec, espec):
@@ -106,6 +119,8 @@ def get_chisq0(spec, templ, polys, getCoeffs=False, espec=None):
     # get the chi-square values for the vector of velocities
     # and grid of templates
     # after marginalizing over continuum
+    # if espec is not provided we assume data and template are already
+    # normalized
     if espec is not None:
         normspec = spec / espec
         normtempl = templ / espec
@@ -160,36 +175,65 @@ def getCurTempl(name, atm_param, rot_params, resol_params, config):
     outside = curInterp.outsideFlag(atm_param)
     spec = curInterp.eval(atm_param)
     
-    # take into account the resolution
-    if resol_params is not None:
-        spec = convolve_resol(
-            templ_spec, resol_params, rot_params, atm_params)
-
     # take into account the rotation of the star
     if rot_params is not None:
-        spec = convolve_vrot(templ_spec, rot_params, atm_params)
+        spec = convolve_vrot(curInterp.lam, spec, *rot_params)
 
     templ_tag = random.getrandbits(128)
     return outside, curInterp.lam, spec, templ_tag
 
-def convolve_resol(*args):
-    raise Exception("not implemented yet")
-    return 1
+def construct_resol_mat(lam, R):
+    " Construct a sparse resolution matrix "
+    sigs = lam/R/2.35
+    thresh = 5
+    assert(np.all(np.diff(lam)>0))
+    l1 = lam - thresh*sigs
+    l2 = lam + thresh*sigs
+    i1 = np.searchsorted(lam, l1, 'left')
+    i1 = np.maximum(i1,0)
+    i2 = np.searchsorted(lam, l2, 'right')
+    i2 = np.minimum(i2, len(lam)-1)
+    xs = [] 
+    ys = [] 
+    vals = []
+    for i in range(len(lam)):
+        iis = np.arange(i1[i],i2[i]+1)
+        kernel = np.exp(-0.5*(lam[iis]-lam[i])**2/sigs[i]**2)
+        kernel = kernel/kernel.sum()
+        ys.append(iis)
+        xs.append([i]*len(iis))
+        vals.append(kernel)
+    xs,ys,vals = [np.concatenate(_) for _ in [xs,ys,vals]]
+    mat= scipy.sparse.coo_matrix((vals,(xs,ys)),shape=(len(lam),len(lam)))
+    return ResolMatrix(mat)
+
+def convolve_resol(spec, resol_matrix):
+    return resol_matrix.mat * spec
 
 
-def convolve_vrot(*args):
+def convolve_vrot(lam_templ, templ, vsini):
     """ convolve the spectrum with the stellar rotation velocity kernel
     """
-    raise Exception("not implemented yet")
-    return 1
+    eps = 0.6 # limb darkening coefficient
+    kernelF = lambda x: (2*(1-eps)*np.sqrt(1-x**2) + np.pi/2*eps*(1-x**2))/2/np.pi/(1-eps/3)
+    step = np.log(lam_templ[1]/lam_templ[0])
+    amp = vsini * 1e3/speed_of_light
+    npts = np.ceil(amp/step)
+    xgrid  = np.arange(-npts,npts+1)*step
+    kernel = kernelF(xgrid)
+    kernel[np.abs(xgrid)>1]=0
+    # ensure that the lambda is spaced logarithmically
+    assert(np.allclose(lam_templ[1]/lam_templ[0], lam_templ[-1]/lam_templ[-2]))
+    templ1 = scipy.signal.fftconvolve(templ, kernel, mode='same')
+    #raise Exception("not implemented yet")
+    return templ1
 
 
 def getRVInterpol(lam_templ, templ):
     """ Return the spectrum interpolator"""
     interpol = scipy.interpolate.UnivariateSpline(
         lam_templ, templ, s=0, k=3, ext=2)
-    tag = random.getrandbits(128)
-    return interpol, tag
+    return interpol
 
 def evalRV(interpol, vel, lams):
     """ Evaluate the spectrum interpolator at a given velocity
@@ -219,7 +263,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
     if rot_params is not None:
         rot_params = tuple(rot_params)
     if resol_params is not None:
-        resol_params = tuple (resol_params)
+        resol_params = frozendict.frozendict(resol_params)
     atm_params = tuple (atm_params)
 
     # iterate over multiple datasets
@@ -246,14 +290,19 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         
         # current template interpolator object
         if cache is None or templ_tag not in cache:
-            curtemplI, templ_tag = getRVInterpol(templ_lam, templ_spec)
+            curtemplI = getRVInterpol(templ_lam, templ_spec)
             if cache is not None:
                 cache[templ_tag] = curtemplI
         else:
-            curtemplI, templ_tag = cache[templ_tag]
+            curtemplI = cache[templ_tag]
 
         evalTempl = evalRV(curtemplI, vel, curdata.lam)
-        
+
+        # take into account the resolution
+        if resol_params is not None:
+            evalTempl = convolve_resol(
+                evalTempl, resol_params[name])
+
         polys = get_polys(curdata, npoly)
 
         curchisq = get_chisq0(curdata.spec, evalTempl,
@@ -278,6 +327,7 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
               config=None):
     # find the best fit template and velocity from a grid
     cache = pylru.lrucache(100)
+    #cache=None
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):
         for i, v in enumerate(vel_grid):
@@ -286,4 +336,4 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
                                     config=config, cache=cache)
     xind = np.argmin(chisq)
     i1, i2 = np.unravel_index(xind, chisq.shape)
-    return vel_grid[i1], params_list[i2]
+    return chisq[i1,i2],(vel_grid[i1], params_list[i2])

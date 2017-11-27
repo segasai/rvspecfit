@@ -70,12 +70,15 @@ def doit(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
 
     templ_lam, spec = read_grid.get_spec(4.5, 12000, 0, 0, dbfile=dbfile,
                                          prefix=prefix, wavefile=wavefile)
-    HR, lamleft, lamright, resol, step = setupInfo
+    HR, lamleft, lamright, resol, step, log = setupInfo
 
     deltav = 1000. # extra padding
     fac1 = (1 + deltav / (scipy.constants.speed_of_light / 1e3))
-
-    lamgrid = np.arange(lamleft / fac1, (lamright + step) * fac1, step)
+    if not log:
+        lamgrid = np.arange(lamleft / fac1, (lamright + step) * fac1, step)
+    else:
+        lamgrid = np.exp(np.arange(np.log(lamleft/ fac1),np.log(lamright * fac1), np.log(1+step/lamleft)))
+        
     mat = read_grid.make_rebinner(templ_lam, lamgrid, resol)
 
     specs = []
@@ -105,6 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--lambda1', type=float)
     parser.add_argument('--resol', type=float)
     parser.add_argument('--step', type=float)
+    parser.add_argument('--log', action='store_true', default=True)
     parser.add_argument('--templdb', type=str, default='files.db')
     parser.add_argument('--templprefix', type=str)
     parser.add_argument('--oprefix', type=str, default='templ_data/')
@@ -112,6 +116,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     doit((args.setup, args.lambda0, args.lambda1,
-          args.resol, args.step), dbfile=args.templdb, oprefix=args.oprefix,
+          args.resol, args.step, args.log), dbfile=args.templdb, oprefix=args.oprefix,
          prefix=args.templprefix,
          wavefile=args.wavefile)
