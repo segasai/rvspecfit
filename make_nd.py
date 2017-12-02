@@ -57,7 +57,7 @@ def getedgevertices(vec):
 
 def dosetup(HR, prefix=None):
     "Prepare the N-d interpolation objects "
-    perturb = False
+    perturb = True
 
     postf = ''
     with open('%s/specs_%s%s.pkl' % (prefix, HR, postf),'rb') as fp:
