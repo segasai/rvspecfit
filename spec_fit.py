@@ -18,7 +18,7 @@ from joblib import Memory
 import frozendict
 import random
 import pylru
-import scipy.sparse 
+import scipy.sparse
 
 def freezeDict(d):
     if isinstance(d, dict):
@@ -29,7 +29,7 @@ def freezeDict(d):
     else:
         return d
 
-# resolution matrix 
+# resolution matrix
 class ResolMatrix:
     def __init__(self, mat):
         self.fd = {}
@@ -174,7 +174,7 @@ def getCurTempl(name, atm_param, rot_params, resol_params, config):
     curInterp = spec_inter.getInterpolator(name, config)
     outside = curInterp.outsideFlag(atm_param)
     spec = curInterp.eval(atm_param)
-    
+
     # take into account the rotation of the star
     if rot_params is not None:
         spec = convolve_vrot(curInterp.lam, spec, *rot_params)
@@ -193,8 +193,8 @@ def construct_resol_mat(lam, R):
     i1 = np.maximum(i1,0)
     i2 = np.searchsorted(lam, l2, 'right')
     i2 = np.minimum(i2, len(lam)-1)
-    xs = [] 
-    ys = [] 
+    xs = []
+    ys = []
     vals = []
     for i in range(len(lam)):
         iis = np.arange(i1[i],i2[i]+1)
@@ -248,6 +248,13 @@ def read_config(fname=None):
     with open(fname) as fp:
         return freezeDict(yaml.safe_load(fp))
 
+def param_dict_to_tuple(paramDict, setup, config):
+    # convert the dictionary with spectral parameters
+    # to a tuple
+    # addutional arguments are spectral setup
+    # and configuration object
+    interpolator = spec_inter.getInterpolator(setup, config)
+    return tuple([paramDict[_]  for _ in  interpolator.parnames])
 
 def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
               config=None, getModel=False, cache=None):
@@ -268,14 +275,14 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
 
     # iterate over multiple datasets
     for curdata in specdata:
-        
+
         name = curdata.name
 
         outside, templ_lam, templ_spec, templ_tag = getCurTempl(
-            name, atm_params, rot_params, 
+            name, atm_params, rot_params,
             resol_params, config)
-        
-        #if the current point is outside the template grid 
+
+        #if the current point is outside the template grid
         # add bad value and bail out
 
         outsides += np.asscalar(outside)
@@ -287,7 +294,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
                 curdata.lam[-1] < templ_lam[0] or curdata.lam[-1] > templ_lam[-1]):
             raise Exception(
                 "The template library doesn't cover this wavelength")
-        
+
         # current template interpolator object
         if cache is None or templ_tag not in cache:
             curtemplI = getRVInterpol(templ_lam, templ_spec)
@@ -331,9 +338,14 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):
         for i, v in enumerate(vel_grid):
-            chisq[i, j] = get_chisq(specdata, v, curparam, rot_params, 
+            chisq[i, j] = get_chisq(specdata, v, curparam, rot_params,
                                     resol_params, options=options,
                                     config=config, cache=cache)
     xind = np.argmin(chisq)
     i1, i2 = np.unravel_index(xind, chisq.shape)
-    return chisq[i1,i2],(vel_grid[i1], params_list[i2])
+    probs = np.exp(-0.5*(chisq[:,i2]-chisq[i1,i2]))
+    besterr = (probs*vel_grid).sum()/probs.sum()
+    return dict(bestchi = chisq[i1,i2],
+                bestvel = vel_grid[i1],
+                velerr = besterr,
+                bestparam = params_list[i2])

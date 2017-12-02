@@ -6,7 +6,7 @@ import dill
 
 
 def getInterp(triang, dats, exp=True):
-    # get Interpolation object from the Delaunay triangulation 
+    # get Interpolation object from the Delaunay triangulation
     # and array of vectors
     def func(p):
         p = np.asarray(p)
@@ -26,19 +26,21 @@ def getInterp(triang, dats, exp=True):
 
 class SpecInterpolator:
         # Spectrum interpolator object
-    def __init__(self, name, interper, extraper, lam, mapper, invmapper):
-        """ Construct the interpolator object 
+    def __init__(self, name, interper, extraper, lam, mapper, invmapper,
+                 parnames):
+        """ Construct the interpolator object
         The arguments are the name of the instrument setup
-        The interpolator object that returns the 
+        The interpolator object that returns the
         The extrapolation object,
-        """ 
-                
+        """
+
         self.name = name
         self.lam = lam
         self.interper = interper
         self.extraper = extraper
         self.mapper = mapper
         self.invmapper = invmapper
+        self.parnames = parnames
 
     def outsideFlag(self, param0):
         """Check if the point is outside the interpolation grid"""
@@ -47,6 +49,8 @@ class SpecInterpolator:
 
     def eval(self, param0):
         """ Evaluate the spectrum at a given parameter """
+        if isinstance(param0, dict):
+            param0 = [param0[_] for _ in self.parnames]
         param = self.mapper(param0)
         return self.interper(param)
 
@@ -58,13 +62,13 @@ class interp_cache:
 def getInterpolator(HR, config):
     """ return the spectrum interpolation object for a given instrument
     setup HR and config
-    """ 
+    """
     if HR not in interp_cache.interps:
         with open(config['template_lib']['savefile'] % HR, 'rb') as fd0:
             fd = pickle.load(fd0)
-            (triang, templ_lam, vecs, extraflags, mapper, invmapper) = (
+            (triang, templ_lam, vecs, extraflags, mapper, invmapper, parnames) = (
                 fd['triang'], fd['lam'], fd['vec'], fd['extraflags'],
-                fd['mapper'], fd['invmapper'])
+                fd['mapper'], fd['invmapper'], fd['parnames'])
             mapper = dill.loads(mapper)
             invmapper = dill.loads(invmapper)
         expFlag = True
@@ -73,8 +77,14 @@ def getInterpolator(HR, config):
         interper, extraper = (getInterp(triang, dats, exp=expFlag),
                               scipy.interpolate.LinearNDInterpolator(triang, extraflags))
         interpObj = SpecInterpolator(HR, interper, extraper, templ_lam,
-                                     mapper, invmapper)
+                                     mapper, invmapper, parnames)
         interp_cache.interps[HR] = interpObj
     else:
         interpObj = interp_cache.interps[HR]
     return interpObj
+
+
+def getSpecParams(setup, config):
+    ''' Return the ordered list of spectral parameters
+    of a given spectroscopic setup'''
+    return getInterpolator(setup, config).parnames
