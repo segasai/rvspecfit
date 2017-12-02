@@ -20,6 +20,7 @@ import random
 import pylru
 import scipy.sparse
 
+
 def freezeDict(d):
     if isinstance(d, dict):
         d1 = {}
@@ -30,18 +31,22 @@ def freezeDict(d):
         return d
 
 # resolution matrix
+
+
 class ResolMatrix:
     def __init__(self, mat):
         self.fd = {}
         self.fd['mat'] = mat
         # id of the object to ensure that I can cache calls on a given data
         self.id = random.getrandbits(128)
+
     def __hash__(self):
         return self.id
 
     @property
     def mat(self):
         return self.fd['mat']
+
 
 class SpecData:
     def __init__(self, name, lam, spec, espec):
@@ -72,6 +77,7 @@ class SpecData:
 
     def __hash__(self):
         return self.id
+
 
 def eval_vel_grid(vels_grid, interpol, lam_object):
     # obtain the interpolators for each template in the list
@@ -166,6 +172,7 @@ def get_chisq_many(spec, espec, templgrid, polys):
                               polys, getCoeffs=False, espec=None)
     return chisqs
 
+
 @functools.lru_cache(100)
 def getCurTempl(name, atm_param, rot_params, resol_params, config):
     """ get the spectrum in the given setup
@@ -182,30 +189,32 @@ def getCurTempl(name, atm_param, rot_params, resol_params, config):
     templ_tag = random.getrandbits(128)
     return outside, curInterp.lam, spec, templ_tag
 
+
 def construct_resol_mat(lam, R):
     " Construct a sparse resolution matrix "
-    sigs = lam/R/2.35
+    sigs = lam / R / 2.35
     thresh = 5
-    assert(np.all(np.diff(lam)>0))
-    l1 = lam - thresh*sigs
-    l2 = lam + thresh*sigs
+    assert(np.all(np.diff(lam) > 0))
+    l1 = lam - thresh * sigs
+    l2 = lam + thresh * sigs
     i1 = np.searchsorted(lam, l1, 'left')
-    i1 = np.maximum(i1,0)
+    i1 = np.maximum(i1, 0)
     i2 = np.searchsorted(lam, l2, 'right')
-    i2 = np.minimum(i2, len(lam)-1)
+    i2 = np.minimum(i2, len(lam) - 1)
     xs = []
     ys = []
     vals = []
     for i in range(len(lam)):
-        iis = np.arange(i1[i],i2[i]+1)
-        kernel = np.exp(-0.5*(lam[iis]-lam[i])**2/sigs[i]**2)
-        kernel = kernel/kernel.sum()
+        iis = np.arange(i1[i], i2[i] + 1)
+        kernel = np.exp(-0.5 * (lam[iis] - lam[i])**2 / sigs[i]**2)
+        kernel = kernel / kernel.sum()
         ys.append(iis)
-        xs.append([i]*len(iis))
+        xs.append([i] * len(iis))
         vals.append(kernel)
-    xs,ys,vals = [np.concatenate(_) for _ in [xs,ys,vals]]
-    mat= scipy.sparse.coo_matrix((vals,(xs,ys)),shape=(len(lam),len(lam)))
+    xs, ys, vals = [np.concatenate(_) for _ in [xs, ys, vals]]
+    mat = scipy.sparse.coo_matrix((vals, (xs, ys)), shape=(len(lam), len(lam)))
     return ResolMatrix(mat)
+
 
 def convolve_resol(spec, resol_matrix):
     return resol_matrix.mat * spec
@@ -214,16 +223,19 @@ def convolve_resol(spec, resol_matrix):
 def convolve_vrot(lam_templ, templ, vsini):
     """ convolve the spectrum with the stellar rotation velocity kernel
     """
-    eps = 0.6 # limb darkening coefficient
-    kernelF = lambda x: (2*(1-eps)*np.sqrt(1-x**2) + np.pi/2*eps*(1-x**2))/2/np.pi/(1-eps/3)
-    step = np.log(lam_templ[1]/lam_templ[0])
-    amp = vsini * 1e3/speed_of_light
-    npts = np.ceil(amp/step)
-    xgrid  = np.arange(-npts,npts+1)*step
+    eps = 0.6  # limb darkening coefficient
+
+    def kernelF(x): return (2 * (1 - eps) * np.sqrt(1 - x**2) +
+                            np.pi / 2 * eps * (1 - x**2)) / 2 / np.pi / (1 - eps / 3)
+    step = np.log(lam_templ[1] / lam_templ[0])
+    amp = vsini * 1e3 / speed_of_light
+    npts = np.ceil(amp / step)
+    xgrid = np.arange(-npts, npts + 1) * step
     kernel = kernelF(xgrid)
-    kernel[np.abs(xgrid)>1]=0
+    kernel[np.abs(xgrid) > 1] = 0
     # ensure that the lambda is spaced logarithmically
-    assert(np.allclose(lam_templ[1]/lam_templ[0], lam_templ[-1]/lam_templ[-2]))
+    assert(np.allclose(lam_templ[1] / lam_templ[0],
+                       lam_templ[-1] / lam_templ[-2]))
     templ1 = scipy.signal.fftconvolve(templ, kernel, mode='same')
     #raise Exception("not implemented yet")
     return templ1
@@ -234,6 +246,7 @@ def getRVInterpol(lam_templ, templ):
     interpol = scipy.interpolate.UnivariateSpline(
         lam_templ, templ, s=0, k=3, ext=2)
     return interpol
+
 
 def evalRV(interpol, vel, lams):
     """ Evaluate the spectrum interpolator at a given velocity
@@ -248,13 +261,15 @@ def read_config(fname=None):
     with open(fname) as fp:
         return freezeDict(yaml.safe_load(fp))
 
+
 def param_dict_to_tuple(paramDict, setup, config):
     # convert the dictionary with spectral parameters
     # to a tuple
     # addutional arguments are spectral setup
     # and configuration object
     interpolator = spec_inter.getInterpolator(setup, config)
-    return tuple([paramDict[_]  for _ in  interpolator.parnames])
+    return tuple([paramDict[_] for _ in interpolator.parnames])
+
 
 def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
               config=None, getModel=False, cache=None):
@@ -271,7 +286,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         rot_params = tuple(rot_params)
     if resol_params is not None:
         resol_params = frozendict.frozendict(resol_params)
-    atm_params = tuple (atm_params)
+    atm_params = tuple(atm_params)
 
     # iterate over multiple datasets
     for curdata in specdata:
@@ -282,7 +297,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
             name, atm_params, rot_params,
             resol_params, config)
 
-        #if the current point is outside the template grid
+        # if the current point is outside the template grid
         # add bad value and bail out
 
         outsides += np.asscalar(outside)
@@ -334,7 +349,7 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
               config=None):
     # find the best fit template and velocity from a grid
     cache = pylru.lrucache(100)
-    #cache=None
+    # cache=None
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):
         for i, v in enumerate(vel_grid):
@@ -343,9 +358,9 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
                                     config=config, cache=cache)
     xind = np.argmin(chisq)
     i1, i2 = np.unravel_index(xind, chisq.shape)
-    probs = np.exp(-0.5*(chisq[:,i2]-chisq[i1,i2]))
-    besterr = (probs*vel_grid).sum()/probs.sum()
-    return dict(bestchi = chisq[i1,i2],
-                bestvel = vel_grid[i1],
-                velerr = besterr,
-                bestparam = params_list[i2])
+    probs = np.exp(-0.5 * (chisq[:, i2] - chisq[i1, i2]))
+    besterr = (probs * vel_grid).sum() / probs.sum()
+    return dict(bestchi=chisq[i1, i2],
+                bestvel=vel_grid[i1],
+                velerr=besterr,
+                bestparam=params_list[i2])
