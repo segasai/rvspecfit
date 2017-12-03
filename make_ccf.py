@@ -12,10 +12,27 @@ import spec_fit
 
 
 class CCFConfig:
+    """ Configuration class for cross-correlation functions """
     def __init__(self, logl0=None, logl1=None, npoints=None, splinestep=1000,
                  maxcontpts=30):
-        # slinestep is the smoothing step for the continuum in km/s
-        # but the number of points in the continuum fit will be below  maxcontpts
+        """
+        Configure the cross-correlation
+
+        Parameters
+        ----------
+        logl0: float
+             The natural logarithm of the wavelength of the beginning of the CCF
+        logl1: float
+             The natural logarithm of the wavelength of the end of the CCF
+        npoints: integer
+             The number of points in the cross correlation functions
+        splinestep: float, optional
+             The stepsize in km/s that determine the smoothness of the continuum
+             fit
+        maxcontpts: integer, optional
+             The maximum number of points used for the continuum fit
+        """
+
         self.logl0 = logl0
         self.logl1 = logl1
         self.npoints = npoints
@@ -25,7 +42,14 @@ class CCFConfig:
 
 
 def get_revision():
-    """ get the git revision of the code"""
+    """
+    Get the git revision of the code
+
+    Returns:
+    --------
+    revision : string
+        The string with the git revision
+    """
     try:
         fname = os.path.dirname(os.path.realpath(__file__))
         tmpout = subprocess.Popen(
@@ -40,8 +64,11 @@ def get_revision():
 git_rev = get_revision()
 
 
-def get_cont(lam0, spec0, espec0, ccfconf=None, frac=10):
-    # get the continuum in bins of spectra
+def get_cont(lam0, spec0, espec0, ccfconf=None, bin=11):
+    """
+    Determine the continuum of the spectrum by fitting a spline
+
+    """
 
     lammin = lam0.min()
     N = np.log(lam0.max() / lammin)/np.log(1+ccfconf.splinestep/3e5)
@@ -54,8 +81,8 @@ def get_cont(lam0, spec0, espec0, ccfconf=None, frac=10):
     p0 = np.log(BS.statistic)
     p0[~np.isfinite(p0)] = np.log(medspec)
 
-    lam, spec, espec = [x[::frac] for x in [lam0, spec0, espec0]]
-
+    lam, spec, espec = (lam0[::bin], scipy.signal.medfilt(spec0, bin)[::bin],
+                        scipy.signal.medfilt(espec0, bin)[::bin])
     res = scipy.optimize.minimize(res_fit, p0,
                                   args=(spec, espec, nodes, lam),
                                   jac=False,
@@ -63,14 +90,6 @@ def get_cont(lam0, spec0, espec0, ccfconf=None, frac=10):
                                   method='BFGS'
                                   )['x']
     cont = res_fit(res, spec0, espec0, nodes, lam0, getModel=True)
-    #from idlplot import plot,oplot
-    #import matplotlib.pyplot as plt
-    #plot (lam0, spec0,xlog=True)
-    #oplot(lam0, cont,color='red')
-    #1/0
-    #plt.draw()
-    #plt.pause(0.1)
-
     return cont
 
 
