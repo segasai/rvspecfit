@@ -1,16 +1,13 @@
-import numpy as np
-import numpy.random
-import scipy.interpolate
-import os
-import subprocess
-from random import random, seed
 import pickle
-import dill
 import argparse
+import numpy as np
+import scipy.interpolate
 import scipy.stats
 import spec_fit
 import make_ccf
+import utils
 
+git_rev = utils.get_revision()
 
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
@@ -42,31 +39,7 @@ class CCFConfig:
         self.splinestep = max(
             splinestep, 3e5 * (np.exp((logl1 - logl0) / self.maxcontpts) - 1))
 
-
-def get_revision():
-    """
-    Get the git revision of the code
-
-    Returns:
-    --------
-    revision : string
-        The string with the git revision
-    """
-    try:
-        fname = os.path.dirname(os.path.realpath(__file__))
-        tmpout = subprocess.Popen(
-            'cd ' + fname + ' ; git log -n 1 --pretty=format:%H -- make_nd.py',
-            shell=True, bufsize=80, stdout=subprocess.PIPE).stdout
-        revision = tmpout.read()
-        return revision
-    except:
-        return ''
-
-
-git_rev = get_revision()
-
-
-def get_cont(lam0, spec0, espec0, ccfconf=None, bin=11):
+def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     """
     Determine the continuum of the spectrum by fitting a spline
 
@@ -194,20 +167,22 @@ def pad(x, y):
     """
     l = len(y)
     l1 = int(2**np.ceil(np.log(l) / np.log(2)))
-    delta1 = int((l1 - l) / 2) # extra pixels on the left
-    delta2 = int((l1 - l) - delta1) # extra pixels on the right
+    delta1 = int((l1 - l) / 2)  # extra pixels on the left
+    delta2 = int((l1 - l) - delta1)  # extra pixels on the right
     y2 = np.concatenate((np.zeros(delta1), y, np.zeros(delta2)))
     deltax = x[1] - x[0]
-    if np.allclose(np.diff(x),deltax):
+    if np.allclose(np.diff(x), deltax):
         x2 = np.concatenate((np.arange(-delta1, 0) * deltax + x[0], x,
-                        x[-1] + deltax * (1 + np.arange(delta2))))
-    elif np.allclose(np.diff(np.log(x)), np.log(x[1]/x[0])):
-        ratx = x[1]/x[0]
-        x2 = np.concatenate(deltax**(np.arange(-delta1, 0)* x[0], x,
-                        x[-1]* deltax **(1 + np.arange(delta2))))
+                             x[-1] + deltax * (1 + np.arange(delta2))))
+    elif np.allclose(np.diff(np.log(x)), np.log(x[1] / x[0])):
+        ratx = x[1] / x[0]
+        x2 = np.concatenate(deltax**(np.arange(-delta1, 0) * x[0], x,
+                                     x[-1] * deltax ** (1 + np.arange(delta2))))
     else:
-        raise Exception('the wavelength axis is neither logarithmic, nor linear')
+        raise Exception(
+            'the wavelength axis is neither logarithmic, nor linear')
     return x2, y2
+
 
 def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
     """
@@ -239,7 +214,7 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
         m = spec_fit.convolve_vsini(lammodel, model0, vsini)
     else:
         m = model0
-    cont = get_cont(lammodel, m, m * 0 + 1e-5, ccfconf=ccfconf)
+    cont = get_continuum(lammodel, m, m * 0 + 1e-5, ccfconf=ccfconf)
 
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
     c_model = c_model - np.mean(c_model)
@@ -287,6 +262,7 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
             res.append(cpa_model)
     return xlogl, res, retparams, vsinisList
 
+
 def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     """
     Preprocess data in the same manner as the template spectra, normalize by
@@ -314,7 +290,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     curespec = espec.copy()
     curspec = spec0.copy()
     curespec[~badmask] = curespec[~badmask] * 0 + 1e9
-    cont = get_cont(lam, curspec, curespec, ccfconf=ccfconf)
+    cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
     c_spec = spec0 / cont
     c_spec = c_spec - np.median(c_spec)
     ca_spec = apodize(c_spec)
@@ -402,4 +378,5 @@ if __name__ == '__main__':
         vsinis = [float(_) for _ in args.vsinis.split(',')]
     else:
         vsinis = None
-    ccf_executor(args.setup, ccfconf, args.prefix, args.oprefix, args.every, vsinis)
+    ccf_executor(args.setup, ccfconf, args.prefix,
+                 args.oprefix, args.every, vsinis)

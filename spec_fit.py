@@ -12,23 +12,12 @@ import gc
 import os
 import math
 import spec_inter
-import yaml
 from tempfile import mkdtemp
 import frozendict
 import random
 import pylru
 import scipy.sparse
-
-
-def freezeDict(d):
-    if isinstance(d, dict):
-        d1 = {}
-        for k, v in d.items():
-            d1[k] = freezeDict(v)
-        return frozendict.frozendict(d1)
-    else:
-        return d
-
+import utils
 # resolution matrix
 
 
@@ -55,7 +44,7 @@ class SpecData:
         self.fd['spec'] = spec
         self.fd['espec'] = espec
         self.fd['badmask'] = np.zeros(len(spec), dtype=bool)
-        self.fd = freezeDict(self.fd)
+        self.fd = utils.freezeDict(self.fd)
         # id of the object to ensure that I can cache calls on a given data
         self.id = random.getrandbits(128)
 
@@ -257,13 +246,6 @@ def evalRV(interpol, vel, lams):
     and given wavelengths
     """
     return interpol(lams / (1 + vel * 1000. / speed_of_light))
-
-
-def read_config(fname=None):
-    if fname is None:
-        fname = 'config.yaml'
-    with open(fname) as fp:
-        return freezeDict(yaml.safe_load(fp))
 
 
 def param_dict_to_tuple(paramDict, setup, config):

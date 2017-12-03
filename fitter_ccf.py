@@ -1,27 +1,31 @@
+import sys
+import os
+import pickle
+import time
 import numpy as np
 import scipy.optimize
-import numpy
-import sys
-import matplotlib.pyplot as plt
 import scipy.interpolate
-import os
-import time
-import make_ccf
-import pickle
-
-from idlplotInd import plot, oplot
 import matplotlib.pyplot as plt
+import make_ccf
 
-
-class ccfCache:
+class CCFCache:
+    """ Singleton caching CCF information """
     ccfs = {}
 
+def get_ccf_info(spec_setup, config):
+    """
+    Returns the CCF info from the pickled file for a given spectroscopic spec_setup
 
-def getCcf(setup, config):
-    if setup not in ccfCache.ccfs:
-        ccfCache.ccfs[setup] = pickle.load(
-            open(config['template_lib']['ccffile'] % setup, 'rb'))
-    return ccfCache.ccfs[setup]
+    Parameters:
+    -----------
+    spec_setup: string
+        The spectroscopic setup needed
+    config: 
+    """
+    if spec_setup not in CCFCache.ccfs:
+        CCFCache.ccfs[spec_setup] = pickle.load(
+            open(config['template_lib']['ccffile'] % spec_setup, 'rb'))
+    return CCFCache.ccfs[spec_setup]
 
 
 def doitquick(specdata, config):
@@ -40,7 +44,7 @@ def doitquick(specdata, config):
         lam = cursd.lam
         spec = cursd.spec
         espec = cursd.espec
-        ccfs[spec_setup] = getCcf(spec_setup, config)
+        ccfs[spec_setup] = get_ccf_info(spec_setup, config)
         ccfconf = ccfs[spec_setup]['ccfconf']
         logl0 = ccfconf.logl0
         logl1 = ccfconf.logl1
@@ -83,7 +87,7 @@ def doitquick(specdata, config):
         if allccf.max() > maxv:
             maxv = allccf.max()
             bestid = id
-            bestv = vel_grid[numpy.argmax(allccf)]
+            bestv = vel_grid[np.argmax(allccf)]
             bestmodel = {}
             for spec_setup in ccfs.keys():
                 bestmodel[spec_setup] = np.roll(

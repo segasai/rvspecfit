@@ -6,8 +6,8 @@ import astropy.io.fits as pyfits
 import numpy as np
 import matplotlib.pyplot as plt
 import fitter_ccf
-
-config = spec_fit.read_config()
+import utils
+config = utils.read_config()
 
 # read data
 dat = pyfits.getdata('../examples/spec-0266-51602-0031.fits')
