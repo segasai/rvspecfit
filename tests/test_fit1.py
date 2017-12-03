@@ -28,6 +28,6 @@ res1 = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
                     config=config, options=options)
 plt.figure(figsize=(6,2),dpi=300)
 plt.plot(specdata[0].lam,specdata[0].spec,'k-')
-plt.plot(specdata[0].lam,res1['yfit']['sdss1'],'r-')
+plt.plot(specdata[0].lam,res1['yfit'][0],'r-')
 plt.tight_layout()
 plt.savefig('test_fit1.png')

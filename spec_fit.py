@@ -14,7 +14,6 @@ import math
 import spec_inter
 import yaml
 from tempfile import mkdtemp
-from joblib import Memory
 import frozendict
 import random
 import pylru
@@ -285,7 +284,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
     npoly = options.get('npoly') or 5
     chisq = 0
     outsides = 0
-    models = {}
+    models = []
     badchi = 1e6
     if rot_params is not None:
         rot_params = tuple(rot_params)
@@ -336,7 +335,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         if getModel:
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
-            models[name]= curmodel
+            models.append(curmodel)
 
         assert(np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
