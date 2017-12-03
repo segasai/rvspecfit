@@ -354,7 +354,6 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
               config=None):
     # find the best fit template and velocity from a grid
     cache = pylru.lrucache(100)
-    # cache=None
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):
         for i, v in enumerate(vel_grid):

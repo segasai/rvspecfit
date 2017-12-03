@@ -36,7 +36,7 @@ def firstguess(specdata, options=None,
         res = spec_fit.find_best(specdata, vels_grid, params,
                              rot_params, resolParams,
                              config=config, options=options)
-    
+
 
 def doit(specdata, paramDict0, fixParam=None, options=None,
          config=None,
@@ -115,11 +115,11 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     startParam = [bestvel]
 
     if fitVsini:
-        starParam.append(mapVsiniInv(paramDict0['vsini']))
-    else:
-        for x in specParams:
-            if x not in fixParam:
-                startParam.append(paramDict0[x])
+        startParam.append(mapVsiniInv(paramDict0['vsini']))
+
+    for x in specParams:
+        if x not in fixParam:
+            startParam.append(paramDict0[x])
     print(startParam, fixParam, specParams)
 
     def func(p):
@@ -128,7 +128,7 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
                                    pdict['params'], pdict['rot_params'],
                                    resolParams,
                                    options=options, config=config)
-        print(pdict['params'], pdict['vel'], chisq)
+        #print(pdict['params'], pdict['vel'], chisq)
         return chisq
     method = 'Nelder-Mead'
     res = scipy.optimize.minimize(func, startParam, method=method,
@@ -153,10 +153,11 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         else:
             break
     chisq,yfit = spec_fit.get_chisq(specdata, bestvel
-                               ,[ret['param'][_] for _ in specParams], 
+                               ,[ret['param'][_] for _ in specParams],
                                bestparam['rot_params'],
                                resolParams,
                                     options=options, config=config,
                                     getModel=True)
     ret['yfit'] = yfit
+    ret['chisq'] = chisq
     return ret

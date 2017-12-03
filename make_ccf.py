@@ -11,6 +11,19 @@ import scipy.stats
 import spec_fit
 
 
+class CCFConfig:
+    def __init__(self, logl0=None, logl1=None, npoints=None, splinestep=1000,
+                 maxcontpts=30):
+        # slinestep is the smoothing step for the continuum in km/s
+        # but the number of points in the continuum fit will be below  maxcontpts
+        self.logl0 = logl0
+        self.logl1 = logl1
+        self.npoints = npoints
+        self.maxcontpts = maxcontpts
+        self.splinestep = max(
+            splinestep, 3e5 * (np.exp((logl1 - logl0) / self.maxcontpts)-1))
+
+
 def get_revision():
     """ get the git revision of the code"""
     try:
@@ -27,29 +40,15 @@ def get_revision():
 git_rev = get_revision()
 
 
-class CCFConfig:
-    def __init__(self, logl0=None, logl1=None, npoints=None, splinestep=1000,
-                 maxcontpts=30):
-        # slinestep is the smoothing step for the continuum in km/s
-        # but the number of points in the continuum fit will be below  maxcontpts
-        self.logl0 = logl0
-        self.logl1 = logl1
-        self.npoints = npoints
-        self.maxcontpts = maxcontpts
-        self.splinestep = max(
-            splinestep, 3e5 * (np.exp((logl1 - logl0) - 1) / self.maxcontpts))
-        print(self.splinestep)
-
-
 def get_cont(lam0, spec0, espec0, ccfconf=None, frac=10):
     # get the continuum in bins of spectra
 
     lammin = lam0.min()
-    N = np.log(lam0.max() / lammin) * 3e5 / ccfconf.splinestep
+    N = np.log(lam0.max() / lammin)/np.log(1+ccfconf.splinestep/3e5)
     N = int(np.ceil(N))
-    nodes = lammin * (1 + np.arange(N) * ccfconf.splinestep / 3e5)
-    nodesedges = lammin * (1 + (-0.5 + np.arange(N + 1))
-                           * ccfconf.splinestep / 3e5)
+    nodes = lammin * np.exp(np.arange(N) * np.log(1+ ccfconf.splinestep / 3e5))
+    nodesedges = lammin * np.exp((-0.5 + np.arange(N + 1))
+                           * np.log(1+ccfconf.splinestep / 3e5))
     medspec = np.median(spec0)
     BS = scipy.stats.binned_statistic(lam0, spec0, 'median', bins=nodesedges)
     p0 = np.log(BS.statistic)
@@ -57,13 +56,21 @@ def get_cont(lam0, spec0, espec0, ccfconf=None, frac=10):
 
     lam, spec, espec = [x[::frac] for x in [lam0, spec0, espec0]]
 
-    res = scipy.optimize.minimize(res_fit, [medspec] * N,
+    res = scipy.optimize.minimize(res_fit, p0,
                                   args=(spec, espec, nodes, lam),
                                   jac=False,
                                   # method='Nelder-Mead'
                                   method='BFGS'
                                   )['x']
     cont = res_fit(res, spec0, espec0, nodes, lam0, getModel=True)
+    #from idlplot import plot,oplot
+    #import matplotlib.pyplot as plt
+    #plot (lam0, spec0,xlog=True)
+    #oplot(lam0, cont,color='red')
+    #1/0
+    #plt.draw()
+    #plt.pause(0.1)
+
     return cont
 
 
@@ -75,6 +82,11 @@ def res_fit(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
     res = (spec - model) / espec
     val = np.abs(res).sum()
     # I may need to mask outliers here...
+    if False:
+        from idlplotInd import plot,oplot
+        plot(spec)
+        oplot(model,color='red')
+
     if not np.isfinite(val):
         return 1e30
     return val
@@ -114,7 +126,6 @@ def preprocess_models_doer(logl, lammodels, m0, vel, ccfconf=None):
     c_model = scipy.interpolate.interp1d(np.log(lammodels), m / cont)(logl)
     c_model = c_model - np.mean(c_model)
     ca_model = apodize(c_model)
-
     xlogl, cpa_model = pad(logl, ca_model)
     std = (cpa_model**2).sum()**.5
     cpa_model /= std
@@ -132,8 +143,10 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     ca_spec = apodize(c_spec)
     if badmask is not None:
         ca_spec[badmask] = 0
-    ca_spec = scipy.interpolate.interp1d(np.log(lam), ca_spec)(logl)
+    ca_spec = scipy.interpolate.interp1d(np.log(lam), ca_spec,bounds_error=False,
+                                        fill_value=0, kind='linear')(logl)
     lam1, cap_spec = pad(logl, ca_spec)
+    #1/0
     return cap_spec
 
 
@@ -147,6 +160,7 @@ def preprocess_models(lammodels, models, params, ccfconf, vsinis=None):
     resA = []
     vsinisList = []
     for imodel, m0 in enumerate(models):
+        print(imodel, len(models))
         for vel in vsinis:
             retparams.append(params[imodel])
             xlogl, cpa_model, std = preprocess_models_doer(
@@ -182,6 +196,7 @@ def dosetup(HR, ccfconf, prefix=None, oprefix=None, every=10, vsinis=None):
     dHash['ccfconf'] = ccfconf
     dHash['loglambda'] = xlogl
     dHash['vsinis'] = vsinis
+    dHash['parnames'] = parnames
 
     with open(savefile, 'wb') as fp:
         pickle.dump(dHash, fp)
@@ -200,7 +215,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     npoints = (args.lambda1 - args.lambda0) / args.step
-    ccfconf = CCFConfig(logl0=np.log(args.lambda0),
+    import make_ccf
+    ccfconf = make_ccf.CCFConfig(logl0=np.log(args.lambda0),
                         logl1=np.log(args.lambda1),
                         npoints=npoints)
 
