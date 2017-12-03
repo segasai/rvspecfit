@@ -20,25 +20,54 @@ def get_ccf_info(spec_setup, config):
     -----------
     spec_setup: string
         The spectroscopic setup needed
-    config: 
+    config: dict
+        The dictionary with the config
+
+    Returns:
+    -------
+    d: dict
+        The dictionary with the CCF Information as saved by the make_ccf code
+
     """
     if spec_setup not in CCFCache.ccfs:
         CCFCache.ccfs[spec_setup] = pickle.load(
             open(config['template_lib']['ccffile'] % spec_setup, 'rb'))
     return CCFCache.ccfs[spec_setup]
 
+def fit(specdata, config):
+    """
+    Process the data by doing cross-correlation with templates
 
-def doitquick(specdata, config):
+    Parameters:
+    -----------
+    specdata: list of SpecData objects
+        The list of data that needs to be fitted from differetn spectral
+        setups.
+    config: dict
+        The configuration dictionary
+
+    Returns:
+    results: dict
+        The dictionary with results such as best template parameters, best velocity
+        best vsini.
+    """
+    # configuration parameters
+
+    maxvel = 1000
+    # only search for CCF peaks from -maxvel to maxvel
+    nvelgrid = 2000
+    # number of points on the ccf in the specified velocity range
+
+
     loglam = {}
-    stor = {}
     velstep = {}
     spec_fftconj = {}
     vels = {}
     off = {}
     subind = {}
-    maxvel = 1000
     ccfs = {}
     proc_specs = {}
+
     for cursd in specdata:
         spec_setup = cursd.name
         lam = cursd.lam
@@ -66,8 +95,7 @@ def doitquick(specdata, config):
     maxv = -1e20
     bestid = -90
     bestv = -777
-    maxvel = 1000
-    nvelgrid = 2000
+
     nfft = ccfs[spec_setup]['ffts'].shape[0]
     vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
     bestccf = vel_grid * 0
@@ -93,8 +121,14 @@ def doitquick(specdata, config):
                 bestmodel[spec_setup] = np.roll(
                     ccfs[spec_setup]['models'][id], int(bestv / velstep[spec_setup]))
             bestccf = allccf
+    try:
+        assert(bestid>=0)
+    except:
+        raise Exception('Cross-correlation step failed')
+
     bestpar = ccfs[list(ccfs.keys())[0]]['params'][bestid]
     bestpar = dict(zip(ccfs[spec_setup]['parnames'], bestpar))
+
     bestvsini = ccfs[list(ccfs.keys())[0]]['vsinis'][bestid]
 
     result = {}
