@@ -9,6 +9,7 @@ import dill
 import argparse
 import scipy.stats
 import spec_fit
+import make_ccf
 
 
 class CCFConfig:
@@ -325,11 +326,33 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     return cap_spec
 
 
-def dosetup(HR, ccfconf, prefix=None, oprefix=None, every=10, vsinis=None):
-    "Prepare the N-d interpolation objects "
+def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsinis=None):
+    """
+    Prepare the FFT transformations for the CCF
+
+    Parameters:
+    -----------
+    spec_setup: string
+        The name of the spectroscopic spec_setup
+    ccfconf: CCFConfig
+        The CCF configuration object
+    prefix: string
+        The input directory where the templates are located
+    oprefix: string
+        The output directory
+    every: integer (optional)
+        Produce FFTs of every N-th spectrum
+    vsinis: list (optional)
+        Produce FFTS of the templates  with Vsini from the list.
+        Could be None (it means no rotation will be added)
+
+    Returns:
+    --------
+    Nothing
+    """
 
     postf = ''
-    with open('%s/specs_%s%s.pkl' % (prefix, HR, postf), 'rb') as fp:
+    with open('%s/specs_%s%s.pkl' % (prefix, spec_setup, postf), 'rb') as fp:
         D = pickle.load(fp)
         vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D['parnames']
         del D
@@ -343,7 +366,7 @@ def dosetup(HR, ccfconf, prefix=None, oprefix=None, every=10, vsinis=None):
     xlogl, models, params, vsinis = preprocess_model_list(
         lam, np.exp(specs), vec, ccfconf, vsinis=vsinis)
     ffts = np.array([np.fft.fft(x) for x in models])
-    savefile = '%s/ccf_%s%s.pkl' % (oprefix, HR, postf)
+    savefile = '%s/ccf_%s%s.pkl' % (oprefix, spec_setup, postf)
     dHash = {}
     dHash['params'] = params
     dHash['ffts'] = np.array(ffts)
@@ -371,7 +394,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     npoints = (args.lambda1 - args.lambda0) / args.step
-    import make_ccf
     ccfconf = make_ccf.CCFConfig(logl0=np.log(args.lambda0),
                                  logl1=np.log(args.lambda1),
                                  npoints=npoints)
@@ -380,4 +402,4 @@ if __name__ == '__main__':
         vsinis = [float(_) for _ in args.vsinis.split(',')]
     else:
         vsinis = None
-    dosetup(args.setup, ccfconf, args.prefix, args.oprefix, args.every, vsinis)
+    ccf_executor(args.setup, ccfconf, args.prefix, args.oprefix, args.every, vsinis)
