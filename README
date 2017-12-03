@@ -13,4 +13,4 @@ Create the triangulation
 python make_nd.py  --prefix ../templ_data/ --setup test_setup
 
 
-python make_ccf.py --setup test_setup --lambda0 4000 --lambda1 5000 --step 0.5 --prefix ../templ_data/ --oprefix=../templ_data
+python make_ccf.py --setup test_setup --lambda0 4000 --lambda1 5000 --step 0.5 --prefix ../templ_data/ --vsinis 0,300 --oprefix=../templ_data

@@ -49,12 +49,13 @@ class ResolMatrix:
 
 
 class SpecData:
-    def __init__(self, name, lam, spec, espec):
+    def __init__(self, name, lam, spec, espec, badmask=None):
         self.fd = {}
         self.fd['name'] = name
         self.fd['lam'] = lam
         self.fd['spec'] = spec
         self.fd['espec'] = espec
+        self.fd['badmask'] = np.zeros(len(spec), dtype=bool)
         self.fd = freezeDict(self.fd)
         # id of the object to ensure that I can cache calls on a given data
         self.id = random.getrandbits(128)
@@ -74,6 +75,10 @@ class SpecData:
     @property
     def espec(self):
         return self.fd['espec']
+
+    @property
+    def badmask(self):
+        return self.fd['badmask']
 
     def __hash__(self):
         return self.id
