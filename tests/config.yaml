@@ -1,0 +1,4 @@
+template_lib:
+    savefile : '../../templ_data/interp_%s.pkl'
+    npyfile : '../../templ_data/interpdat_%s.npy'
+    ccffile: '../../templ_data/ccf_%s.pkl' 

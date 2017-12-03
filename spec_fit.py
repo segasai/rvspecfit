@@ -285,7 +285,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
     npoly = options.get('npoly') or 5
     chisq = 0
     outsides = 0
-    models = []
+    models = {}
     badchi = 1e6
     if rot_params is not None:
         rot_params = tuple(rot_params)
@@ -295,7 +295,6 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
 
     # iterate over multiple datasets
     for curdata in specdata:
-
         name = curdata.name
 
         outside, templ_lam, templ_spec, templ_tag = getCurTempl(
@@ -337,7 +336,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         if getModel:
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
-            models.append(curmodel)
+            models[name]= curmodel
 
         assert(np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
