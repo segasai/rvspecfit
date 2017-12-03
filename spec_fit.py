@@ -184,7 +184,7 @@ def getCurTempl(name, atm_param, rot_params, resol_params, config):
 
     # take into account the rotation of the star
     if rot_params is not None:
-        spec = convolve_vrot(curInterp.lam, spec, *rot_params)
+        spec = convolve_vsini(curInterp.lam, spec, *rot_params)
 
     templ_tag = random.getrandbits(128)
     return outside, curInterp.lam, spec, templ_tag
@@ -220,7 +220,7 @@ def convolve_resol(spec, resol_matrix):
     return resol_matrix.mat * spec
 
 
-def convolve_vrot(lam_templ, templ, vsini):
+def convolve_vsini(lam_templ, templ, vsini):
     """ convolve the spectrum with the stellar rotation velocity kernel
     """
     eps = 0.6  # limb darkening coefficient
@@ -363,4 +363,5 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
     return dict(bestchi=chisq[i1, i2],
                 bestvel=vel_grid[i1],
                 velerr=besterr,
-                bestparam=params_list[i2])
+                bestparam=params_list[i2],
+                probs=probs)
