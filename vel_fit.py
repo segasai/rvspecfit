@@ -32,7 +32,6 @@ def firstguess(specdata, options=None,
             rot_params  =None
         else:
             rot_params = (vsini,)
-            print (vsini)
         res = spec_fit.find_best(specdata, vels_grid, params,
                              rot_params, resolParams,
                              config=config, options=options)
@@ -122,7 +121,6 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     for x in specParams:
         if x not in fixParam:
             startParam.append(paramDict0[x])
-    print(startParam, fixParam, specParams)
 
     def func(p):
         pdict = paramMapper(p)
@@ -130,7 +128,6 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
                                    pdict['params'], pdict['rot_params'],
                                    resolParams,
                                    options=options, config=config)
-        #print(pdict['params'], pdict['vel'], chisq)
         return chisq
     method = 'Nelder-Mead'
     t1 = time.time()
@@ -159,7 +156,6 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         else:
             break
     t3 = time.time()
-
     ret['vel_err'] = res1['vel_err']
     chisq,yfit = spec_fit.get_chisq(specdata, best_vel
                                ,[ret['param'][_] for _ in specParams],
