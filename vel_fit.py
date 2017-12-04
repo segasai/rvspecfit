@@ -146,12 +146,13 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         res1 = spec_fit.find_best(specdata, vels_grid, [[ret['param'][_] for _ in specParams]],
                              bestparam['rot_params'], resolParams,
                              config=config, options=options)
-        if res1['velerr'] < 10*velstep:
+        if res1['vel_err'] < 10*velstep:
             velstep/=4
-            minvel = max(minvel - 10 * res1['velerr'],minvel)
-            maxvel = min(maxvel + 10 * res1['velerr'],maxvel)
+            minvel = max(minvel - 10 * res1['vel_err'],minvel)
+            maxvel = min(maxvel + 10 * res1['vel_err'],maxvel)
         else:
             break
+    ret['vel_err'] = res1['vel_err']
     chisq,yfit = spec_fit.get_chisq(specdata, bestvel
                                ,[ret['param'][_] for _ in specParams],
                                bestparam['rot_params'],

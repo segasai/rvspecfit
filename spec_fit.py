@@ -346,6 +346,6 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
     besterr = (probs * vel_grid).sum() / probs.sum()
     return dict(bestchi=chisq[i1, i2],
                 bestvel=vel_grid[i1],
-                velerr=besterr,
+                vel_err=besterr,
                 bestparam=params_list[i2],
                 probs=probs)
