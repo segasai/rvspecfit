@@ -93,12 +93,12 @@ def fit(specdata, config):
         subind[spec_setup] = np.abs(vels[spec_setup]) < maxvel
 
     maxv = -1e20
-    bestid = -90
-    bestv = -777
+    best_id = -90
+    best_v = -777
 
     nfft = ccfs[spec_setup]['ffts'].shape[0]
     vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
-    bestccf = vel_grid * 0
+    best_ccf = vel_grid * 0
     for id in range(nfft):
         curccf = {}
         for spec_setup in ccfs.keys():
@@ -114,28 +114,28 @@ def fit(specdata, config):
         allccf = np.array([curccf[_] for _ in ccfs.keys()]).prod(axis=0)
         if allccf.max() > maxv:
             maxv = allccf.max()
-            bestid = id
-            bestv = vel_grid[np.argmax(allccf)]
-            bestmodel = {}
+            best_id = id
+            best_v = vel_grid[np.argmax(allccf)]
+            best_model = {}
             for spec_setup in ccfs.keys():
-                bestmodel[spec_setup] = np.roll(
-                    ccfs[spec_setup]['models'][id], int(bestv / velstep[spec_setup]))
-            bestccf = allccf
+                best_model[spec_setup] = np.roll(
+                    ccfs[spec_setup]['models'][id], int(best_v / velstep[spec_setup]))
+            best_ccf = allccf
     try:
-        assert(bestid>=0)
+        assert(best_id>=0)
     except:
         raise Exception('Cross-correlation step failed')
 
-    bestpar = ccfs[list(ccfs.keys())[0]]['params'][bestid]
-    bestpar = dict(zip(ccfs[spec_setup]['parnames'], bestpar))
+    best_par = ccfs[list(ccfs.keys())[0]]['params'][best_id]
+    best_par = dict(zip(ccfs[spec_setup]['parnames'], best_par))
 
-    bestvsini = ccfs[list(ccfs.keys())[0]]['vsinis'][bestid]
+    best_vsini = ccfs[list(ccfs.keys())[0]]['vsinis'][best_id]
 
     result = {}
-    result['bestpar'] = bestpar
-    result['bestvel'] = bestv
-    result['bestccf'] = bestccf
-    result['bestvsini'] = bestvsini
-    result['bestmodel'] = bestmodel
+    result['best_par'] = best_par
+    result['best_vel'] = best_v
+    result['best_ccf'] = best_ccf
+    result['best_vsini'] = best_vsini
+    result['best_model'] = best_model
     result['proc_spec'] = proc_specs
     return result

@@ -60,10 +60,10 @@ def procdesi(fname, ofname, fig_prefix):
                                   1./(ivars[s][curid])**.5))
         options = {'npoly': 15}
         res = fitter_ccf.fit(specdata, config)
-        paramDict0 = res['bestpar']
+        paramDict0 = res['best_par']
         fixParam = []
-        if res['bestvsini'] is not None:
-            paramDict0['vsini'] = res['bestvsini']
+        if res['best_vsini'] is not None:
+            paramDict0['vsini'] = res['best_vsini']
         res1 = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
                             config=config, options=options)
         outdict['brickname'].append(curbrick)

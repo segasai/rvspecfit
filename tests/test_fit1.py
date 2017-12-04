@@ -20,10 +20,10 @@ specdata = [spec_fit.SpecData('sdss1', 10**dat['loglam'],
                               dat['flux'], err)]
 options = {'npoly': 15}
 res = fitter_ccf.fit(specdata, config)
-paramDict0 = res['bestpar']
+paramDict0 = res['best_par']
 fixParam = []
-if res['bestvsini'] is not None:
-    paramDict0['vsini'] = res['bestvsini']
+if res['best_vsini'] is not None:
+    paramDict0['vsini'] = res['best_vsini']
 res1 = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
                     config=config, options=options)
 plt.figure(figsize=(6, 2), dpi=300)

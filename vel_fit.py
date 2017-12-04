@@ -83,7 +83,7 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     res = spec_fit.find_best(specdata, vels_grid, [curparam],
                              rot_params, resolParams,
                              config=config, options=options)
-    bestvel = res['bestvel']
+    best_vel = res['best_vel']
 
     def paramMapper(p0):
         # construct relevant objects for fitting from a numpy array vectors
@@ -112,7 +112,7 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         assert(len(p0rev) == 0)
         return ret
 
-    startParam = [bestvel]
+    startParam = [best_vel]
 
     if fitVsini:
         startParam.append(mapVsiniInv(paramDict0['vsini']))
@@ -133,18 +133,18 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     method = 'Nelder-Mead'
     res = scipy.optimize.minimize(func, startParam, method=method,
                                   options={'fatol': 1e-3, 'xatol': 1e-2})
-    bestparam = paramMapper(res['x'])
+    best_param = paramMapper(res['x'])
     ret = {}
-    ret['param'] = dict(zip(specParams, bestparam['params']))
+    ret['param'] = dict(zip(specParams, best_param['params']))
     if fitVsini:
-        ret['vsini'] = bestparam['vsini']
-    ret['vel'] = bestparam['vel']
-    bestvel = bestparam['vel']
+        ret['vsini'] = best_param['vsini']
+    ret['vel'] = best_param['vel']
+    best_vel = best_param['vel']
     velstep = velstep0
     while True:
-        vels_grid = np.concatenate((np.arange (bestvel, minvel, velstep)[::-1], np.arange(bestvel+velstep, maxvel, velstep)))
+        vels_grid = np.concatenate((np.arange (best_vel, minvel, velstep)[::-1], np.arange(best_vel+velstep, maxvel, velstep)))
         res1 = spec_fit.find_best(specdata, vels_grid, [[ret['param'][_] for _ in specParams]],
-                             bestparam['rot_params'], resolParams,
+                             best_param['rot_params'], resolParams,
                              config=config, options=options)
         if res1['vel_err'] < 10*velstep:
             velstep/=4
@@ -153,9 +153,9 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         else:
             break
     ret['vel_err'] = res1['vel_err']
-    chisq,yfit = spec_fit.get_chisq(specdata, bestvel
+    chisq,yfit = spec_fit.get_chisq(specdata, best_vel
                                ,[ret['param'][_] for _ in specParams],
-                               bestparam['rot_params'],
+                               best_param['rot_params'],
                                resolParams,
                                     options=options, config=config,
                                     getModel=True)

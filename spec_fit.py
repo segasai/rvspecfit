@@ -107,11 +107,11 @@ def get_findmin(chisqs, vels):
         a, b, c = scipy.polyfit(vels[left:right],
                                 chisqs[left:right], 2)
         evel = 1 / np.sqrt(a)
-        bestvel = -b / 2 / a
+        best_vel = -b / 2 / a
     else:
-        bestvel = chisqs[minpos]
+        best_vel = chisqs[minpos]
         evel = vels[1] - vels[0]
-    return (bestvel, evel, chisqs[minpos])
+    return (best_vel, evel, chisqs[minpos])
 
 
 def get_chisq0(spec, templ, polys, getCoeffs=False, espec=None):
@@ -343,9 +343,11 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
     xind = np.argmin(chisq)
     i1, i2 = np.unravel_index(xind, chisq.shape)
     probs = np.exp(-0.5 * (chisq[:, i2] - chisq[i1, i2]))
-    besterr = (probs * vel_grid).sum() / probs.sum()
-    return dict(bestchi=chisq[i1, i2],
-                bestvel=vel_grid[i1],
-                vel_err=besterr,
-                bestparam=params_list[i2],
+    probs = probs / probs.sum()
+    best_vel = vel_grid[i1]
+    best_err = np.sqrt((probs * (vel_grid-best_vel)**2).sum())
+    return dict(best_chi=chisq[i1, i2],
+                best_vel=vel_grid[i1],
+                vel_err=best_err,
+                best_param=params_list[i2],
                 probs=probs)
