@@ -75,7 +75,7 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
                                  * np.log(1 + ccfconf.splinestep / 3e5))
     medspec = np.median(spec0)
     BS = scipy.stats.binned_statistic(lam0, spec0, 'median', bins=nodesedges)
-    p0 = np.log(BS.statistic)
+    p0 = np.log(np.maximum(BS.statistic,1e-3*medspec))
     p0[~np.isfinite(p0)] = np.log(medspec)
 
     lam, spec, espec = (lam0[::bin], scipy.signal.medfilt(spec0, bin)[::bin],
