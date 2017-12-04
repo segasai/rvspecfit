@@ -13,7 +13,7 @@ class CCFConfig:
     """ Configuration class for cross-correlation functions """
 
     def __init__(self, logl0=None, logl1=None, npoints=None, splinestep=1000,
-                 maxcontpts=30):
+                 maxcontpts=20):
         """
         Configure the cross-correlation
 
@@ -67,7 +67,6 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     lammin = lam0.min()
     N = np.log(lam0.max() / lammin) / np.log(1 + ccfconf.splinestep / 3e5)
     N = int(np.ceil(N))
-
     # Determine the nodes of the spline used for the continuum fit
     nodes = lammin * np.exp(np.arange(N) *
                             np.log(1 + ccfconf.splinestep / 3e5))
@@ -115,12 +114,21 @@ def fit_loss(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
     model: numpy array (optional, depending on getModel parameter)
         The evaluated model
     """
-    II = scipy.interpolate.UnivariateSpline(nodes, p, s=0)
+    II = scipy.interpolate.UnivariateSpline(nodes, p, s=0,k=2)
     model = np.exp(II(lam))
     if getModel:
         return model
     res = (spec - model) / espec
+
     val = np.abs(res).sum()
+    if False:
+        import matplotlib.pyplot as plt
+        plt.clf()
+        plt.plot(lam,spec,'k')
+        plt.plot(lam,model,'r')
+        plt.draw()
+        plt.pause(0.01)
+        print (val)
     # I may need to mask outliers here...
     if not np.isfinite(val):
         return 1e30
@@ -214,13 +222,15 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
         m = spec_fit.convolve_vsini(lammodel, model0, vsini)
     else:
         m = model0
-    cont = get_continuum(lammodel, m, m * 0 + 1e-5, ccfconf=ccfconf)
+    cont = get_continuum(lammodel, m, np.maximum(m*1e-5,1e-2*np.median(m)), ccfconf=ccfconf)
 
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
     c_model = c_model - np.mean(c_model)
     ca_model = apodize(c_model)
     xlogl, cpa_model = pad(logl, ca_model)
     std = (cpa_model**2).sum()**.5
+    if std>1e5:
+        print ('WARNING something went wrong with the spectrum ormalization')
     cpa_model /= std
     return xlogl, cpa_model
 
