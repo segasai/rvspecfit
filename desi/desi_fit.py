@@ -19,10 +19,19 @@ import utils
 config = utils.read_config()
 
 
-
-# read data
-
 def procdesi(fname, ofname, fig_prefix):
+    """ 
+    Process One single file with desi spectra
+
+    Parameters:
+    -----------
+    fname: str
+        The filename with the spectra to be fitted
+    ofname: str
+        The filename where the table with parameters will be stored
+    fig_prefix: str
+        The prefix where the figures will be stored
+    """
     tab = pyfits.getdata(fname, 'FIBERMAP')
     mws = tab['MWS_TARGET']
     targetid = tab['TARGETID']
@@ -100,6 +109,18 @@ def procdesi(fname, ofname, fig_prefix):
     outtab.write(ofname,overwrite=True)
 
 def domany(mask, oprefix, fig_prefix):
+    """
+    Process many spectral files
+    
+    Parameters:
+    -----------
+    mask: string
+        The filename mask with spectra, i.e path/*fits
+    oprefix: string
+        The prefix where the table with measurements will be stored
+    fig_prefix: string
+        The prfix where the figures will be stored
+    """
     fs= glob.glob(mask)
     pool = mp.Pool(16)
     res=[]
