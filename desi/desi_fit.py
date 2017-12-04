@@ -1,5 +1,6 @@
 import glob
 import sys
+import os
 import matplotlib
 import argparse
 import multiprocessing as mp
@@ -32,6 +33,7 @@ def procdesi(fname, ofname, fig_prefix):
     fig_prefix: str
         The prefix where the figures will be stored
     """
+
     tab = pyfits.getdata(fname, 'FIBERMAP')
     mws = tab['MWS_TARGET']
     targetid = tab['TARGETID']
@@ -46,7 +48,6 @@ def procdesi(fname, ofname, fig_prefix):
         ivars[s] = pyfits.getdata(fname, '%s_IVAR'%s.upper())
         waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH'%s.upper())
 
-    outtab= astropy.table.Table()
     outdict = {'brickname':[],
                'target_id':[],
                'vrad':[],
@@ -62,11 +63,12 @@ def procdesi(fname, ofname, fig_prefix):
         curbrick = brick_name[curid]
         curtargetid = targetid[curid]
         for s in setups:
+            spec = fluxes[s][curid]
+            espec = 1./(ivars[s][curid])**.5
+            espec[~np.isfinite(espec)]=1e9
             specdata.append(
                 spec_fit.SpecData('desi_%s'%s, 
-                                  waves[s],
-                                  fluxes[s][curid],
-                                  1./(ivars[s][curid])**.5))
+                                  waves[s], spec, espec))
         options = {'npoly': 15}
         res = fitter_ccf.fit(specdata, config)
         paramDict0 = res['best_par']
@@ -121,12 +123,15 @@ def domany(mask, oprefix, fig_prefix):
     fig_prefix: string
         The prfix where the figures will be stored
     """
+    skip_existing = True
     fs= glob.glob(mask)
     pool = mp.Pool(16)
     res=[]
     for f in fs:
         fname=f.split('/')[-1]
         ofname = oprefix+'outtab_'+fname
+        if skip_existing and os.path.exists(ofname):
+            continue
         res.append(pool.apply_async(procdesi, (f, ofname, fig_prefix)))
     for r in res:
         r.get()
