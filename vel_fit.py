@@ -133,6 +133,7 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         #print(pdict['params'], pdict['vel'], chisq)
         return chisq
     method = 'Nelder-Mead'
+    t1 = time.time()
     res = scipy.optimize.minimize(func, startParam, method=method,
                                   options={'fatol': 1e-3, 'xatol': 1e-2})
     best_param = paramMapper(res['x'])
@@ -143,7 +144,9 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     ret['vel'] = best_param['vel']
     best_vel = best_param['vel']
     velstep = velstep0
-    # For a given template measure the chi-square as a function of velocity to get the uncertainty
+    # For a given template measure the chi-square as a function of velocity to get the uncertaint
+    t2 = time.time()
+
     while True:
         vels_grid = np.concatenate((np.arange (best_vel, minvel, velstep)[::-1], np.arange(best_vel+velstep, maxvel, velstep)))
         res1 = spec_fit.find_best(specdata, vels_grid, [[ret['param'][_] for _ in specParams]],
@@ -155,6 +158,7 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
             maxvel = min(maxvel + 10 * res1['vel_err'],maxvel)
         else:
             break
+    t3 = time.time()
 
     ret['vel_err'] = res1['vel_err']
     chisq,yfit = spec_fit.get_chisq(specdata, best_vel
