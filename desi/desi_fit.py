@@ -1,17 +1,20 @@
 import glob
 import sys
 import matplotlib
-matplotlib.use('Agg')
-sys.path.append('../')
-import vel_fit
-import spec_fit
+import argparse
+import multiprocessing as mp
 import astropy.io.fits as pyfits
 import numpy as np
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import astropy.table
+
+sys.path.append('../')
 import fitter_ccf
+import vel_fit
+import spec_fit
+
 import utils
-import multiprocessing as mp
 
 config = utils.read_config()
 
@@ -72,14 +75,29 @@ def procdesi(fname, ofname, fig_prefix):
         outdict['feh'].append(res1['param']['feh'])
         outdict['chisq'].append(res1['chisq'])
         outdict['vsini'].append(res1['vsini'])
+        title='logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f'%(res1['param']['logg'],
+                                                                                  res1['param']['teff'],
+                                                                                res1['param']['feh'],
+                                                                                  res1['param']['alpha'],
+                                                                                  res1['vel'],
+                                                                                  res1['vel_err'])
         plt.clf()
-        plt.figure(1,figsize=(6, 2), dpi=300)
+        plt.figure(1,figsize=(6, 6), dpi=300)
+        plt.subplot(3,1,1)
         plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
         plt.plot(specdata[0].lam, res1['yfit'][0], 'r-')
+        plt.title(title)
+        plt.subplot(3,1,2)
+        plt.plot(specdata[1].lam, specdata[1].spec, 'k-')
+        plt.plot(specdata[1].lam, res1['yfit'][1], 'r-')
+        plt.subplot(3,1,3)
+        plt.plot(specdata[2].lam, specdata[2].spec, 'k-')
+        plt.plot(specdata[2].lam, res1['yfit'][2], 'r-')
+        plt.xlabel(r'$\lambda$ [$\AA$]')
         plt.tight_layout()
         plt.savefig(fig_prefix+'_%s_%d.png'%(curbrick, curtargetid))
     outtab= astropy.table.Table(outdict)
-    outtab.write(ofname)
+    outtab.write(ofname,overwrite=True)
 
 def domany(mask, oprefix, fig_prefix):
     fs= glob.glob(mask)
@@ -104,7 +122,7 @@ if __name__=='__main__':
     parser.add_argument('fig_prefix', 
                         help='Prefix for the fit figures',
                         type=str)
-    args = parser.parser_args()
+    args = parser.parse_args()
     mask = args.mask
     oprefix = args.oprefix
     fig_prefix= args.fig_prefix

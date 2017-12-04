@@ -1,0 +1,8 @@
+This is set of files for DESI processing
+
+make_desi.sh -- is the script that prepares the template libraries
+
+desi_fit.py is the main program that fits the data
+Usage: 
+
+python desi_fit.py '../../desi/dc17a2/spectra-64/*/*/spectra*fits'  outtab/ outfig/
