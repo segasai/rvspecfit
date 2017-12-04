@@ -193,7 +193,8 @@ def pad(x, y):
     return x2, y2
 
 
-def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
+def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None,
+                    modid=None):
     """
     Take the input template model and return prepared for FFT vectors.
     That includes padding, apodizing and normalizing by continuum
@@ -224,14 +225,14 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
     else:
         m = model0
     cont = get_continuum(lammodel, m, np.maximum(m*1e-5,1e-2*np.median(m)), ccfconf=ccfconf)
-
+    cont = np.maximum(np.median(cont), 1e-2*np.median(cont))
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
     c_model = c_model - np.mean(c_model)
     ca_model = apodize(c_model)
     xlogl, cpa_model = pad(logl, ca_model)
     std = (cpa_model**2).sum()**.5
     if std>1e5:
-        print ('WARNING something went wrong with the spectrum ormalization')
+        print ('WARNING something went wrong with the spectrum ormalization, model ',modid)
     cpa_model /= std
     return xlogl, cpa_model
 
@@ -268,7 +269,7 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
         for vsini in vsinis:
             retparams.append(params[imodel])
             q.append(pool.apply_async(preprocess_model,
-                (logl, lammodels, m0, vsini, ccfconf)))
+                (logl, lammodels, m0, vsini, ccfconf, (params[imodel]))))
             vsinisList.append(vsini)
 
     for ii, curx in enumerate(q):
