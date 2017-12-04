@@ -10,26 +10,28 @@ import scipy.optimize
 import numpy as np
 import atpy
 import read_grid
+import utils
 
-def get_revision():
-    try:
-        fname = os.path.dirname(os.path.realpath(__file__))
-        tmpout = subprocess.Popen(
-            'cd ' + fname + ' ; git log -n 1 --pretty=format:%H -- make_nd.py',
-            shell=True, bufsize=80, stdout=subprocess.PIPE).stdout
-        revision = tmpout.next()
-    except:
-        revision = ''
-    return revision
+git_rev = utils.get_revision()
 
+def get_line_continuum(lam, spec):
+    """
+    Determine the extremely simple linear in log continuum to
+    remove away continuum trends in templates
 
-git_rev = get_revision()
+    Parameters:
+    -----------
+    lam: numpy array
+        Wavelength vector
+    spec: numpy array
+        spectrum
 
+    Returns:
+    --------
+    cont: numpy array
+        Continuum model
 
-def get_cont(lam, spec):
-    # remove the continuum trend from the template spectrum
-    # by connecting  the median point of the left half of the spectrum
-    # with the right half
+    """
     npix = len(lam)
     npix2 = npix // 2
     lam1, lam2 = [np.median(_) for _ in [lam[:npix2], lam[npix2:]]]
@@ -45,21 +47,42 @@ class si:
     lamgrid = None
 
 
-def processer(g, t, m, al, dbfile, prefix, wavefile):
-    # process a spectrum at given logg temperaturem metallicity and alpha
+def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile):
+    """
+    Exctract a spectrum of a given parameters then apply the resolution smearing
+    and divide by the continuum
+
+    Parameters:
+    -----------
+
+    logg: real
+        Surface gravity
+    teff: real
+        Effective Temperature
+    feh: real
+        Metallicity
+    alpha: real
+        Alpha/Fe
+    dbfile: string
+        Path to the sqlite database
+    prefix: string
+        Prefix to the data files
+    wavefile: string
+        Path to the file with wavelengths
+    """
 
     lam, spec = read_grid.get_spec(
-        g, t, m, al, dbfile=dbfile, prefix=prefix, wavefile=wavefile)
+        logg, teff, feh, alpha, dbfile=dbfile, prefix=prefix, wavefile=wavefile)
     spec = read_grid.apply_rebinner(si.mat, spec)
-    spec1 = spec / get_cont(si.lamgrid, spec)
+    spec1 = spec / get_line_continuum(si.lamgrid, spec)
     spec1 = np.log(spec1)  # log the spectrum
     if not np.isfinite(spec1).all():
-        raise Exception('nans %s' % str((t, g, m, al)))
+        raise Exception('nans %s' % str((teff, logg, feh, alpha)))
     spec1 = spec1.astype(np.float32)
     return spec1
 
 
-def doit(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
+def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
          prefix=None, wavefile=None):
     nthreads = 8
     tab = atpy.Table('sqlite', dbfile)
@@ -70,6 +93,7 @@ def doit(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
 
     templ_lam, spec = read_grid.get_spec(4.5, 12000, 0, 0, dbfile=dbfile,
                                          prefix=prefix, wavefile=wavefile)
+
     HR, lamleft, lamright, resol, step, log = setupInfo
 
     deltav = 1000. # extra padding
@@ -78,27 +102,30 @@ def doit(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
         lamgrid = np.arange(lamleft / fac1, (lamright + step) * fac1, step)
     else:
         lamgrid = np.exp(np.arange(np.log(lamleft/ fac1),np.log(lamright * fac1), np.log(1+step/lamleft)))
-        
+
     mat = read_grid.make_rebinner(templ_lam, lamgrid, resol)
 
     specs = []
     si.mat = mat
     si.lamgrid = lamgrid
     pool = mp.Pool(nthreads)
-    for t, g, m, al in vec.T:
+    for curteff, curlogg, curfeh, curalpha in vec.T:
         curid = ids[i]
         i += 1
         print(i)
         specs.append(pool.apply_async(
-            processer, (g, t, m, al, dbfile, prefix, wavefile)))
+            extract_spectrum, (curlogg, curteff, curfeh, curalpha,
+                dbfile, prefix, wavefile)))
     lam = lamgrid
     for i in range(len(specs)):
         specs[i] = specs[i].get()
 
+    pool.close()
+    pool.join()
     specs = np.array(specs)
     with open('%s/specs_%s%s.pkl' % (oprefix, HR, postf), 'wb') as fp:
-        pickle.dump(dict(specs=specs, vec=vec, lam=lam, 
-                         parnames=parnames), fp)
+        pickle.dump(dict(specs=specs, vec=vec, lam=lam,
+                         parnames=parnames, git_rev=git_rev), fp)
 
 
 if __name__ == '__main__':
@@ -115,7 +142,7 @@ if __name__ == '__main__':
     parser.add_argument('--wavefile', type=str)
     args = parser.parse_args()
 
-    doit((args.setup, args.lambda0, args.lambda1,
+    process_all((args.setup, args.lambda0, args.lambda1,
           args.resol, args.step, args.log), dbfile=args.templdb, oprefix=args.oprefix,
          prefix=args.templprefix,
          wavefile=args.wavefile)
