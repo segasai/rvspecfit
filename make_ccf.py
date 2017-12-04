@@ -1,5 +1,6 @@
 import pickle
 import argparse
+import multiprocessing as mp
 import numpy as np
 import scipy.interpolate
 import scipy.stats
@@ -253,23 +254,29 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
         The list of possible Vsini values to convolve model spectra with
         Could be None
     """
-
+    nthreads = 16
     logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
     res = []
     retparams = []
     norms = []
     if vsinis is None:
         vsinis = [None]
-    resA = []
     vsinisList = []
+    pool = mp.Pool(nthreads)    
+    q = []
     for imodel, m0 in enumerate(models):
-        print(imodel, len(models))
-        for vel in vsinis:
+        for vsini in vsinis:
             retparams.append(params[imodel])
-            xlogl, cpa_model = preprocess_model(
-                logl, lammodels, m0, vel, ccfconf=ccfconf)
-            vsinisList.append(vel)
-            res.append(cpa_model)
+            q.append(pool.apply_async(preprocess_model,
+                (logl, lammodels, m0, vsini, ccfconf)))
+            vsinisList.append(vsini)
+
+    for ii, curx in enumerate(q):
+        print (ii,'/',len(q))
+        xlogl, cpa_model = curx.get()
+        res.append(cpa_model)        
+    pool.close()
+    pool.join()
     return xlogl, res, retparams, vsinisList
 
 
