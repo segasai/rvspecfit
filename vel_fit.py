@@ -48,7 +48,8 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     # Configuration parameters, should be moved to the yaml file
     minvel = -1000
     maxvel = 1000
-    velstep0 = 5
+    velstep0 = 5 # the starting step in velocities
+    velstep = 1 # The final step in velocitie TO BE CHECKED
     maxRotVel = 500
     minRotVel = 1e-2
     minvelstep = 0.2 
@@ -140,22 +141,26 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         ret['vsini'] = best_param['vsini']
     ret['vel'] = best_param['vel']
     best_vel = best_param['vel']
-    velstep = velstep0
-    # For a given template measure the chi-square as a function of velocity to get the uncertaint
+    
     t2 = time.time()
 
+    # For a given template measure the chi-square as a function of velocity to get the uncertaint
+
+    crit_ratio = 5 # we want the step size to be at least crit_ratio times smaller than the uncertainty
     while True:
         vels_grid = np.concatenate((np.arange (best_vel, minvel, velstep)[::-1], np.arange(best_vel+velstep, maxvel, velstep)))
         res1 = spec_fit.find_best(specdata, vels_grid, [[ret['param'][_] for _ in specParams]],
                              best_param['rot_params'], resolParams,
                              config=config, options=options)
-        if res1['vel_err'] < 10*velstep and velstep>minvelstep:
-            velstep/=4
-            minvel = max(minvel - 10 * res1['vel_err'],minvel)
-            maxvel = min(maxvel + 10 * res1['vel_err'],maxvel)
-        else:
+        if velstep < res1['vel_err'] / crit_ratio or velstep<minvelstep:
             break
+        else:
+            velstep = max(res1['vel_err'],velstep)/crit_ratio*0.8
+            newwidth = max(res1['vel_err'], velstep)*10 
+            minvel = max(best_vel - newwidth, minvel)
+            maxvel = min(best_vel + newwidth, maxvel)
     t3 = time.time()
+    # print (t2-t1,t3-t2)
     ret['vel_err'] = res1['vel_err']
     chisq,yfit = spec_fit.get_chisq(specdata, best_vel
                                ,[ret['param'][_] for _ in specParams],
