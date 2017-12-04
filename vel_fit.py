@@ -44,13 +44,15 @@ def doit(specdata, paramDict0, fixParam=None, options=None,
     """
 doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam = ('feh','vsini'),
                 config =config, resolParam = None)
-"""
-    maxnit = 5
+    """
+
+    # Configuration parameters, should be moved to the yaml file
     minvel = -1000
     maxvel = 1000
     velstep0 = 5
     maxRotVel = 500
     minRotVel = 1e-2
+    minvelstep = 0.2 
 
     if config is None:
         raise Exception('Config must be provided')
@@ -141,17 +143,19 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     ret['vel'] = best_param['vel']
     best_vel = best_param['vel']
     velstep = velstep0
+    # For a given template measure the chi-square as a function of velocity to get the uncertainty
     while True:
         vels_grid = np.concatenate((np.arange (best_vel, minvel, velstep)[::-1], np.arange(best_vel+velstep, maxvel, velstep)))
         res1 = spec_fit.find_best(specdata, vels_grid, [[ret['param'][_] for _ in specParams]],
                              best_param['rot_params'], resolParams,
                              config=config, options=options)
-        if res1['vel_err'] < 10*velstep:
+        if res1['vel_err'] < 10*velstep and velstep>minvelstep:
             velstep/=4
             minvel = max(minvel - 10 * res1['vel_err'],minvel)
             maxvel = min(maxvel + 10 * res1['vel_err'],maxvel)
         else:
             break
+
     ret['vel_err'] = res1['vel_err']
     chisq,yfit = spec_fit.get_chisq(specdata, best_vel
                                ,[ret['param'][_] for _ in specParams],

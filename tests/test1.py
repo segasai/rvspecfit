@@ -36,8 +36,8 @@ spec_fit.find_best(specdata, vel_grid, params_list, rot_params, resols_params,
 t2 = time.time()
 res = (spec_fit.find_best(specdata, vel_grid, params_list, rot_params, resols_params,
                           options=options, config=config))
-bestv, bestpar, bestchi, velerr = [res[_] for _ in [
-    'best_vel', 'best_param', 'best_chi', 'velerr']]
+bestv, bestpar, bestchi, vel_err = [res[_] for _ in [
+    'best_vel', 'best_param', 'best_chi', 'vel_err']]
 t3 = time.time()
 print(t2 - t1, t3 - t2)
 

@@ -21,6 +21,7 @@ options = {'npoly': 15}
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = ['vsini']
 #vel_fit.firstguess(specdata, options=options, config=config)
+
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = ['vsini']
 res = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
