@@ -57,15 +57,16 @@ def procdesi(fname, ofname, fig_prefix):
                'vsini':[],
                'feh':[],
                'chisq':[]}
-
+    large_error = 1e9
     for curid in xids:
         specdata = []
         curbrick = brick_name[curid]
         curtargetid = targetid[curid]
         for s in setups:
             spec = fluxes[s][curid]
-            espec = 1./(ivars[s][curid])**.5
-            espec[~np.isfinite(espec)]=1e9
+            curivars = ivars[s][curid]
+            curivars[curivars<=0] = 1./large_error**2
+            espec  = 1./curivars**.5
             specdata.append(
                 spec_fit.SpecData('desi_%s'%s, 
                                   waves[s], spec, espec))
@@ -110,6 +111,15 @@ def procdesi(fname, ofname, fig_prefix):
     outtab= astropy.table.Table(outdict)
     outtab.write(ofname,overwrite=True)
 
+
+def procdesiWrapper(*args,**kwargs):
+    try:
+        ret = procdesi(*args, **kwargs)
+    except:
+        print ('failed with these arguments', args, kwargs)
+        raise
+procdesiWrapper.__doc__ = procdesi.__doc__
+
 def domany(mask, oprefix, fig_prefix):
     """
     Process many spectral files
@@ -131,7 +141,7 @@ def domany(mask, oprefix, fig_prefix):
         fname=f.split('/')[-1]
         ofname = oprefix+'outtab_'+fname
         if skip_existing and os.path.exists(ofname):
-            continue
+            print ('skipping, products already exist', f)
         res.append(pool.apply_async(procdesi, (f, ofname, fig_prefix)))
     for r in res:
         r.get()
