@@ -76,10 +76,16 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     nodesedges = lammin * np.exp((-0.5 + np.arange(N + 1))
                                  * np.log(1 + ccfconf.splinestep / 3e5))
     medspec = np.median(spec0)
+    if medspec<0:
+        medspec = np.abs(medspec)
+        if medspec==0:
+            medspec = 1
+        print ('WARNING the spectrum has a median that is non-positive...')
+
     BS = scipy.stats.binned_statistic(lam0, spec0, 'median', bins=nodesedges)
     p0 = np.log(np.maximum(BS.statistic, 1e-3 * medspec))
     p0[~np.isfinite(p0)] = np.log(medspec)
-
+    
     lam, spec, espec = (lam0[::bin], scipy.signal.medfilt(spec0, bin)[::bin],
                         scipy.signal.medfilt(espec0, bin)[::bin])
 
@@ -230,7 +236,6 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None,
         m * 1e-5, 1e-2 * np.median(m)), ccfconf=ccfconf)
 
     cont = np.maximum(cont, 1e-2 * np.median(cont))
-
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
     c_model = c_model - np.mean(c_model)
     ca_model = apodize(c_model)
@@ -312,8 +317,11 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
     curespec = espec.copy()
     curspec = spec0.copy()
-    curespec[~badmask] = curespec[~badmask] * 0 + 1e9
+    if badmask is not None:
+        curespec[badmask] = curespec[badmask] * 0 + 1e9
+    
     cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
+
     c_spec = spec0 / cont
     c_spec = c_spec - np.median(c_spec)
     ca_spec = apodize(c_spec)
