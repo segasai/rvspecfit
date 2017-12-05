@@ -162,7 +162,7 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     # Here we are evaluating the chi-quares on the grid of 
     # velocities to get the uncertainty 
     while True:
-        vels_grid = np.concatenate((np.arange (best_vel, min_vel, vel_step)[::-1], np.arange(best_vel+vel_step, max_vel, vel_step)))
+        vels_grid = np.concatenate((np.arange (best_vel, min_vel, -vel_step)[::-1], np.arange(best_vel+vel_step, max_vel, vel_step)))
         res1 = spec_fit.find_best(specdata, vels_grid, [[ret['param'][_] for _ in specParams]],
                              best_param['rot_params'], resolParams,
                              config=config, options=options)
