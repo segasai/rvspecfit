@@ -175,7 +175,7 @@ def getCurTempl(name, atm_param, rot_params, resol_params, config):
     outside = float(curInterp.outsideFlag(atm_param))
     spec = curInterp.eval(atm_param)
     if not np.isfinite(outside):
-        # The spectrum may be completely crap 
+        # The spectrum may be completely crap
         pass
     else:
         # take into account the rotation of the star
@@ -348,7 +348,7 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
     probs = np.exp(-0.5 * (chisq[:, i2] - chisq[i1, i2]))
     probs = probs / probs.sum()
     best_vel = vel_grid[i1]
-    best_err = np.sqrt((probs * (vel_grid-best_vel)**2).sum())
+    best_err = np.sqrt((probs * (vel_grid - best_vel)**2).sum())
     return dict(best_chi=chisq[i1, i2],
                 best_vel=vel_grid[i1],
                 vel_err=best_err,

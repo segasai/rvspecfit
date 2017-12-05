@@ -3,6 +3,7 @@ import subprocess
 import yaml
 import frozendict
 
+
 def get_revision():
     """
     Get the git revision of the code
@@ -21,6 +22,7 @@ def get_revision():
         return revision
     except:
         return ''
+
 
 def read_config(fname=None):
     """
@@ -41,6 +43,7 @@ def read_config(fname=None):
         fname = 'config.yaml'
     with open(fname) as fp:
         return freezeDict(yaml.safe_load(fp))
+
 
 def freezeDict(d):
     """

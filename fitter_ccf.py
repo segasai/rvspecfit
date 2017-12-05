@@ -8,9 +8,11 @@ import scipy.interpolate
 import matplotlib.pyplot as plt
 import make_ccf
 
+
 class CCFCache:
     """ Singleton caching CCF information """
     ccfs = {}
+
 
 def get_ccf_info(spec_setup, config):
     """
@@ -33,6 +35,7 @@ def get_ccf_info(spec_setup, config):
         CCFCache.ccfs[spec_setup] = pickle.load(
             open(config['template_lib']['ccffile'] % spec_setup, 'rb'))
     return CCFCache.ccfs[spec_setup]
+
 
 def fit(specdata, config):
     """
@@ -57,7 +60,6 @@ def fit(specdata, config):
     # only search for CCF peaks from -maxvel to maxvel
     nvelgrid = 2000
     # number of points on the ccf in the specified velocity range
-
 
     loglam = {}
     velstep = {}
@@ -122,7 +124,7 @@ def fit(specdata, config):
                     ccfs[spec_setup]['models'][id], int(best_v / velstep[spec_setup]))
             best_ccf = allccf
     try:
-        assert(best_id>=0)
+        assert(best_id >= 0)
     except:
         raise Exception('Cross-correlation step failed')
 

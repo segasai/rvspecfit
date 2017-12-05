@@ -21,7 +21,7 @@ config = utils.read_config()
 
 
 def procdesi(fname, ofname, fig_prefix):
-    """ 
+    """
     Process One single file with desi spectra
 
     Parameters:
@@ -33,7 +33,7 @@ def procdesi(fname, ofname, fig_prefix):
     fig_prefix: str
         The prefix where the figures will be stored
     """
-    print ('Processing', fname)
+    print('Processing', fname)
     tab = pyfits.getdata(fname, 'FIBERMAP')
     mws = tab['MWS_TARGET']
     targetid = tab['TARGETID']
@@ -99,14 +99,17 @@ def procdesi(fname, ofname, fig_prefix):
         plt.figure(1, figsize=(6, 6), dpi=300)
         plt.subplot(3, 1, 1)
         plt.plot(specdata[0].lam, specdata[0].spec, 'k-', linewidth=line_width)
-        plt.plot(specdata[0].lam, res1['yfit'][0], 'r-', alpha=alpha, linewidth=line_width)
+        plt.plot(specdata[0].lam, res1['yfit'][0], 'r-',
+                 alpha=alpha, linewidth=line_width)
         plt.title(title)
         plt.subplot(3, 1, 2)
         plt.plot(specdata[1].lam, specdata[1].spec, 'k-', linewidth=line_width)
-        plt.plot(specdata[1].lam, res1['yfit'][1], 'r-', alpha=alpha, linewidth=line_width)
+        plt.plot(specdata[1].lam, res1['yfit'][1], 'r-',
+                 alpha=alpha, linewidth=line_width)
         plt.subplot(3, 1, 3)
         plt.plot(specdata[2].lam, specdata[2].spec, 'k-', linewidth=line_width)
-        plt.plot(specdata[2].lam, res1['yfit'][2], 'r-', alpha=alpha, linewidth=line_width)
+        plt.plot(specdata[2].lam, res1['yfit'][2], 'r-',
+                 alpha=alpha, linewidth=line_width)
         plt.xlabel(r'$\lambda$ [$\AA$]')
         plt.tight_layout()
         plt.savefig(fig_prefix + '_%s_%d.png' % (curbrick, curtargetid))
@@ -138,10 +141,10 @@ def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
     fig_prefix: string
         The prfix where the figures will be stored
     """
-    if nthreads>1:
+    if nthreads > 1:
         parallel = True
     fs = glob.glob(mask)
-    
+
     if parallel:
         pool = mp.Pool(nthreads)
     res = []
@@ -151,7 +154,8 @@ def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
         if parallel:
-            res.append(pool.apply_async(procdesiWrapper, (f, ofname, fig_prefix)))
+            res.append(pool.apply_async(
+                procdesiWrapper, (f, ofname, fig_prefix)))
         else:
             procdesi(f, ofname, fig_prefix)
     if parallel:
@@ -159,6 +163,7 @@ def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
             r.get()
         pool.close()
         pool.join()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -171,9 +176,9 @@ if __name__ == '__main__':
     parser.add_argument('fig_prefix',
                         help='Prefix for the fit figures',
                         type=str)
-    parser.add_argument('--nthreads',type=int, default=1)
+    parser.add_argument('--nthreads', type=int, default=1)
     parser.add_argument('--overwrite', action='store_true', default=False)
-    
+
     args = parser.parse_args()
     mask = args.mask
     oprefix = args.oprefix

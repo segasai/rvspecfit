@@ -8,11 +8,13 @@ import numpy as np
 import astropy.wcs as pywcs
 import argparse
 
-def makedb(prefix = '/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
+
+def makedb(prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
            dbfile='files.db'):
     """ Create an sqlite database of the templates """
     id = 0
-    sqlutil.execute('CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);', db=dbfile, driver='sqlite3')
+    sqlutil.execute(
+        'CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);', db=dbfile, driver='sqlite3')
 
     for f in sorted(glob.glob(prefix + '*/*fits')):
         hdr = pyfits.getheader(f)
@@ -38,9 +40,9 @@ def get_spec(logg, temp, met, alpha,
     deltaalpha = 0.01
     deltamet = 0.01
 
-    query = '''select filename from files where 
+    query = '''select filename from files where
 		teff between %f and %f and
-		logg between %f and %f and 
+		logg between %f and %f and
 		alpha between %f and %f and
 		met between %f and %f ''' % (
         temp - deltatemp, temp + deltatemp,
@@ -62,14 +64,14 @@ def get_spec(logg, temp, met, alpha,
     speclen = len(dat)
     lams = np.arange(speclen) * 1.
     lams = pyfits.getdata(wavefile)
-    #assert(hdr['CTYPE1']=='AWAV-LOG')
-    #lams=np.exp(wc.all_pix2sky(lams,lams*0,0)[0])
+    # assert(hdr['CTYPE1']=='AWAV-LOG')
+    # lams=np.exp(wc.all_pix2sky(lams,lams*0,0)[0])
     print('Using', fnames[0][0])
     return lams, dat
 
 
 def make_rebinner(lam00, lam, resolution, toair=True):
-    """ Make the sparse matrix that convolves a given spectrum to 
+    """ Make the sparse matrix that convolves a given spectrum to
     a given resolution and new wavelength grid
     """
     if toair:
@@ -138,7 +140,7 @@ def apply_rebinner(mat, spec0):
 
 
 def rebin(lam0, spec0, newlam, resolution):
-    """rebin a given spectrum lam0, spec0 to the new wavelenght and new resolution 
+    """rebin a given spectrum lam0, spec0 to the new wavelenght and new resolution
     > lam,spec=read_grid.get_spec(1,5250,-1,0.4)
     > newlam = np.linspace(4000,9000,4000)
     > newspec=read_grid.rebin(lam, spec, newlam, 1800)
@@ -148,6 +150,7 @@ def rebin(lam0, spec0, newlam, resolution):
     mat = make_rebinner(lam0, newlam, resolution)
     ret = apply_rebinner(mat, spec0)
     return ret
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

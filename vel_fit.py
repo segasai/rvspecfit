@@ -8,33 +8,34 @@ import spec_inter
 import scipy.optimize
 import itertools
 
+
 def firstguess(specdata, options=None,
-         config=None,
-         resolParams=None):
-    min_vel=-1000
-    max_vel=1000
+               config=None,
+               resolParams=None):
+    min_vel = -1000
+    max_vel = 1000
     vel_step0 = 5
-    paramsgrid = {'logg':[1,2,3,4,5],
-                  'teff':[3000,5000,8000,10000],
-                  'feh':[-2,-1,0],
-                  'alpha':[0]}
-    vsinigrid = [None,10,100]
+    paramsgrid = {'logg': [1, 2, 3, 4, 5],
+                  'teff': [3000, 5000, 8000, 10000],
+                  'feh': [-2, -1, 0],
+                  'alpha': [0]}
+    vsinigrid = [None, 10, 100]
     specParams = spec_inter.getSpecParams(specdata[0].name, config)
     params = []
     for x in itertools.product(*paramsgrid.values()):
-        curp = dict(zip(paramsgrid.keys(),x))
+        curp = dict(zip(paramsgrid.keys(), x))
         curp = [curp[_] for _ in specParams]
         params.append(curp)
     vels_grid = np.arange(min_vel, max_vel, vel_step0)
 
     for vsini in vsinigrid:
         if vsini is None:
-            rot_params  =None
+            rot_params = None
         else:
             rot_params = (vsini,)
         res = spec_fit.find_best(specdata, vels_grid, params,
-                             rot_params, resolParams,
-                             config=config, options=options)
+                                 rot_params, resolParams,
+                                 config=config, options=options)
 
 
 def doit(specdata, paramDict0, fixParam=None, options=None,
@@ -48,11 +49,11 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     # Configuration parameters, should be moved to the yaml file
     min_vel = -1000
     max_vel = 1000
-    vel_step0 = 5 # the starting step in velocities
-    vel_step = 1 # The final step in velocities TO BE CHECKED
+    vel_step0 = 5  # the starting step in velocities
+    vel_step = 1  # The final step in velocities TO BE CHECKED
     max_vsini = 500
     min_vsini = 1e-2
-    min_vel_step = 0.2 
+    min_vel_step = 0.2
 
     if config is None:
         raise Exception('Config must be provided')
@@ -141,47 +142,46 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         ret['vsini'] = best_param['vsini']
     ret['vel'] = best_param['vel']
     best_vel = best_param['vel']
-    
+
     t2 = time.time()
 
     # For a given template measure the chi-square as a function of velocity to get the uncertaint
 
-    # if the velocity is outside the range considered, something 
+    # if the velocity is outside the range considered, something
     # is likely wrong with the object , so to prevent future failure
-    # I just limit the velocity 
-    if best_vel > max_vel or best_vel<min_vel:
-        print ('Warning velocity too large...')
-        if best_vel> max_vel:
-            best_vel=max_vel
+    # I just limit the velocity
+    if best_vel > max_vel or best_vel < min_vel:
+        print('Warning velocity too large...')
+        if best_vel > max_vel:
+            best_vel = max_vel
         else:
-            best_vel=min_vel
+            best_vel = min_vel
 
+    crit_ratio = 5  # we want the step size to be at least crit_ratio times smaller than the uncertainty
 
-    crit_ratio = 5 # we want the step size to be at least crit_ratio times smaller than the uncertainty
-
-    # Here we are evaluating the chi-quares on the grid of 
-    # velocities to get the uncertainty 
+    # Here we are evaluating the chi-quares on the grid of
+    # velocities to get the uncertainty
     while True:
-        vels_grid = np.concatenate((np.arange (best_vel, min_vel, -vel_step)[::-1], np.arange(best_vel+vel_step, max_vel, vel_step)))
+        vels_grid = np.concatenate((np.arange(
+            best_vel, min_vel, -vel_step)[::-1], np.arange(best_vel + vel_step, max_vel, vel_step)))
         res1 = spec_fit.find_best(specdata, vels_grid, [[ret['param'][_] for _ in specParams]],
-                             best_param['rot_params'], resolParams,
-                             config=config, options=options)
-        if vel_step < res1['vel_err'] / crit_ratio or vel_step<min_vel_step:
+                                  best_param['rot_params'], resolParams,
+                                  config=config, options=options)
+        if vel_step < res1['vel_err'] / crit_ratio or vel_step < min_vel_step:
             break
         else:
-            vel_step = max(res1['vel_err'],vel_step)/crit_ratio*0.8
-            new_width = max(res1['vel_err'], vel_step) * 10 
+            vel_step = max(res1['vel_err'], vel_step) / crit_ratio * 0.8
+            new_width = max(res1['vel_err'], vel_step) * 10
             min_vel = max(best_vel - new_width, min_vel)
             max_vel = min(best_vel + new_width, max_vel)
     t3 = time.time()
     # print (t2-t1,t3-t2)
     ret['vel_err'] = res1['vel_err']
-    chisq,yfit = spec_fit.get_chisq(specdata, best_vel
-                               ,[ret['param'][_] for _ in specParams],
-                               best_param['rot_params'],
-                               resolParams,
-                                    options=options, config=config,
-                                    getModel=True)
+    chisq, yfit = spec_fit.get_chisq(specdata, best_vel, [ret['param'][_] for _ in specParams],
+                                     best_param['rot_params'],
+                                     resolParams,
+                                     options=options, config=config,
+                                     getModel=True)
     ret['yfit'] = yfit
     ret['chisq'] = chisq
     return ret

@@ -14,6 +14,7 @@ import utils
 
 git_rev = utils.get_revision()
 
+
 def get_line_continuum(lam, spec):
     """
     Determine the extremely simple linear in log continuum to
@@ -83,7 +84,7 @@ def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile):
 
 
 def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
-         prefix=None, wavefile=None):
+                prefix=None, wavefile=None):
     nthreads = 8
     tab = atpy.Table('sqlite', dbfile)
     ids = (tab.id).astype(int)
@@ -96,12 +97,13 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
 
     HR, lamleft, lamright, resol, step, log = setupInfo
 
-    deltav = 1000. # extra padding
+    deltav = 1000.  # extra padding
     fac1 = (1 + deltav / (scipy.constants.speed_of_light / 1e3))
     if not log:
         lamgrid = np.arange(lamleft / fac1, (lamright + step) * fac1, step)
     else:
-        lamgrid = np.exp(np.arange(np.log(lamleft/ fac1),np.log(lamright * fac1), np.log(1+step/lamleft)))
+        lamgrid = np.exp(np.arange(np.log(lamleft / fac1),
+                                   np.log(lamright * fac1), np.log(1 + step / lamleft)))
 
     mat = read_grid.make_rebinner(templ_lam, lamgrid, resol)
 
@@ -115,7 +117,7 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
         print(i)
         specs.append(pool.apply_async(
             extract_spectrum, (curlogg, curteff, curfeh, curalpha,
-                dbfile, prefix, wavefile)))
+                               dbfile, prefix, wavefile)))
     lam = lamgrid
     for i in range(len(specs)):
         specs[i] = specs[i].get()
@@ -143,6 +145,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     process_all((args.setup, args.lambda0, args.lambda1,
-          args.resol, args.step, args.log), dbfile=args.templdb, oprefix=args.oprefix,
-         prefix=args.templprefix,
-         wavefile=args.wavefile)
+                 args.resol, args.step, args.log), dbfile=args.templdb, oprefix=args.oprefix,
+                prefix=args.templprefix,
+                wavefile=args.wavefile)
