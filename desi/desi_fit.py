@@ -62,6 +62,8 @@ def procdesi(fname, ofname, fig_prefix):
         specdata = []
         curbrick = brick_name[curid]
         curtargetid = targetid[curid]
+        fig_fname = fig_prefix + '_%s_%d.png' % (curbrick, curtargetid)
+
         for s in setups:
             spec = fluxes[s][curid]
             curivars = ivars[s][curid]
@@ -112,7 +114,7 @@ def procdesi(fname, ofname, fig_prefix):
                  alpha=alpha, linewidth=line_width)
         plt.xlabel(r'$\lambda$ [$\AA$]')
         plt.tight_layout()
-        plt.savefig(fig_prefix + '_%s_%d.png' % (curbrick, curtargetid))
+        plt.savefig(fig_fname)
     outtab = astropy.table.Table(outdict)
     outtab.write(ofname, overwrite=True)
 
@@ -143,6 +145,8 @@ def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
     """
     if nthreads > 1:
         parallel = True
+    else:
+        parallel = False
     fs = glob.glob(mask)
 
     if parallel:
