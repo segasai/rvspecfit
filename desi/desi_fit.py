@@ -137,18 +137,25 @@ def domany(mask, oprefix, fig_prefix):
         The prfix where the figures will be stored
     """
     skip_existing = True
+    parallel = True
     fs = glob.glob(mask)
-    pool = mp.Pool(16)
+    if parallel:
+        pool = mp.Pool(16)
     res = []
     for f in fs:
         fname = f.split('/')[-1]
         ofname = oprefix + 'outtab_' + fname
         if skip_existing and os.path.exists(ofname):
             print('skipping, products already exist', f)
-        res.append(pool.apply_async(procdesi, (f, ofname, fig_prefix)))
-    for r in res:
-        r.get()
-
+        if parallel:
+            res.append(pool.apply_async(procdesi, (f, ofname, fig_prefix)))
+        else:
+            procdesi(f, ofname, fig_prefix)
+    if parallel:
+        for r in res:
+            r.get()
+        pool.close()
+        pool.join()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -172,12 +172,15 @@ def getCurTempl(name, atm_param, rot_params, resol_params, config):
     with given atmospheric parameters and given config
     """
     curInterp = spec_inter.getInterpolator(name, config)
-    outside = curInterp.outsideFlag(atm_param)
+    outside = float(curInterp.outsideFlag(atm_param))
     spec = curInterp.eval(atm_param)
-
-    # take into account the rotation of the star
-    if rot_params is not None:
-        spec = convolve_vsini(curInterp.lam, spec, *rot_params)
+    if not np.isfinite(outside):
+        # The spectrum may be completely crap 
+        pass
+    else:
+        # take into account the rotation of the star
+        if rot_params is not None:
+            spec = convolve_vsini(curInterp.lam, spec, *rot_params)
 
     templ_tag = random.getrandbits(128)
     return outside, curInterp.lam, spec, templ_tag
@@ -285,10 +288,11 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         # if the current point is outside the template grid
         # add bad value and bail out
 
-        outsides += np.asscalar(outside)
         if not np.isfinite(outside):
             chisq += badchi
             continue
+        else:
+            chisq += outside
 
         if (curdata.lam[0] < templ_lam[0] or curdata.lam[0] > templ_lam[-1] or
                 curdata.lam[-1] < templ_lam[0] or curdata.lam[-1] > templ_lam[-1]):
@@ -322,7 +326,6 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         assert(np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
 
-    chisq += 1e5 * outsides
     if getModel:
         ret = chisq, models
     else:
