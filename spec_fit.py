@@ -1,23 +1,18 @@
-import astropy.io.fits as pyfits
 import functools
-import scipy
-import joblib
-import numpy as np
-import scipy.interpolate
-import numpy.random
-import functools
-from scipy.constants.constants import speed_of_light
-import scipy.signal
-import gc
-import os
-import math
-import spec_inter
-from tempfile import mkdtemp
-import frozendict
 import random
-import pylru
+import numpy as np
+import numpy.random
+import scipy
+import scipy.interpolate
+from scipy.constants.constants import speed_of_light
 import scipy.sparse
+import scipy.signal
+import frozendict
+import pylru
+
 import utils
+import spec_inter
+
 # resolution matrix
 
 
