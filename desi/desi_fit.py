@@ -93,18 +93,20 @@ def procdesi(fname, ofname, fig_prefix):
                                                                                       res1['param']['alpha'],
                                                                                       res1['vel'],
                                                                                       res1['vel_err'])
+        alpha = 0.5
+        line_width = 0.8
         plt.clf()
         plt.figure(1, figsize=(6, 6), dpi=300)
         plt.subplot(3, 1, 1)
-        plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
-        plt.plot(specdata[0].lam, res1['yfit'][0], 'r-')
+        plt.plot(specdata[0].lam, specdata[0].spec, 'k-', linewidth=line_width)
+        plt.plot(specdata[0].lam, res1['yfit'][0], 'r-', alpha=alpha, linewidth=line_width)
         plt.title(title)
         plt.subplot(3, 1, 2)
-        plt.plot(specdata[1].lam, specdata[1].spec, 'k-')
-        plt.plot(specdata[1].lam, res1['yfit'][1], 'r-')
+        plt.plot(specdata[1].lam, specdata[1].spec, 'k-', linewidth=line_width)
+        plt.plot(specdata[1].lam, res1['yfit'][1], 'r-', alpha=alpha, linewidth=line_width)
         plt.subplot(3, 1, 3)
-        plt.plot(specdata[2].lam, specdata[2].spec, 'k-')
-        plt.plot(specdata[2].lam, res1['yfit'][2], 'r-')
+        plt.plot(specdata[2].lam, specdata[2].spec, 'k-', linewidth=line_width)
+        plt.plot(specdata[2].lam, res1['yfit'][2], 'r-', alpha=alpha, linewidth=line_width)
         plt.xlabel(r'$\lambda$ [$\AA$]')
         plt.tight_layout()
         plt.savefig(fig_prefix + '_%s_%d.png' % (curbrick, curtargetid))
@@ -139,6 +141,7 @@ def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
     if nthreads>1:
         parallel = True
     fs = glob.glob(mask)
+    
     if parallel:
         pool = mp.Pool(nthreads)
     res = []
@@ -148,7 +151,7 @@ def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
         if parallel:
-            res.append(pool.apply_async(procdesi, (f, ofname, fig_prefix)))
+            res.append(pool.apply_async(procdesiWrapper, (f, ofname, fig_prefix)))
         else:
             procdesi(f, ofname, fig_prefix)
     if parallel:
