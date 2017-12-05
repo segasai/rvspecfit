@@ -33,7 +33,7 @@ def procdesi(fname, ofname, fig_prefix):
     fig_prefix: str
         The prefix where the figures will be stored
     """
-
+    print ('Processing', fname)
     tab = pyfits.getdata(fname, 'FIBERMAP')
     mws = tab['MWS_TARGET']
     targetid = tab['TARGETID']
@@ -123,7 +123,7 @@ def procdesiWrapper(*args, **kwargs):
 procdesiWrapper.__doc__ = procdesi.__doc__
 
 
-def domany(mask, oprefix, fig_prefix):
+def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
     """
     Process many spectral files
 
@@ -136,16 +136,16 @@ def domany(mask, oprefix, fig_prefix):
     fig_prefix: string
         The prfix where the figures will be stored
     """
-    skip_existing = True
-    parallel = True
+    if nthreads>1:
+        parallel = True
     fs = glob.glob(mask)
     if parallel:
-        pool = mp.Pool(16)
+        pool = mp.Pool(nthreads)
     res = []
     for f in fs:
         fname = f.split('/')[-1]
         ofname = oprefix + 'outtab_' + fname
-        if skip_existing and os.path.exists(ofname):
+        if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
         if parallel:
             res.append(pool.apply_async(procdesi, (f, ofname, fig_prefix)))
@@ -168,9 +168,14 @@ if __name__ == '__main__':
     parser.add_argument('fig_prefix',
                         help='Prefix for the fit figures',
                         type=str)
+    parser.add_argument('--nthreads',type=int, default=1)
+    parser.add_argument('--overwrite', action='store_true', default=False)
+    
     args = parser.parse_args()
     mask = args.mask
     oprefix = args.oprefix
     fig_prefix = args.fig_prefix
-    domany(mask, oprefix, fig_prefix)
+    nthreads = args.nthreads
+    domany(mask, oprefix, fig_prefix, nthreads=nthreads,
+           overwrite=args.overwrite)
     #../../desi/dc17a2/spectra-64/1/134/spectra-64-134.fits
