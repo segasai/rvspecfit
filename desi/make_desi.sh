@@ -28,4 +28,4 @@ python ../make_interpol.py --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1 --re
 
 python ../make_nd.py --prefix ${PREFIX}/ --setup desi_z
 
-python ../make_ccf.py --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1  --every 30 --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX}x --step 0.5
+python ../make_ccf.py --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1  --every 30 --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step 0.5
