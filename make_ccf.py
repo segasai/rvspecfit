@@ -10,6 +10,7 @@ import utils
 
 git_rev = utils.get_revision()
 
+
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
 
@@ -39,6 +40,7 @@ class CCFConfig:
         self.maxcontpts = maxcontpts
         self.splinestep = max(
             splinestep, 3e5 * (np.exp((logl1 - logl0) / self.maxcontpts) - 1))
+
 
 def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     """
@@ -75,7 +77,7 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
                                  * np.log(1 + ccfconf.splinestep / 3e5))
     medspec = np.median(spec0)
     BS = scipy.stats.binned_statistic(lam0, spec0, 'median', bins=nodesedges)
-    p0 = np.log(np.maximum(BS.statistic,1e-3*medspec))
+    p0 = np.log(np.maximum(BS.statistic, 1e-3 * medspec))
     p0[~np.isfinite(p0)] = np.log(medspec)
 
     lam, spec, espec = (lam0[::bin], scipy.signal.medfilt(spec0, bin)[::bin],
@@ -115,7 +117,7 @@ def fit_loss(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
     model: numpy array (optional, depending on getModel parameter)
         The evaluated model
     """
-    II = scipy.interpolate.UnivariateSpline(nodes, p, s=0,k=2)
+    II = scipy.interpolate.UnivariateSpline(nodes, p, s=0, k=2)
     model = np.exp(II(lam))
     if getModel:
         return model
@@ -125,11 +127,11 @@ def fit_loss(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
     if False:
         import matplotlib.pyplot as plt
         plt.clf()
-        plt.plot(lam,spec,'k')
-        plt.plot(lam,model,'r')
+        plt.plot(lam, spec, 'k')
+        plt.plot(lam, model, 'r')
         plt.draw()
         plt.pause(0.01)
-        print (val)
+        print(val)
     # I may need to mask outliers here...
     if not np.isfinite(val):
         return 1e30
@@ -194,7 +196,7 @@ def pad(x, y):
 
 
 def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None,
-                    modid=None):
+                     modid=None):
     """
     Take the input template model and return prepared for FFT vectors.
     That includes padding, apodizing and normalizing by continuum
@@ -224,17 +226,18 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None,
         m = spec_fit.convolve_vsini(lammodel, model0, vsini)
     else:
         m = model0
-    cont = get_continuum(lammodel, m, np.maximum(m*1e-5,1e-2*np.median(m)), ccfconf=ccfconf)
+    cont = get_continuum(lammodel, m, np.maximum(
+        m * 1e-5, 1e-2 * np.median(m)), ccfconf=ccfconf)
 
-    cont = np.maximum(cont, 1e-2*np.median(cont))
+    cont = np.maximum(cont, 1e-2 * np.median(cont))
 
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
     c_model = c_model - np.mean(c_model)
     ca_model = apodize(c_model)
     xlogl, cpa_model = pad(logl, ca_model)
     std = (cpa_model**2).sum()**.5
-    if std>1e5:
-        print ('WARNING something went wrong with the spectrum ormalization, model ',modid)
+    if std > 1e5:
+        print('WARNING something went wrong with the spectrum ormalization, model ', modid)
     cpa_model /= std
     return xlogl, cpa_model
 
@@ -265,19 +268,19 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     if vsinis is None:
         vsinis = [None]
     vsinisList = []
-    pool = mp.Pool(nthreads)    
+    pool = mp.Pool(nthreads)
     q = []
     for imodel, m0 in enumerate(models):
         for vsini in vsinis:
             retparams.append(params[imodel])
             q.append(pool.apply_async(preprocess_model,
-                (logl, lammodels, m0, vsini, ccfconf, (params[imodel]))))
+                                      (logl, lammodels, m0, vsini, ccfconf, (params[imodel]))))
             vsinisList.append(vsini)
 
     for ii, curx in enumerate(q):
-        print (ii,'/',len(q))
+        print(ii, '/', len(q))
         xlogl, cpa_model = curx.get()
-        res.append(cpa_model)        
+        res.append(cpa_model)
     pool.close()
     pool.join()
     return xlogl, res, retparams, vsinisList
