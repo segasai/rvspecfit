@@ -11,9 +11,9 @@ import itertools
 def firstguess(specdata, options=None,
          config=None,
          resolParams=None):
-    minvel=-1000
-    maxvel=1000
-    velstep0 = 5
+    min_vel=-1000
+    max_vel=1000
+    vel_step0 = 5
     paramsgrid = {'logg':[1,2,3,4,5],
                   'teff':[3000,5000,8000,10000],
                   'feh':[-2,-1,0],
@@ -25,7 +25,7 @@ def firstguess(specdata, options=None,
         curp = dict(zip(paramsgrid.keys(),x))
         curp = [curp[_] for _ in specParams]
         params.append(curp)
-    vels_grid = np.arange(minvel, maxvel, velstep0)
+    vels_grid = np.arange(min_vel, max_vel, vel_step0)
 
     for vsini in vsinigrid:
         if vsini is None:
@@ -46,28 +46,28 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     """
 
     # Configuration parameters, should be moved to the yaml file
-    minvel = -1000
-    maxvel = 1000
-    velstep0 = 5 # the starting step in velocities
-    velstep = 1 # The final step in velocitie TO BE CHECKED
-    maxRotVel = 500
-    minRotVel = 1e-2
-    minvelstep = 0.2 
+    min_vel = -1000
+    max_vel = 1000
+    vel_step0 = 5 # the starting step in velocities
+    vel_step = 1 # The final step in velocities TO BE CHECKED
+    max_vsini = 500
+    min_vsini = 1e-2
+    min_vel_step = 0.2 
 
     if config is None:
         raise Exception('Config must be provided')
 
     def mapVsini(vsini):
-        return np.log(np.clip(vsini, minRotVel, maxRotVel))
+        return np.log(np.clip(vsini, min_vsini, max_vsini))
 
     def mapVsiniInv(x):
-        return np.clip(np.exp(x), minRotVel, maxRotVel)
+        return np.clip(np.exp(x), min_vsini, max_vsini)
 
     assert(np.allclose(mapVsiniInv(mapVsini(3)), 3))
 
     normchiFeatureless = 0
 
-    vels_grid = np.arange(minvel, maxvel, velstep0)
+    vels_grid = np.arange(min_vel, max_vel, vel_step0)
     curparam = spec_fit.param_dict_to_tuple(paramDict0, specdata[0].name,
                                             config=config)
     specParams = spec_inter.getSpecParams(specdata[0].name, config)
@@ -146,19 +146,33 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
 
     # For a given template measure the chi-square as a function of velocity to get the uncertaint
 
+    # if the velocity is outside the range considered, something 
+    # is likely wrong with the object , so to prevent future failure
+    # I just limit the velocity 
+    if best_vel > max_vel or best_vel<min_vel:
+        print ('Warning velocity too large...')
+        if best_vel> max_vel:
+            best_vel=max_vel
+        else:
+            best_vel=min_vel
+
+
     crit_ratio = 5 # we want the step size to be at least crit_ratio times smaller than the uncertainty
+
+    # Here we are evaluating the chi-quares on the grid of 
+    # velocities to get the uncertainty 
     while True:
-        vels_grid = np.concatenate((np.arange (best_vel, minvel, velstep)[::-1], np.arange(best_vel+velstep, maxvel, velstep)))
+        vels_grid = np.concatenate((np.arange (best_vel, min_vel, vel_step)[::-1], np.arange(best_vel+vel_step, max_vel, vel_step)))
         res1 = spec_fit.find_best(specdata, vels_grid, [[ret['param'][_] for _ in specParams]],
                              best_param['rot_params'], resolParams,
                              config=config, options=options)
-        if velstep < res1['vel_err'] / crit_ratio or velstep<minvelstep:
+        if vel_step < res1['vel_err'] / crit_ratio or vel_step<min_vel_step:
             break
         else:
-            velstep = max(res1['vel_err'],velstep)/crit_ratio*0.8
-            newwidth = max(res1['vel_err'], velstep)*10 
-            minvel = max(best_vel - newwidth, minvel)
-            maxvel = min(best_vel + newwidth, maxvel)
+            vel_step = max(res1['vel_err'],vel_step)/crit_ratio*0.8
+            new_width = max(res1['vel_err'], vel_step) * 10 
+            min_vel = max(best_vel - new_width, min_vel)
+            max_vel = min(best_vel + new_width, max_vel)
     t3 = time.time()
     # print (t2-t1,t3-t2)
     ret['vel_err'] = res1['vel_err']
