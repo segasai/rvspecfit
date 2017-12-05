@@ -225,7 +225,9 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None,
     else:
         m = model0
     cont = get_continuum(lammodel, m, np.maximum(m*1e-5,1e-2*np.median(m)), ccfconf=ccfconf)
-    cont = np.maximum(np.median(cont), 1e-2*np.median(cont))
+
+    cont = np.maximum(cont, 1e-2*np.median(cont))
+
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
     c_model = c_model - np.mean(c_model)
     ca_model = apodize(c_model)
