@@ -17,10 +17,7 @@ import spec_fit
 
 import utils
 
-config = utils.read_config()
-
-
-def procdesi(fname, ofname, fig_prefix):
+def procdesi(fname, ofname, fig_prefix, config):
     """
     Process One single file with desi spectra
 
@@ -33,6 +30,7 @@ def procdesi(fname, ofname, fig_prefix):
     fig_prefix: str
         The prefix where the figures will be stored
     """
+
     print('Processing', fname)
     tab = pyfits.getdata(fname, 'FIBERMAP')
     mws = tab['MWS_TARGET']
@@ -129,8 +127,7 @@ def procdesiWrapper(*args, **kwargs):
 
 procdesiWrapper.__doc__ = procdesi.__doc__
 
-
-def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
+def domany(mask, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
     """
     Process many spectral files
 
@@ -143,6 +140,8 @@ def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
     fig_prefix: string
         The prfix where the figures will be stored
     """
+    config = utils.read_config(config)
+
     if nthreads > 1:
         parallel = True
     else:
@@ -159,9 +158,9 @@ def domany(mask, oprefix, fig_prefix, nthreads=1, overwrite=True):
             print('skipping, products already exist', f)
         if parallel:
             res.append(pool.apply_async(
-                procdesiWrapper, (f, ofname, fig_prefix)))
+                procdesiWrapper, (f, ofname, fig_prefix, config)))
         else:
-            procdesi(f, ofname, fig_prefix)
+            procdesiWrapper(f, ofname, fig_prefix, config)
     if parallel:
         for r in res:
             r.get()
@@ -180,14 +179,21 @@ if __name__ == '__main__':
     parser.add_argument('fig_prefix',
                         help='Prefix for the fit figures',
                         type=str)
-    parser.add_argument('--nthreads', type=int, default=1)
-    parser.add_argument('--overwrite', action='store_true', default=False)
+    parser.add_argument('--nthreads', help='Number of threads for the fits',
+                        type=int, default=1)
+    parser.add_argument('--config', 
+                        help='The filename of the configuration file',
+                        type=str, default=None)
+    parser.add_argument('--overwrite', 
+                        help='If enabled the code will overwrite the existing products, otherwise it will skip them',
+                        action='store_true', default=False)
 
     args = parser.parse_args()
     mask = args.mask
     oprefix = args.oprefix
     fig_prefix = args.fig_prefix
     nthreads = args.nthreads
+    config = args.config
     domany(mask, oprefix, fig_prefix, nthreads=nthreads,
-           overwrite=args.overwrite)
-    #../../desi/dc17a2/spectra-64/1/134/spectra-64-134.fits
+           overwrite=args.overwrite, config=config)
+
