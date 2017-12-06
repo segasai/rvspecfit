@@ -1,9 +1,12 @@
 The spectroscopic pipeline 
 
+The special dependencies of the code are: 
+pylru, frozendict, dill
 
-The depencies of the code are: 
-numpy, scipy, matplotlib, pylru, frozendict
+== Running on DESI data == 
 
+To run on DESI data use the code  from the desi folder desi_fit.py
+Run it without arguments to understand how to use it
 
 == Creation of the template grid library ===
 

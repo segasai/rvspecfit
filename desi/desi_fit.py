@@ -183,13 +183,13 @@ if __name__ == '__main__':
                         type=str, default=None)
     parser.add_argument('--output_dir', 
                         help='Output directory for the tables',
-                        type=str, default=None)
+                        type=str, default=None, required=True)
     parser.add_argument('--output_tab_prefix', 
                         help='Prefix of output table files',
                         type=str, default='outtab')
     parser.add_argument('--fig_prefix',
                         help='Prefix for the fit figures, i.e. fig_folder/im',
-                        type=str)
+                        type=str, default='./')
     parser.add_argument('--overwrite', 
                         help='If enabled the code will overwrite the existing products, otherwise it will skip them',
                         action='store_true', default=False)
