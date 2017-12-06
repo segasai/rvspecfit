@@ -84,7 +84,7 @@ def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile):
 
 
 def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
-                prefix=None, wavefile=None):
+                prefix=None, wavefile=None, air=False):
     nthreads = 8
     tab = atpy.Table('sqlite', dbfile)
     ids = (tab.id).astype(int)
@@ -105,7 +105,7 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
         lamgrid = np.exp(np.arange(np.log(lamleft / fac1),
                                    np.log(lamright * fac1), np.log(1 + step / lamleft)))
 
-    mat = read_grid.make_rebinner(templ_lam, lamgrid, resol)
+    mat = read_grid.make_rebinner(templ_lam, lamgrid, resol, toair=air)
 
     specs = []
     si.mat = mat
@@ -140,6 +140,7 @@ if __name__ == '__main__':
     parser.add_argument('--log', action='store_true', default=True)
     parser.add_argument('--templdb', type=str, default='files.db')
     parser.add_argument('--templprefix', type=str)
+    parser.add_argument('--air', action='store_true', default=False)
     parser.add_argument('--oprefix', type=str, default='templ_data/')
     parser.add_argument('--wavefile', type=str)
     args = parser.parse_args()
@@ -147,4 +148,4 @@ if __name__ == '__main__':
     process_all((args.setup, args.lambda0, args.lambda1,
                  args.resol, args.step, args.log), dbfile=args.templdb, oprefix=args.oprefix,
                 prefix=args.templprefix,
-                wavefile=args.wavefile)
+                wavefile=args.wavefile, air=args.air)
