@@ -42,9 +42,11 @@ def procdesi(fname, ofname, fig_prefix, config):
     fluxes = {}
     ivars = {}
     waves = {}
+    masks = {}
     for s in setups:
         fluxes[s] = pyfits.getdata(fname, '%s_FLUX' % s.upper())
         ivars[s] = pyfits.getdata(fname, '%s_IVAR' % s.upper())
+        masks[s] = pyfits.getdata(fname, '%s_MASK' % s.upper())
         waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
 
     outdict = {'brickname': [],
@@ -65,11 +67,13 @@ def procdesi(fname, ofname, fig_prefix, config):
         for s in setups:
             spec = fluxes[s][curid]
             curivars = ivars[s][curid]
-            curivars[curivars <= 0] = 1. / large_error**2
+            badmask = ( curivars <= 0 ) | (masks[s][curid] > 0)
+            curivars[badmask] = 1. / large_error**2
             espec = 1. / curivars**.5
             specdata.append(
                 spec_fit.SpecData('desi_%s' % s,
-                                  waves[s], spec, espec))
+                                  waves[s], spec, espec,
+                                  badmask = badmask))
         options = {'npoly': 15}
         res = fitter_ccf.fit(specdata, config)
         paramDict0 = res['best_par']
