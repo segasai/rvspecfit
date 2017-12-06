@@ -2,7 +2,6 @@ import glob
 import astropy.io.fits as pyfits
 import scipy.stats
 import scipy.sparse
-import sqlutil
 import sqlite3
 import numpy as np
 import astropy.wcs as pywcs
@@ -12,6 +11,8 @@ import argparse
 def makedb(prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
            dbfile='files.db'):
     """ Create an sqlite database of the templates """
+    import sqlutil
+
     id = 0
     sqlutil.execute(
         'CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);', db=dbfile, driver='sqlite3')

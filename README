@@ -1,3 +1,9 @@
+The spectroscopic pipeline 
+
+
+The depencies of the code are: 
+numpy, scipy, matplotlib, pylru, frozendict
+
 
 == Creation of the template grid library ===
 
