@@ -76,16 +76,16 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     nodesedges = lammin * np.exp((-0.5 + np.arange(N + 1))
                                  * np.log(1 + ccfconf.splinestep / 3e5))
     medspec = np.median(spec0)
-    if medspec<0:
+    if medspec < 0:
         medspec = np.abs(medspec)
-        if medspec==0:
+        if medspec == 0:
             medspec = 1
-        print ('WARNING the spectrum has a median that is non-positive...')
+        print('WARNING the spectrum has a median that is non-positive...')
 
     BS = scipy.stats.binned_statistic(lam0, spec0, 'median', bins=nodesedges)
     p0 = np.log(np.maximum(BS.statistic, 1e-3 * medspec))
     p0[~np.isfinite(p0)] = np.log(medspec)
-    
+
     lam, spec, espec = (lam0[::bin], scipy.signal.medfilt(spec0, bin)[::bin],
                         scipy.signal.medfilt(espec0, bin)[::bin])
 
@@ -319,8 +319,14 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     curspec = spec0.copy()
     if badmask is not None:
         curespec[badmask] = curespec[badmask] * 0 + 1e9
-    
+
     cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
+    medv = np.median(curspec)
+    if medv > 0:
+        cont = np.maximum(1e-2 * medv, cont)
+    else:
+        medv1 = np.median(curspec[curspec > 0])
+        cont = np.maximum(1e-2 * medv1, cont)
 
     c_spec = spec0 / cont
     c_spec = c_spec - np.median(c_spec)
