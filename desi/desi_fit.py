@@ -62,7 +62,6 @@ def procdesi(fname, ofname, fig_prefix, config):
         curbrick = brick_name[curid]
         curtargetid = targetid[curid]
         fig_fname = fig_prefix + '_%s_%d.png' % (curbrick, curtargetid)
-
         for s in setups:
             spec = fluxes[s][curid]
             curivars = ivars[s][curid]
@@ -156,6 +155,7 @@ def domany(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
         ofname = oprefix + 'outtab_' + fname
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
+            continue
         if parallel:
             res.append(pool.apply_async(
                 procdesiWrapper, (f, ofname, fig_prefix, config)))
