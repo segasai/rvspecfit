@@ -5,6 +5,7 @@ import matplotlib
 import argparse
 import multiprocessing as mp
 import astropy.io.fits as pyfits
+os.environ['OMP_NUM_THREADS']='1'
 import numpy as np
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -127,7 +128,7 @@ def procdesiWrapper(*args, **kwargs):
 
 procdesiWrapper.__doc__ = procdesi.__doc__
 
-def domany(mask, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
+def domany(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
     """
     Process many spectral files
 
@@ -146,12 +147,11 @@ def domany(mask, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
         parallel = True
     else:
         parallel = False
-    fs = glob.glob(mask)
 
     if parallel:
         pool = mp.Pool(nthreads)
     res = []
-    for f in fs:
+    for f in files:
         fname = f.split('/')[-1]
         ofname = oprefix + 'outtab_' + fname
         if (not overwrite) and os.path.exists(ofname):
@@ -170,30 +170,50 @@ def domany(mask, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('mask',
-                        help='mask files to be fitted, i.e. /tmp/desi*fits',
-                        type=str)
-    parser.add_argument('oprefix',
-                        help='Output prefix for the tables',
-                        type=str)
-    parser.add_argument('fig_prefix',
-                        help='Prefix for the fit figures',
-                        type=str)
     parser.add_argument('--nthreads', help='Number of threads for the fits',
                         type=int, default=1)
     parser.add_argument('--config', 
                         help='The filename of the configuration file',
                         type=str, default=None)
+    parser.add_argument('--input_file_mask', 
+                        help='The file mask of spectra, i.e. spectra*fits',
+                        type=str, default=None)
+    parser.add_argument('--input_file', 
+                        help='Read the list of spectra from the file',
+                        type=str, default=None)
+    parser.add_argument('--output_dir', 
+                        help='Output directory for the tables',
+                        type=str, default=None)
+    parser.add_argument('--output_tab_prefix', 
+                        help='Prefix of output table files',
+                        type=str, default='outtab')
+    parser.add_argument('--fig_prefix',
+                        help='Prefix for the fit figures, i.e. fig_folder/im',
+                        type=str)
     parser.add_argument('--overwrite', 
                         help='If enabled the code will overwrite the existing products, otherwise it will skip them',
                         action='store_true', default=False)
 
     args = parser.parse_args()
-    mask = args.mask
-    oprefix = args.oprefix
+    mask = args.input_file_mask
+    input_file = args.input_file
+
+    oprefix = args.output_dir+'/'+args.output_tab_prefix
     fig_prefix = args.fig_prefix
     nthreads = args.nthreads
     config = args.config
-    domany(mask, oprefix, fig_prefix, nthreads=nthreads,
+    if mask is not None and input_file is not None:
+        raise Exception('You can only specify --mask OR --input_file options but not both of them simulatenously')
+    if mask is not None:
+        files = glob.glob(mask)
+    elif input_file is not None:
+        files = []
+        with open(input_file,'r') as fp:
+            for l in fp:
+                files.append(l.rstrip())
+    else:
+        raise Exception('You need to specify the spectra you want to fit')
+
+    domany(files, oprefix, fig_prefix, nthreads=nthreads,
            overwrite=args.overwrite, config=config)
 

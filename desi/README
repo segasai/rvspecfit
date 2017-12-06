@@ -3,6 +3,27 @@ This is set of files for DESI processing
 make_desi.sh -- is the script that prepares the template libraries
 
 desi_fit.py is the main program that fits the data
-Usage: 
+Usage: desi_fit.py [-h] [--nthreads NTHREADS] [--config CONFIG]
+                   [--input_file_mask INPUT_FILE_MASK]
+                   [--input_file INPUT_FILE] [--output_dir OUTPUT_DIR]
+                   [--output_tab_prefix OUTPUT_TAB_PREFIX]
+                   [--fig_prefix FIG_PREFIX] [--overwrite]
 
-python desi_fit.py '../../desi/dc17a2/spectra-64/*/*/spectra*fits'  outtab/ outfig/
+optional arguments:
+  -h, --help            show this help message and exit
+  --nthreads NTHREADS   Number of threads for the fits
+  --config CONFIG       The filename of the configuration file
+  --input_file_mask INPUT_FILE_MASK
+                        The file mask of spectra, i.e. spectra*fits
+  --input_file INPUT_FILE
+                        Read the list of spectra from the file
+  --output_dir OUTPUT_DIR
+                        Output directory for the tables
+  --output_tab_prefix OUTPUT_TAB_PREFIX
+                        Prefix of output table files
+  --fig_prefix FIG_PREFIX
+                        Prefix for the fit figures, i.e. fig_folder/im
+  --overwrite           If enabled the code will overwrite the existing
+                        products, otherwise it will skip them
+
+python desi_fit.py --nthreads 24 --input_file_mask '/home/skoposov/science/desi/dc17a2/spectra-64/*/*/spectra-*.fits' --output_dir ./outtab/ --fig_prefix outfig/fig_
