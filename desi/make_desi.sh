@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -e 
 PREFIX=../../templ_data
 TEMPLPREF=/home/skoposov/science/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/
 WAVEFILE=/home/skoposov/science/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits

@@ -1,7 +1,7 @@
 The spectroscopic pipeline 
 
 The special dependencies of the code are: 
-pylru, frozendict, dill
+pylru, frozendict
 
 == Running on DESI data == 
 

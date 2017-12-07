@@ -94,7 +94,7 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
 
     templ_lam, spec = read_grid.get_spec(4.5, 12000, 0, 0, dbfile=dbfile,
                                          prefix=prefix, wavefile=wavefile)
-
+    mapper = read_grid.ParamMapper()
     HR, lamleft, lamright, resol, step, log = setupInfo
 
     deltav = 1000.  # extra padding
@@ -127,7 +127,8 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
     specs = np.array(specs)
     with open('%s/specs_%s%s.pkl' % (oprefix, HR, postf), 'wb') as fp:
         pickle.dump(dict(specs=specs, vec=vec, lam=lam,
-                         parnames=parnames, git_rev=git_rev), fp)
+                         parnames=parnames, git_rev=git_rev,
+                         mapper=mapper), fp)
 
 
 if __name__ == '__main__':

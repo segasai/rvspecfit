@@ -9,6 +9,50 @@ import astropy.wcs as pywcs
 import argparse
 
 
+
+class ParamMapper:
+    """
+    Class used to map stellar atmospheric parameters into more manageable grid
+    used for interpolation
+    """
+    def __init__(self):
+        pass
+
+    def forward(self, vec):
+        """
+        Map atmospheric parameters into parameters used in the grid for Interpolation
+        That includes logarithming the teff
+        
+        Parameters:
+        -----------
+        vec: numpy array
+            The vector of atmospheric parameters Teff, logg, feh, alpha
+        
+        Returns:
+        ----------
+        ret: numpy array
+            The vector of transformed parameters used in interpolation
+        """
+        return np.array([np.log10(vec[0]), vec[1], vec[2], vec[3]])
+
+    def inverse(self, vec):
+        """
+        Map transformed parameters used in the grid for interpolation back into
+        the atmospheric parameters. That includes exponentiating the log10(teff)
+
+        Parameters:
+        -----------
+        vec: numpy array
+            The vector of transformed atmospheric parameters log(Teff), logg, feh, alpha
+        
+        Returns:
+        ----------
+        ret: numpy array
+            The vector of original atmospheric parameters.
+    """
+        return np.array([10**vec[0], vec[1], vec[2], vec[3]])
+
+
 def makedb(prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
            dbfile='files.db'):
     """ Create an sqlite database of the templates """
@@ -65,8 +109,6 @@ def get_spec(logg, temp, met, alpha,
     speclen = len(dat)
     lams = np.arange(speclen) * 1.
     lams = pyfits.getdata(wavefile)
-    # assert(hdr['CTYPE1']=='AWAV-LOG')
-    # lams=np.exp(wc.all_pix2sky(lams,lams*0,0)[0])
     print('Using', fnames[0][0])
     return lams, dat
 

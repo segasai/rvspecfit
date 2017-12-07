@@ -26,7 +26,7 @@ def getInterp(triang, dats, exp=True):
 
 class SpecInterpolator:
         # Spectrum interpolator object
-    def __init__(self, name, interper, extraper, lam, mapper, invmapper,
+    def __init__(self, name, interper, extraper, lam, mapper, 
                  parnames):
         """ Construct the interpolator object
         The arguments are the name of the instrument setup
@@ -39,19 +39,18 @@ class SpecInterpolator:
         self.interper = interper
         self.extraper = extraper
         self.mapper = mapper
-        self.invmapper = invmapper
         self.parnames = parnames
 
     def outsideFlag(self, param0):
         """Check if the point is outside the interpolation grid"""
-        param = self.mapper(param0)
+        param = self.mapper.forward(param0)
         return self.extraper(param)
 
     def eval(self, param0):
         """ Evaluate the spectrum at a given parameter """
         if isinstance(param0, dict):
             param0 = [param0[_] for _ in self.parnames]
-        param = self.mapper(param0)
+        param = self.mapper.forward(param0)
         return self.interper(param)
 
 
@@ -66,18 +65,16 @@ def getInterpolator(HR, config):
     if HR not in interp_cache.interps:
         with open(config['template_lib']['savefile'] % HR, 'rb') as fd0:
             fd = pickle.load(fd0)
-            (triang, templ_lam, vecs, extraflags, mapper, invmapper, parnames) = (
+            (triang, templ_lam, vecs, extraflags, mapper, parnames) = (
                 fd['triang'], fd['lam'], fd['vec'], fd['extraflags'],
-                fd['mapper'], fd['invmapper'], fd['parnames'])
-            mapper = dill.loads(mapper)
-            invmapper = dill.loads(invmapper)
+                fd['mapper'], fd['parnames'])
         expFlag = True
         dats = np.load(config['template_lib']['npyfile'] % HR,
                        mmap_mode='r')
         interper, extraper = (getInterp(triang, dats, exp=expFlag),
                               scipy.interpolate.LinearNDInterpolator(triang, extraflags))
         interpObj = SpecInterpolator(HR, interper, extraper, templ_lam,
-                                     mapper, invmapper, parnames)
+                                     mapper, parnames)
         interp_cache.interps[HR] = interpObj
     else:
         interpObj = interp_cache.interps[HR]

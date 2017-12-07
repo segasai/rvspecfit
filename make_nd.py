@@ -8,43 +8,6 @@ import utils
 
 git_rev = utils.get_revision()
 
-def mapper(vec):
-    """
-    Map atmospheric parameters into parameters used in the grid for Interpolation
-    That includes logarithming the teff
-
-    Parameters:
-    -----------
-    vec: numpy array
-        The vector of atmospheric parameters Teff, logg, feh, alpha
-
-    Returns:
-    ----------
-    ret: numpy array
-        The vector of transformed parameters used in interpolation
-    """
-    import numpy as np
-    return np.array([np.log10(vec[0]), vec[1], vec[2], vec[3]])
-
-
-def invmapper(vec):
-    """
-    Map transformed parameters used in the grid for interpolation back into
-    the atmospheric parameters. That includes exponentiating the log10(teff)
-
-    Parameters:
-    -----------
-    vec: numpy array
-        The vector of transformed atmospheric parameters log(Teff), logg, feh, alpha
-
-    Returns:
-    ----------
-    ret: numpy array
-        The vector of original atmospheric parameters.
-    """
-
-    import numpy as np
-    return np.array([10**vec[0], vec[1], vec[2], vec[3]])
 
 def getedgevertices(vec):
     """
@@ -109,11 +72,11 @@ def execute(spec_setup, prefix=None, perturb=True):
     postf = ''
     with open('%s/specs_%s%s.pkl' % (prefix, spec_setup, postf), 'rb') as fp:
         D = pickle.load(fp)
-        vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D['parnames']
+        vec, specs, lam, parnames, mapper = D['vec'], D['specs'], D['lam'], D['parnames'], D['mapper']
         del D
 
     vec = vec.astype(float)
-    vec = mapper(vec)
+    vec = mapper.forward(vec)
     ndim = len(vec[:, 0])
 
     # It turn's out that Delaunay is sometimes unstable when dealing with uniform
@@ -153,8 +116,7 @@ def execute(spec_setup, prefix=None, perturb=True):
     ret_dict['extraflags'] = extraflags
     ret_dict['vec'] = vec
     ret_dict['parnames'] = parnames
-    ret_dict['mapper'] = dill.dumps(mapper)
-    ret_dict['invmapper'] = dill.dumps(invmapper)
+    ret_dict['mapper'] = mapper
 
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)
