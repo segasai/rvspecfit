@@ -13,9 +13,8 @@ import pylru
 import utils
 import spec_inter
 
+
 # resolution matrix
-
-
 class ResolMatrix:
     def __init__(self, mat):
         self.fd = {}
@@ -32,7 +31,26 @@ class ResolMatrix:
 
 
 class SpecData:
+    '''
+    Class describing a single spectrocopic dataset
+    '''
     def __init__(self, name, lam, spec, espec, badmask=None):
+        '''
+        Construct the spectroscopic dataset
+
+        Parameters:
+        -----------
+        name: string
+            Name of the spectroscopic setups
+        lam: numpy array
+            Wavelength vector
+        spec: numpy array
+            Vector with the spectrum
+        espec: numpy array
+            Vector with the error spectrum (sigmas)
+        badmask: numpy array (boolean, optional)
+            The mask with bad pixels
+        '''
         self.fd = {}
         self.fd['name'] = name
         self.fd['lam'] = lam
@@ -67,17 +85,24 @@ class SpecData:
         return self.id
 
 
-def eval_vel_grid(vels_grid, interpol, lam_object):
-    # obtain the interpolators for each template in the list
-    interpols_grid = np.zeros((len(vels_grid), len(lam_object)))
-    for j_vel, vel in enumerate(vels_grid):
-        interpols_grid[j_vel, :] = interpol(lam_object /
-                                            (1 + vel * 1000. / speed_of_light))
-    return interpols_grid
-
 
 @functools.lru_cache(100)
 def get_polys(specdata, npoly):
+    '''
+    Get the precomputed polynomials for the continuum for a given specdata
+
+    Parameters:
+    -----------
+    specdata: SpecData objects
+        The spectroscopic dataset objects
+    npoly: integer
+        The degree of polynomial to use
+
+    Returns:
+    --------
+    polys: numpy array(npolys, Nwave)
+        The array of continuum polynomials
+    '''
     lam = specdata.lam
     # get polynomials for continuum
     polys = np.zeros((npoly, len(lam)))
@@ -91,30 +116,34 @@ def get_polys(specdata, npoly):
         polys[i, :] = np.polynomial.Chebyshev(coeffs[i])(normlam)
     return polys
 
+def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
+    '''
+    Get the chi-square values for the vector of velocities and grid of templates
+    after marginalizing over continuum
+    If espec is not provided we assume data and template are alreay normalized
 
-def get_findmin(chisqs, vels):
-    # find the mininum in chi-square
-    # and fit the parabola around in the minimum
-    minpos = np.argmin(chisqs)
-    left = max(minpos - 2, 0)
-    right = min(minpos + 3, len(chisqs) - 1)
-    if minpos >= 1 or minpos < (len(chisqs) - 1):
-        a, b, c = scipy.polyfit(vels[left:right],
-                                chisqs[left:right], 2)
-        evel = 1 / np.sqrt(a)
-        best_vel = -b / 2 / a
-    else:
-        best_vel = chisqs[minpos]
-        evel = vels[1] - vels[0]
-    return (best_vel, evel, chisqs[minpos])
+    Parameters:
+    -----------
+    spec: numpy
+        Spectrum array
+    templ: numpy
+        The template
+    polys: numpy
+        The continuum polynomials
+    get_coeffs: boolean (optional)
+        If true return the coefficients of polynomials
+    espec: numpy (optional)
+        If specified, this is the error vector. If not specified, then it is
+        assumed that spectrum and template are already divided by the uncertainty
 
+    Returns:
+    --------
+    chisq: real
+        Chi-square of the fitVsini
+    coeffs: numpy
+        The polynomial coefficients (optional)
+    '''
 
-def get_chisq0(spec, templ, polys, getCoeffs=False, espec=None):
-    # get the chi-square values for the vector of velocities
-    # and grid of templates
-    # after marginalizing over continuum
-    # if espec is not provided we assume data and template are already
-    # normalized
     if espec is not None:
         normspec = spec / espec
         normtempl = templ / espec
@@ -140,33 +169,36 @@ def get_chisq0(spec, templ, polys, getCoeffs=False, espec=None):
 
     chisq = -vector1.getT() * v2 + \
         0.5 * np.log(det)
-    if getCoeffs:
+    if get_coeffs:
         coeffs = v2.flatten()
         return chisq, coeffs
     else:
         return chisq
 
-
-def get_chisq_many(spec, espec, templgrid, polys):
-    # get the chi-square values for the vector of velocities
-    # and grid of templates
-    assert(templgrid.shape == 2)
-
-    chisqs = np.zeros(templgrid.shape[0])
-    normspec = spec / espec
-    normgrid = templgrid / espec[None, :]
-    for i in range(templgrid.shape[0]):
-        chisqs[i] = get_chisq(normspec, normgrid[i],
-                              polys, getCoeffs=False, espec=None)
-    return chisqs
-
-
 @functools.lru_cache(100)
-def getCurTempl(name, atm_param, rot_params, resol_params, config):
-    """ get the spectrum in the given setup
-    with given atmospheric parameters and given config
+def getCurTempl(spec_setup, atm_param, rot_params, resol_params, config):
     """
-    curInterp = spec_inter.getInterpolator(name, config)
+    Get the spectrum in the given setup with given atmospheric parameters and
+    given config
+
+    Parameters:
+    -----------
+    spec_setup: string
+        The name of the spectroscopic setup
+    atm_param: tuple
+        The atmospheric parameters
+    rot_params: tuple
+        The parameters of stellar rotation models (could be None)
+    resol_params: object
+        The object that descibe the resolution convolution (could be None)
+    config: dict
+        The configuration dictionary
+
+    Returns:
+    templ: numpy
+        The template vector
+    """
+    curInterp = spec_inter.getInterpolator(spec_setup, config)
     outside = float(curInterp.outsideFlag(atm_param))
     spec = curInterp.eval(atm_param)
     if not np.isfinite(outside):
@@ -182,7 +214,19 @@ def getCurTempl(name, atm_param, rot_params, resol_params, config):
 
 
 def construct_resol_mat(lam, R):
-    " Construct a sparse resolution matrix "
+    '''
+    Construct a sparse resolution matrix from a resolution number R
+
+    Parameters:
+    lam: numpy
+        The wavelength vector
+    R: real/numpy
+        The resolution value (R=lambda/delta lambda)
+
+    Returns:
+    mat: scipy.sparse matrix
+        The matrix describing the resolution convolution operation
+    '''
     sigs = lam / R / 2.35
     thresh = 5
     assert(np.all(np.diff(lam) > 0))
@@ -204,15 +248,44 @@ def construct_resol_mat(lam, R):
         vals.append(kernel)
     xs, ys, vals = [np.concatenate(_) for _ in [xs, ys, vals]]
     mat = scipy.sparse.coo_matrix((vals, (xs, ys)), shape=(len(lam), len(lam)))
+    mat = mat.tocsc()
     return ResolMatrix(mat)
 
 
 def convolve_resol(spec, resol_matrix):
+    '''
+    Convolve the spectrum with the resolution matrix
+
+    Parameters:
+    spec: numpy
+        The spectrum array
+    resol_matrix: ResolMatrix object
+        The resolution matrix object
+
+    Returns:
+    --------
+    spec: numpy
+        The spectrum array
+    '''
     return resol_matrix.mat * spec
 
 
 def convolve_vsini(lam_templ, templ, vsini):
-    """ convolve the spectrum with the stellar rotation velocity kernel
+    """
+    Convolve the spectrum with the stellar rotation velocity kernel
+
+    Parameters:
+    lam_templ: numpy
+        The wavelength vector (MUST be spaced logarithmically)
+    templ: numpy
+        The spectrum vector
+    vsini: real
+        The Vsini velocity
+
+    Returns:
+    --------
+    spec: numpy
+        The convolved spectrum
     """
     eps = 0.6  # limb darkening coefficient
 
@@ -228,20 +301,49 @@ def convolve_vsini(lam_templ, templ, vsini):
     assert(np.allclose(lam_templ[1] / lam_templ[0],
                        lam_templ[-1] / lam_templ[-2]))
     templ1 = scipy.signal.fftconvolve(templ, kernel, mode='same')
-    #raise Exception("not implemented yet")
     return templ1
 
 
 def getRVInterpol(lam_templ, templ):
-    """ Return the spectrum interpolator"""
+    """
+    Produce the spectrum interpolator to evaluate the spectrum at arbitrary
+    wavelengths
+
+    Parameters:
+    -----------
+    lam_templ: numpy
+        Wavelength array
+    templ: numpy
+        Spectral array
+
+    Returns:
+    --------
+    interpol: scipy.interpolate object
+        The object that can be used to evaluate template at any wavelength
+    """
+
     interpol = scipy.interpolate.UnivariateSpline(
         lam_templ, templ, s=0, k=3, ext=2)
     return interpol
 
 
 def evalRV(interpol, vel, lams):
-    """ Evaluate the spectrum interpolator at a given velocity
-    and given wavelengths
+    """
+    Evaluate the spectrum interpolator at a given velocity and given wavelengths
+
+    Parameters:
+    -----------
+    interpol: scipy.intepolate object
+        Template interpolator
+    vel: real
+        Radial velocity
+    lams: numpy
+        Wavelength array
+
+    Returns:
+    --------
+    spec: numpy
+        Evaluated spectrum
     """
     return interpol(lams / (1 + vel * 1000. / speed_of_light))
 
@@ -312,7 +414,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         polys = get_polys(curdata, npoly)
 
         curchisq = get_chisq0(curdata.spec, evalTempl,
-                              polys, getCoeffs=getModel, espec=curdata.espec)
+                              polys, get_coeffs=getModel, espec=curdata.espec)
         if getModel:
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
