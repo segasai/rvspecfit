@@ -1,4 +1,5 @@
 import glob
+import sqlite3
 import astropy.io.fits as pyfits
 import scipy.stats
 import scipy.sparse
@@ -11,11 +12,10 @@ import argparse
 def makedb(prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
            dbfile='files.db'):
     """ Create an sqlite database of the templates """
-    import sqlutil
-
+    DB = sqlite3.connect(dbfile)
     id = 0
-    sqlutil.execute(
-        'CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);', db=dbfile, driver='sqlite3')
+    DB.execute(
+        'CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);')
 
     for f in sorted(glob.glob(prefix + '*/*fits')):
         hdr = pyfits.getheader(f)
@@ -24,10 +24,10 @@ def makedb(prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.
         alpha = float(hdr['PHXALPHA'])
         met = float(hdr['PHXM_H'])
 
-        sqlutil.execute('insert into files  values (?, ? , ? , ? , ?, ? )',
-                        (f.replace(prefix, ''), teff, logg, met, alpha, id), driver='sqlite3', db=dbfile)
+        DB.execute('insert into files  values (?, ? , ? , ? , ?, ? )',
+                        (f.replace(prefix, ''), teff, logg, met, alpha, id))
         id += 1
-
+    DB.commit()
 
 def get_spec(logg, temp, met, alpha,
              dbfile='/tmp/files.db',
