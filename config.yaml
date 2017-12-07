@@ -1,4 +1,4 @@
 template_lib:
-    savefile : '../templ_data/interp_%s.pkl'
-    npyfile : '../templ_data/interpdat_%s.npy'
-    ccffile: '../templ_data/ccf_%s.pkl' 
+    savefile : 'PATH_TO/interp_%s.pkl'
+    npyfile : 'PATH_TO/interpdat_%s.npy'
+    ccffile: 'PATH_TO/ccf_%s.pkl' 
