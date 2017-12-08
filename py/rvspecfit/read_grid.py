@@ -1,4 +1,5 @@
 import glob
+import sys
 import sqlite3
 import astropy.io.fits as pyfits
 import scipy.stats
@@ -195,9 +196,12 @@ def rebin(lam0, spec0, newlam, resolution):
     return ret
 
 
-if __name__ == '__main__':
+def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix', type=str, default='./', dest='prefix')
     parser.add_argument('--templdb', type=str, default='files.db')
     args = parser.parse_args()
     makedb(args.prefix, dbfile=args.templdb)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

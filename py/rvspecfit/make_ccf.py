@@ -4,9 +4,10 @@ import multiprocessing as mp
 import numpy as np
 import scipy.interpolate
 import scipy.stats
-import spec_fit
-import make_ccf
-import utils
+
+from rvspecfit import spec_fit
+from rvspecfit import make_ccf
+from rvspecfit import utils
 
 git_rev = utils.get_revision()
 
@@ -393,7 +394,8 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
         pickle.dump(dHash, fp)
 
 
-if __name__ == '__main__':
+
+def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix', type=str)
     parser.add_argument('--oprefix', type=str)
@@ -404,7 +406,7 @@ if __name__ == '__main__':
     parser.add_argument('--vsinis', type=str, default=None)
     parser.add_argument('--every', type=int, default=30)
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     npoints = (args.lambda1 - args.lambda0) / args.step
     ccfconf = make_ccf.CCFConfig(logl0=np.log(args.lambda0),
@@ -417,3 +419,6 @@ if __name__ == '__main__':
         vsinis = None
     ccf_executor(args.setup, ccfconf, args.prefix,
                  args.oprefix, args.every, vsinis)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

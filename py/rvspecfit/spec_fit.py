@@ -10,8 +10,8 @@ import scipy.signal
 import frozendict
 import pylru
 
-import utils
-import spec_inter
+from rvspecfit import utils
+from rvspecfit import spec_inter
 
 
 # resolution matrix

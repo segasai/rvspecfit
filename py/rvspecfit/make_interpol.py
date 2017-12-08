@@ -9,8 +9,9 @@ import scipy.constants
 import scipy.optimize
 import numpy as np
 import atpy
-import read_grid
-import utils
+
+from rvspecfit import read_grid
+from rvspecfit import utils
 
 git_rev = utils.get_revision()
 
@@ -131,7 +132,7 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
                          mapper=mapper), fp)
 
 
-if __name__ == '__main__':
+def main(args):
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--setup', type=str)
     parser.add_argument('--lambda0', type=float)
@@ -144,9 +145,12 @@ if __name__ == '__main__':
     parser.add_argument('--air', action='store_true', default=False)
     parser.add_argument('--oprefix', type=str, default='templ_data/')
     parser.add_argument('--wavefile', type=str)
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     process_all((args.setup, args.lambda0, args.lambda1,
                  args.resol, args.step, args.log), dbfile=args.templdb, oprefix=args.oprefix,
                 prefix=args.templprefix,
                 wavefile=args.wavefile, air=args.air)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

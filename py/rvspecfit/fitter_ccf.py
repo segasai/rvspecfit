@@ -6,7 +6,7 @@ import numpy as np
 import scipy.optimize
 import scipy.interpolate
 import matplotlib.pyplot as plt
-import make_ccf
+from rvspecfit import make_ccf
 
 
 class CCFCache:

@@ -3,8 +3,8 @@ import argparse
 import numpy as np
 import numpy.random
 import scipy.spatial
-import dill
-import utils
+
+from rvspecfit import utils
 
 git_rev = utils.get_revision()
 
@@ -124,9 +124,12 @@ def execute(spec_setup, prefix=None, perturb=True):
             (prefix, spec_setup, postf), np.asfortranarray(specs))
 
 
-if __name__ == '__main__':
+def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--prefix', type=str)
     parser.add_argument('--setup', type=str)
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     execute(args.setup, args.prefix)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])

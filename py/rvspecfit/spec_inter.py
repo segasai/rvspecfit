@@ -2,7 +2,7 @@ import numpy as np
 import scipy.spatial
 import scipy.interpolate
 import pickle
-import dill
+
 
 
 def getInterp(triang, dats, exp=True):

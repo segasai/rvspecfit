@@ -11,12 +11,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import astropy.table
 
-sys.path.append('../')
-import fitter_ccf
-import vel_fit
-import spec_fit
-
-import utils
+from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
 
 def procdesi(fname, ofname, fig_prefix, config):
     """
@@ -171,8 +166,7 @@ def domany(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
         pool.close()
         pool.join()
 
-
-if __name__ == '__main__':
+def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--nthreads', help='Number of threads for the fits',
                         type=int, default=1)
@@ -198,7 +192,7 @@ if __name__ == '__main__':
                         help='If enabled the code will overwrite the existing products, otherwise it will skip them',
                         action='store_true', default=False)
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     mask = args.input_file_mask
     input_file = args.input_file
 
@@ -221,3 +215,5 @@ if __name__ == '__main__':
     domany(files, oprefix, fig_prefix, nthreads=nthreads,
            overwrite=args.overwrite, config=config)
 
+if __name__ == '__main__':
+    main(sys.argv[1:])

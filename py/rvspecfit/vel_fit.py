@@ -1,13 +1,13 @@
-import astropy.io.fits as pyfits
-import numpy as np
 import sys
 import time
-import matplotlib.pyplot as plt
-import spec_fit
-import spec_inter
-import scipy.optimize
 import itertools
+import astropy.io.fits as pyfits
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.optimize
 
+from rvspecfit import spec_fit
+from rvspecfit import spec_inter
 
 def firstguess(specdata, options=None,
                config=None,
