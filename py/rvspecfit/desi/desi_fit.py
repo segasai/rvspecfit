@@ -1,9 +1,9 @@
 import glob
 import sys
 import os
-import matplotlib
 import argparse
 import multiprocessing as mp
+import matplotlib
 import astropy.io.fits as pyfits
 os.environ['OMP_NUM_THREADS']='1'
 import numpy as np
@@ -13,7 +13,44 @@ import astropy.table
 
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
 
-def procdesi(fname, ofname, fig_prefix, config):
+def make_plot(specdata, res_dict, title, fig_fname):
+    """
+    Make a plot with the spectra and fits
+    
+    Parameters:
+    -----------
+    specdata: SpecData object
+        The object with specdata
+    res_dict: list
+        The list of dictionaries with fit results. The dictionaries must have yfit key
+    title: string
+        The figure title
+    fig_fname: string
+        The filename of the figure
+    """
+    alpha = 0.7
+    line_width = 0.8
+    plt.clf()
+    plt.figure(1, figsize=(6, 6), dpi=300)
+    plt.subplot(3, 1, 1)
+    plt.plot(specdata[0].lam, specdata[0].spec, 'k-', linewidth=line_width)
+    plt.plot(specdata[0].lam, res_dict['yfit'][0], 'r-',
+             alpha=alpha, linewidth=line_width)
+    plt.title(title)
+    plt.subplot(3, 1, 2)
+    plt.plot(specdata[1].lam, specdata[1].spec, 'k-', linewidth=line_width)
+    plt.plot(specdata[1].lam, res_dict['yfit'][1], 'r-',
+             alpha=alpha, linewidth=line_width)
+    plt.subplot(3, 1, 3)
+    plt.plot(specdata[2].lam, specdata[2].spec, 'k-', linewidth=line_width)
+    plt.plot(specdata[2].lam, res_dict['yfit'][2], 'r-',
+            alpha=alpha, linewidth=line_width)
+    plt.xlabel(r'$\lambda$ [$\AA$]')
+    plt.tight_layout()
+    plt.savefig(fig_fname)
+
+
+def proc_desi(fname, ofname, fig_prefix, config):
     """
     Process One single file with desi spectra
 
@@ -52,19 +89,24 @@ def procdesi(fname, ofname, fig_prefix, config):
                'teff': [],
                'vsini': [],
                'feh': [],
-               'chisq': []}
+               'chisq': [],
+               'sn_b':[],
+               'sn_r':[],
+               'sn_z':[]}
     large_error = 1e9
     for curid in xids:
         specdata = []
         curbrick = brick_name[curid]
         curtargetid = targetid[curid]
         fig_fname = fig_prefix + '_%s_%d.png' % (curbrick, curtargetid)
+        sns = {}
         for s in setups:
             spec = fluxes[s][curid]
             curivars = ivars[s][curid]
             badmask = ( curivars <= 0 ) | (masks[s][curid] > 0)
             curivars[badmask] = 1. / large_error**2
             espec = 1. / curivars**.5
+            sns[s] = np.nanmedian (spec/espec)
             specdata.append(
                 spec_fit.SpecData('desi_%s' % s,
                                   waves[s], spec, espec,
@@ -86,47 +128,31 @@ def procdesi(fname, ofname, fig_prefix, config):
         outdict['feh'].append(res1['param']['feh'])
         outdict['chisq'].append(res1['chisq'])
         outdict['vsini'].append(res1['vsini'])
+        for s in setups:
+            outdict['sn_%s'%(s,)]=sns[s]
+        
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (res1['param']['logg'],
                                                                                       res1['param']['teff'],
                                                                                       res1['param']['feh'],
                                                                                       res1['param']['alpha'],
                                                                                       res1['vel'],
                                                                                       res1['vel_err'])
-        alpha = 0.5
-        line_width = 0.8
-        plt.clf()
-        plt.figure(1, figsize=(6, 6), dpi=300)
-        plt.subplot(3, 1, 1)
-        plt.plot(specdata[0].lam, specdata[0].spec, 'k-', linewidth=line_width)
-        plt.plot(specdata[0].lam, res1['yfit'][0], 'r-',
-                 alpha=alpha, linewidth=line_width)
-        plt.title(title)
-        plt.subplot(3, 1, 2)
-        plt.plot(specdata[1].lam, specdata[1].spec, 'k-', linewidth=line_width)
-        plt.plot(specdata[1].lam, res1['yfit'][1], 'r-',
-                 alpha=alpha, linewidth=line_width)
-        plt.subplot(3, 1, 3)
-        plt.plot(specdata[2].lam, specdata[2].spec, 'k-', linewidth=line_width)
-        plt.plot(specdata[2].lam, res1['yfit'][2], 'r-',
-                 alpha=alpha, linewidth=line_width)
-        plt.xlabel(r'$\lambda$ [$\AA$]')
-        plt.tight_layout()
-        plt.savefig(fig_fname)
+    make_plot(specdata, res1, title, fig_fname)
     outtab = astropy.table.Table(outdict)
     outtab.write(ofname, overwrite=True)
 
 
-def procdesiWrapper(*args, **kwargs):
+def proc_desi_wrapper(*args, **kwargs):
     try:
-        ret = procdesi(*args, **kwargs)
+        ret = proc_desi(*args, **kwargs)
     except:
         print('failed with these arguments', args, kwargs)
         raise
 
 
-procdesiWrapper.__doc__ = procdesi.__doc__
+proc_desi_wrapper.__doc__ = proc_desi.__doc__
 
-def domany(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
+def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
     """
     Process many spectral files
 
@@ -157,9 +183,9 @@ def domany(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
             continue
         if parallel:
             res.append(pool.apply_async(
-                procdesiWrapper, (f, ofname, fig_prefix, config)))
+                proc_desi_wrapper, (f, ofname, fig_prefix, config)))
         else:
-            procdesiWrapper(f, ofname, fig_prefix, config)
+            proc_desi_wrapper(f, ofname, fig_prefix, config)
     if parallel:
         for r in res:
             r.get()
