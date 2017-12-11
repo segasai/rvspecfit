@@ -64,6 +64,8 @@ def proc_desi(fname, ofname, fig_prefix, config):
         The prefix where the figures will be stored
     """
 
+    options = {'npoly': 10}
+
     print('Processing', fname)
     tab = pyfits.getdata(fname, 'FIBERMAP')
     mws = tab['MWS_TARGET']
@@ -92,7 +94,10 @@ def proc_desi(fname, ofname, fig_prefix, config):
                'chisq': [],
                'sn_b':[],
                'sn_r':[],
-               'sn_z':[]}
+               'sn_z':[],
+               'chisq_b':[],
+               'chisq_r':[],
+               'chisq_z':[]}
     large_error = 1e9
     for curid in xids:
         specdata = []
@@ -100,6 +105,7 @@ def proc_desi(fname, ofname, fig_prefix, config):
         curtargetid = targetid[curid]
         fig_fname = fig_prefix + '_%s_%d.png' % (curbrick, curtargetid)
         sns = {}
+        chisqs = {}
         for s in setups:
             spec = fluxes[s][curid]
             curivars = ivars[s][curid]
@@ -111,7 +117,6 @@ def proc_desi(fname, ofname, fig_prefix, config):
                 spec_fit.SpecData('desi_%s' % s,
                                   waves[s], spec, espec,
                                   badmask = badmask))
-        options = {'npoly': 15}
         res = fitter_ccf.fit(specdata, config)
         paramDict0 = res['best_par']
         fixParam = []
@@ -127,9 +132,10 @@ def proc_desi(fname, ofname, fig_prefix, config):
         outdict['teff'].append(res1['param']['teff'])
         outdict['feh'].append(res1['param']['feh'])
         outdict['chisq'].append(res1['chisq'])
-        outdict['vsini'].append(res1['vsini'])
-        for s in setups:
+        for i, s in enumerate(setups):
+            outdict['chisq_%s'%s] = res1['chisq_array'][i]
             outdict['sn_%s'%(s,)].append(sns[s])
+        outdict['vsini'].append(res1['vsini'])
         
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (res1['param']['logg'],
                                                                                       res1['param']['teff'],
