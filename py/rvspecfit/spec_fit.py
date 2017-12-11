@@ -358,7 +358,7 @@ def param_dict_to_tuple(paramDict, setup, config):
 
 
 def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
-              config=None, getModel=False, cache=None):
+              config=None, cache=None, full_output=False):
     """ Find the chi-square of the dataset at a given velocity
     atmospheric parameters, rotation parameters
     and resolution parameters
@@ -374,6 +374,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         resol_params = frozendict.frozendict(resol_params)
     atm_params = tuple(atm_params)
 
+    chisq_array = []
     # iterate over multiple datasets
     for curdata in specdata:
         name = curdata.name
@@ -387,6 +388,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
 
         if not np.isfinite(outside):
             chisq += badchi
+            chisq_array.append(np.nan)
             continue
         else:
             chisq += outside
@@ -414,17 +416,20 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         polys = get_polys(curdata, npoly)
 
         curchisq = get_chisq0(curdata.spec, evalTempl,
-                              polys, get_coeffs=getModel, espec=curdata.espec)
-        if getModel:
+                              polys, get_coeffs=full_output, espec=curdata.espec)
+        if full_output:
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
             models.append(curmodel)
-
+        chisq_array.append(curchisq)
         assert(np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
 
-    if getModel:
-        ret = chisq, models
+    if full_output:
+        ret = {}
+        ret['chisq'] = chisq
+        ret['chisq_array'] = chisq_array
+        ret['models'] = models
     else:
         ret = chisq
     return ret

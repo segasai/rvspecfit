@@ -129,7 +129,7 @@ def proc_desi(fname, ofname, fig_prefix, config):
         outdict['chisq'].append(res1['chisq'])
         outdict['vsini'].append(res1['vsini'])
         for s in setups:
-            outdict['sn_%s'%(s,)]=sns[s]
+            outdict['sn_%s'%(s,)].append(sns[s])
         
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (res1['param']['logg'],
                                                                                       res1['param']['teff'],
@@ -137,7 +137,7 @@ def proc_desi(fname, ofname, fig_prefix, config):
                                                                                       res1['param']['alpha'],
                                                                                       res1['vel'],
                                                                                       res1['vel_err'])
-    make_plot(specdata, res1, title, fig_fname)
+        make_plot(specdata, res1, title, fig_fname)
     outtab = astropy.table.Table(outdict)
     outtab.write(ofname, overwrite=True)
 
@@ -238,7 +238,7 @@ def main(args):
     else:
         raise Exception('You need to specify the spectra you want to fit')
 
-    domany(files, oprefix, fig_prefix, nthreads=nthreads,
+    proc_many(files, oprefix, fig_prefix, nthreads=nthreads,
            overwrite=args.overwrite, config=config)
 
 if __name__ == '__main__':

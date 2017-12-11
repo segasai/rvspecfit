@@ -95,7 +95,7 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
         p0rev = list(p0)[::-1]
         ret['vel'] = p0rev.pop()
         if fitVsini:
-            vsini = mapVsini(p0rev.pop())
+            vsini = mapVsiniInv(p0rev.pop())
             ret['vsini'] = vsini
         else:
             if 'vsini' in fixParam:
@@ -118,7 +118,7 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     startParam = [best_vel]
 
     if fitVsini:
-        startParam.append(mapVsiniInv(paramDict0['vsini']))
+        startParam.append(mapVsini(paramDict0['vsini']))
 
     for x in specParams:
         if x not in fixParam:
@@ -177,11 +177,12 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
     t3 = time.time()
     # print (t2-t1,t3-t2)
     ret['vel_err'] = res1['vel_err']
-    chisq, yfit = spec_fit.get_chisq(specdata, best_vel, [ret['param'][_] for _ in specParams],
+    outp = spec_fit.get_chisq(specdata, best_vel, [ret['param'][_] for _ in specParams],
                                      best_param['rot_params'],
                                      resolParams,
                                      options=options, config=config,
-                                     getModel=True)
-    ret['yfit'] = yfit
-    ret['chisq'] = chisq
+                                     full_output=True)
+    ret['yfit'] = outp['models']
+    ret['chisq'] = outp['chisq']
+    ret['chisq_array'] = outp['chisq_array']
     return ret
