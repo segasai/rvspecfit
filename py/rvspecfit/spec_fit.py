@@ -357,6 +357,35 @@ def param_dict_to_tuple(paramDict, setup, config):
     return tuple([paramDict[_] for _ in interpolator.parnames])
 
 
+def get_chisq_continuum(specdata, options=None):
+    '''
+    Fit the spectrum with continuum only 
+    
+    Parameters:
+    specdata: list of Specdata
+        Input spectra
+    options: dict
+        Dictionary of options (npoly option is required)
+
+    Returns:
+    --------
+    ret: list
+        Array of chi-squares
+    '''
+    npoly = options.get('npoly') or 5
+    ret = []
+    for curdata in specdata:
+        name = curdata.name
+        polys = get_polys(curdata, npoly)
+        templ = np.ones(len(curdata.spec))
+        curchisq, coeffs = get_chisq0(curdata.spec, templ,
+                                      polys, get_coeffs=True, espec=curdata.espec)
+        model = np.dot(coeffs, polys * templ)
+        curchisq = (((model-curdata.spec)/curdata.espec)**2).mean()
+        ret.append(curchisq)
+    return ret
+
+
 def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
               config=None, cache=None, full_output=False):
     """ Find the chi-square of the dataset at a given velocity
@@ -393,6 +422,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         else:
             chisq += outside
 
+
         if (curdata.lam[0] < templ_lam[0] or curdata.lam[0] > templ_lam[-1] or
                 curdata.lam[-1] < templ_lam[0] or curdata.lam[-1] > templ_lam[-1]):
             raise Exception(
@@ -421,7 +451,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
             models.append(curmodel)
-        chisq_array.append(curchisq)
+            chisq_array.append((((curmodel-curdata.spec)/curdata.espec)**2).mean())
         assert(np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
 

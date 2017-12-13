@@ -3,6 +3,8 @@ import sys
 import os
 import argparse
 import multiprocessing as mp
+from collections import OrderedDict
+
 import matplotlib
 import astropy.io.fits as pyfits
 os.environ['OMP_NUM_THREADS']='1'
@@ -83,21 +85,18 @@ def proc_desi(fname, ofname, fig_prefix, config):
         masks[s] = pyfits.getdata(fname, '%s_MASK' % s.upper())
         waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
 
-    outdict = {'brickname': [],
-               'target_id': [],
-               'vrad': [],
-               'vrad_err': [],
-               'logg': [],
-               'teff': [],
-               'vsini': [],
-               'feh': [],
-               'chisq': [],
-               'sn_b':[],
-               'sn_r':[],
-               'sn_z':[],
-               'chisq_b':[],
-               'chisq_r':[],
-               'chisq_z':[]}
+    columns = ['brickname','target_id',
+               'vrad','vrad_err',
+               'logg','teff',
+               'vsini','feh','alpha',
+               'chisq_tot']
+    for s in setups:
+        columns.append('sn_%s'%s)
+        columns.append('chisq_%s'%s)
+        columns.append('chisq_c_%s'%s)
+    outdict = OrderedDict()
+    for c in columns:
+        outdict[c]=[]
     large_error = 1e9
     for curid in xids:
         specdata = []
@@ -124,17 +123,21 @@ def proc_desi(fname, ofname, fig_prefix, config):
             paramDict0['vsini'] = res['best_vsini']
         res1 = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
                             config=config, options=options)
+        chisq_cont_array = spec_fit.get_chisq_continuum( specdata, options=options)
         outdict['brickname'].append(curbrick)
         outdict['target_id'].append(curtargetid)
         outdict['vrad'].append(res1['vel'])
         outdict['vrad_err'].append(res1['vel_err'])
         outdict['logg'].append(res1['param']['logg'])
         outdict['teff'].append(res1['param']['teff'])
+        outdict['alpha'].append(res1['param']['alpha'])
         outdict['feh'].append(res1['param']['feh'])
-        outdict['chisq'].append(res1['chisq'])
+        outdict['chisq_tot'].append(sum(res1['chisq_array']))
         for i, s in enumerate(setups):
-            outdict['chisq_%s'%s] = res1['chisq_array'][i]
+            outdict['chisq_%s'%s].append(res1['chisq_array'][i])            
+            outdict['chisq_c_%s'%s].append(float(chisq_cont_array[i]))
             outdict['sn_%s'%(s,)].append(sns[s])
+            
         outdict['vsini'].append(res1['vsini'])
         
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (res1['param']['logg'],
