@@ -5,9 +5,12 @@ import numpy.random
 import scipy.spatial
 
 from rvspecfit import utils
+from rvspecfit import make_interpol
 
 git_rev = utils.get_revision()
 
+INTERPOL_PKL_NAME='interp_%s.pkl'
+INTERPOL_DAT_NAME='interpdat_%s.npy'
 
 def getedgevertices(vec):
     """
@@ -70,7 +73,7 @@ def execute(spec_setup, prefix=None, perturb=True):
     perturbation_amplitude = 1e-6
 
     postf = ''
-    with open('%s/specs_%s%s.pkl' % (prefix, spec_setup, postf), 'rb') as fp:
+    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup), 'rb') as fp:
         D = pickle.load(fp)
         vec, specs, lam, parnames, mapper = D['vec'], D['specs'], D['lam'], D['parnames'], D['mapper']
         del D
@@ -109,7 +112,7 @@ def execute(spec_setup, prefix=None, perturb=True):
 
     triang = scipy.spatial.Delaunay(vec.T)
 
-    savefile = '%s/interp_%s%s.pkl' % (prefix, spec_setup, postf)
+    savefile = ('%s/' + INTERPOL_PKL_NAME) % (prefix, spec_setup)
     ret_dict = {}
     ret_dict['lam'] = lam
     ret_dict['triang'] = triang
@@ -120,8 +123,8 @@ def execute(spec_setup, prefix=None, perturb=True):
 
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)
-    np.save('%s/interpdat_%s%s.npy' %
-            (prefix, spec_setup, postf), np.asfortranarray(specs))
+    np.save(('%s/'+INTERPOL_DAT_NAME) %
+            (prefix, spec_setup), np.asfortranarray(specs))
 
 
 def main(args):

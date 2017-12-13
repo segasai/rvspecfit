@@ -7,10 +7,14 @@ import scipy.stats
 
 from rvspecfit import spec_fit
 from rvspecfit import make_ccf
+from rvspecfit import make_interpol
 from rvspecfit import utils
 
 git_rev = utils.get_revision()
 
+CCF_PKL_NAME = 'ccf_%s.pkl'
+CCF_DAT_NAME = 'ccfdat_%s.npy'
+CCF_MOD_NAME = 'ccfmod_%s.npy'
 
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
@@ -365,8 +369,7 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
     Nothing
     """
 
-    postf = ''
-    with open('%s/specs_%s%s.pkl' % (prefix, spec_setup, postf), 'rb') as fp:
+    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup), 'rb') as fp:
         D = pickle.load(fp)
         vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D['parnames']
         del D
@@ -380,11 +383,11 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
     xlogl, models, params, vsinis = preprocess_model_list(
         lam, np.exp(specs), vec, ccfconf, vsinis=vsinis)
     ffts = np.array([np.fft.fft(x) for x in models])
-    savefile = '%s/ccf_%s%s.pkl' % (oprefix, spec_setup, postf)
+    savefile = ('%s/'+CCF_PKL_NAME) % (oprefix, spec_setup)
+    datsavefile = ('%s/'+CCF_DAT_NAME) % (oprefix, spec_setup)
+    modsavefile = ('%s/'+CCF_MOD_NAME) % (oprefix, spec_setup)
     dHash = {}
     dHash['params'] = params
-    dHash['ffts'] = np.array(ffts)
-    dHash['models'] = np.array(models)
     dHash['ccfconf'] = ccfconf
     dHash['loglambda'] = xlogl
     dHash['vsinis'] = vsinis
@@ -392,8 +395,8 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
 
     with open(savefile, 'wb') as fp:
         pickle.dump(dHash, fp)
-
-
+    np.save(datsavefile, np.array(ffts))
+    np.save(modsavefile, np.array(models))
 
 def main(args):
     parser = argparse.ArgumentParser()

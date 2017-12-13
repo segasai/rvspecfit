@@ -11,7 +11,9 @@ from rvspecfit import make_ccf
 
 class CCFCache:
     """ Singleton caching CCF information """
+    ccf_info = {}
     ccfs = {}
+    ccf_models = {}
 
 
 def get_ccf_info(spec_setup, config):
@@ -32,9 +34,15 @@ def get_ccf_info(spec_setup, config):
 
     """
     if spec_setup not in CCFCache.ccfs:
-        CCFCache.ccfs[spec_setup] = pickle.load(
-            open(config['template_lib']['ccffile'] % spec_setup, 'rb'))
-    return CCFCache.ccfs[spec_setup]
+        prefix = config['template_lib']
+        ccf_info_fname = prefix + make_ccf.CCF_PKL_NAME %spec_setup
+        ccf_dat_fname = prefix + make_ccf.CCF_DAT_NAME %spec_setup
+        ccf_mod_fname = prefix + make_ccf.CCF_MOD_NAME %spec_setup
+        CCFCache.ccf_info[spec_setup] = pickle.load(
+            open(ccf_info_fname, 'rb'))
+        CCFCache.ccfs[spec_setup] = np.load(ccf_dat_fname, mmap_mode='r')
+        CCFCache.ccf_models[spec_setup] = np.load(ccf_mod_fname, mmap_mode='r')
+    return CCFCache.ccfs[spec_setup], CCFCache.ccf_models[spec_setup], CCFCache.ccf_info[spec_setup]
 
 
 def fit(specdata, config):
@@ -67,16 +75,19 @@ def fit(specdata, config):
     vels = {}
     off = {}
     subind = {}
-    ccfs = {}
+    ccf_dats = {}
+    ccf_infos = {}
+    ccf_mods = {}
     proc_specs = {}
-
+    setups = []
     for cursd in specdata:
         spec_setup = cursd.name
+        setups.append(spec_setup)
         lam = cursd.lam
         spec = cursd.spec
         espec = cursd.espec
-        ccfs[spec_setup] = get_ccf_info(spec_setup, config)
-        ccfconf = ccfs[spec_setup]['ccfconf']
+        ccf_dats[spec_setup], ccf_mods[spec_setup], ccf_infos[spec_setup] = get_ccf_info(spec_setup, config)
+        ccfconf = ccf_infos[spec_setup]['ccfconf']
         logl0 = ccfconf.logl0
         logl1 = ccfconf.logl1
         npoints = ccfconf.npoints
@@ -98,13 +109,13 @@ def fit(specdata, config):
     best_id = -90
     best_v = -777
 
-    nfft = ccfs[spec_setup]['ffts'].shape[0]
+    nfft = ccf_dats[spec_setup].shape[0]
     vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
     best_ccf = vel_grid * 0
     for id in range(nfft):
         curccf = {}
-        for spec_setup in ccfs.keys():
-            curf = ccfs[spec_setup]['ffts'][id, :]
+        for spec_setup in setups:
+            curf = ccf_dats[spec_setup][id, :]
             ccf = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
             ccf = np.roll(ccf, off[spec_setup])
             curccf[spec_setup] = ccf[subind[spec_setup]]
@@ -113,25 +124,24 @@ def fit(specdata, config):
             # plot(vel_grid, curccf[spec_setup],xr=[-1000,1000])#np.roll(np.fft.ifft(curf*curf.conj()),off[spec_setup]))
             #plt.draw(); plt.pause(0.1)
 
-        allccf = np.array([curccf[_] for _ in ccfs.keys()]).prod(axis=0)
+        allccf = np.array([curccf[_] for _ in setups]).prod(axis=0)
         if allccf.max() > maxv:
             maxv = allccf.max()
             best_id = id
             best_v = vel_grid[np.argmax(allccf)]
             best_model = {}
-            for spec_setup in ccfs.keys():
+            for spec_setup in setups:
                 best_model[spec_setup] = np.roll(
-                    ccfs[spec_setup]['models'][id], int(best_v / velstep[spec_setup]))
+                    ccf_mods[spec_setup][id], int(best_v / velstep[spec_setup]))
             best_ccf = allccf
     try:
         assert(best_id >= 0)
     except:
         raise Exception('Cross-correlation step failed')
+    best_par = ccf_infos[setups[0]]['params'][best_id]
+    best_par = dict(zip(ccf_infos[setups[0]]['parnames'], best_par))
 
-    best_par = ccfs[list(ccfs.keys())[0]]['params'][best_id]
-    best_par = dict(zip(ccfs[spec_setup]['parnames'], best_par))
-
-    best_vsini = ccfs[list(ccfs.keys())[0]]['vsinis'][best_id]
+    best_vsini = ccf_infos[setups[0]]['vsinis'][best_id]
 
     result = {}
     result['best_par'] = best_par

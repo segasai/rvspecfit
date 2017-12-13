@@ -3,7 +3,7 @@ import scipy.spatial
 import scipy.interpolate
 import pickle
 
-
+from rvspecfit import make_nd
 
 def getInterp(triang, dats, exp=True):
     # get Interpolation object from the Delaunay triangulation
@@ -26,7 +26,7 @@ def getInterp(triang, dats, exp=True):
 
 class SpecInterpolator:
         # Spectrum interpolator object
-    def __init__(self, name, interper, extraper, lam, mapper, 
+    def __init__(self, name, interper, extraper, lam, mapper,
                  parnames):
         """ Construct the interpolator object
         The arguments are the name of the instrument setup
@@ -63,13 +63,14 @@ def getInterpolator(HR, config):
     setup HR and config
     """
     if HR not in interp_cache.interps:
-        with open(config['template_lib']['savefile'] % HR, 'rb') as fd0:
+        savefile = config['template_lib'] +  make_nd.INTERPOL_PKL_NAME % HR
+        with open(savefile, 'rb') as fd0:
             fd = pickle.load(fd0)
             (triang, templ_lam, vecs, extraflags, mapper, parnames) = (
                 fd['triang'], fd['lam'], fd['vec'], fd['extraflags'],
                 fd['mapper'], fd['parnames'])
         expFlag = True
-        dats = np.load(config['template_lib']['npyfile'] % HR,
+        dats = np.load(config['template_lib']+ make_nd.INTERPOL_DAT_NAME % HR,
                        mmap_mode='r')
         interper, extraper = (getInterp(triang, dats, exp=expFlag),
                               scipy.interpolate.LinearNDInterpolator(triang, extraflags))

@@ -15,6 +15,7 @@ from rvspecfit import utils
 
 git_rev = utils.get_revision()
 
+SPEC_PKL_NAME ='specs_%s.pkl'
 
 def get_line_continuum(lam, spec):
     """
@@ -126,7 +127,7 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
     pool.close()
     pool.join()
     specs = np.array(specs)
-    with open('%s/specs_%s%s.pkl' % (oprefix, HR, postf), 'wb') as fp:
+    with open(('%s/' + SPEC_PKL_NAME)(oprefix, HR), 'wb') as fp:
         pickle.dump(dict(specs=specs, vec=vec, lam=lam,
                          parnames=parnames, git_rev=git_rev,
                          mapper=mapper), fp)
