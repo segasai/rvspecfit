@@ -220,9 +220,12 @@ def main(args):
     parser.add_argument('--output_tab_prefix', 
                         help='Prefix of output table files',
                         type=str, default='outtab')
-    parser.add_argument('--fig_prefix',
-                        help='Prefix for the fit figures, i.e. fig_folder/im',
+    parser.add_argument('--figure_dir',
+                        help='Prefix for the fit figures, i.e. fig_folder/',
                         type=str, default='./')
+    parser.add_argument('--figure_prefix',
+                        help='Prefix for the fit figures, i.e. im',
+                        type=str, default='fig')
     parser.add_argument('--overwrite', 
                         help='If enabled the code will overwrite the existing products, otherwise it will skip them',
                         action='store_true', default=False)
@@ -232,7 +235,7 @@ def main(args):
     input_file = args.input_file
 
     oprefix = args.output_dir+'/'+args.output_tab_prefix
-    fig_prefix = args.fig_prefix
+    fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config = args.config
     if mask is not None and input_file is not None:
