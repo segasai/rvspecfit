@@ -1,0 +1,8 @@
+numpy
+matplotlib
+astropy
+yaml
+scipy
+frozendict
+pylru
+
