@@ -38,11 +38,11 @@ def firstguess(specdata, options=None,
                                  config=config, options=options)
 
 
-def doit(specdata, paramDict0, fixParam=None, options=None,
+def process(specdata, paramDict0, fixParam=None, options=None,
          config=None,
          resolParams=None):
     """
-doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam = ('feh','vsini'),
+process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam = ('feh','vsini'),
                 config =config, resolParam = None)
     """
 
@@ -66,12 +66,12 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
 
     assert(np.allclose(mapVsiniInv(mapVsini(3)), 3))
 
-    normchiFeatureless = 0
-
     vels_grid = np.arange(min_vel, max_vel, vel_step0)
     curparam = spec_fit.param_dict_to_tuple(paramDict0, specdata[0].name,
                                             config=config)
     specParams = spec_inter.getSpecParams(specdata[0].name, config)
+    if fixParam is None:
+        fixParam = []
 
     if 'vsini' not in paramDict0:
         rot_params = None
@@ -175,7 +175,6 @@ doit(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam =
             min_vel = max(best_vel - new_width, min_vel)
             max_vel = min(best_vel + new_width, max_vel)
     t3 = time.time()
-    # print (t2-t1,t3-t2)
     ret['vel_err'] = res1['vel_err']
     outp = spec_fit.get_chisq(specdata, best_vel, [ret['param'][_] for _ in specParams],
                                      best_param['rot_params'],

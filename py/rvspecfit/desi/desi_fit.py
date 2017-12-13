@@ -18,7 +18,7 @@ from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
 def make_plot(specdata, res_dict, title, fig_fname):
     """
     Make a plot with the spectra and fits
-    
+
     Parameters:
     -----------
     specdata: SpecData object
@@ -116,14 +116,18 @@ def proc_desi(fname, ofname, fig_prefix, config):
                 spec_fit.SpecData('desi_%s' % s,
                                   waves[s], spec, espec,
                                   badmask = badmask))
+        t1 = time.time()
         res = fitter_ccf.fit(specdata, config)
+        t2 = time.time()
         paramDict0 = res['best_par']
         fixParam = []
         if res['best_vsini'] is not None:
             paramDict0['vsini'] = res['best_vsini']
-        res1 = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
+        res1 = vel_fit.process(specdata, paramDict0, fixParam=fixParam,
                             config=config, options=options)
+        t3 = time.time()
         chisq_cont_array = spec_fit.get_chisq_continuum( specdata, options=options)
+        t4 = time.time()
         outdict['brickname'].append(curbrick)
         outdict['target_id'].append(curtargetid)
         outdict['vrad'].append(res1['vel'])
@@ -134,12 +138,12 @@ def proc_desi(fname, ofname, fig_prefix, config):
         outdict['feh'].append(res1['param']['feh'])
         outdict['chisq_tot'].append(sum(res1['chisq_array']))
         for i, s in enumerate(setups):
-            outdict['chisq_%s'%s].append(res1['chisq_array'][i])            
+            outdict['chisq_%s'%s].append(res1['chisq_array'][i])
             outdict['chisq_c_%s'%s].append(float(chisq_cont_array[i]))
             outdict['sn_%s'%(s,)].append(sns[s])
-            
+
         outdict['vsini'].append(res1['vsini'])
-        
+
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (res1['param']['logg'],
                                                                                       res1['param']['teff'],
                                                                                       res1['param']['feh'],
@@ -205,19 +209,19 @@ def main(args):
     parser = argparse.ArgumentParser()
     parser.add_argument('--nthreads', help='Number of threads for the fits',
                         type=int, default=1)
-    parser.add_argument('--config', 
+    parser.add_argument('--config',
                         help='The filename of the configuration file',
                         type=str, default=None)
-    parser.add_argument('--input_file_mask', 
+    parser.add_argument('--input_file_mask',
                         help='The file mask of spectra, i.e. spectra*fits',
                         type=str, default=None)
-    parser.add_argument('--input_file', 
+    parser.add_argument('--input_file',
                         help='Read the list of spectra from the file',
                         type=str, default=None)
-    parser.add_argument('--output_dir', 
+    parser.add_argument('--output_dir',
                         help='Output directory for the tables',
                         type=str, default=None, required=True)
-    parser.add_argument('--output_tab_prefix', 
+    parser.add_argument('--output_tab_prefix',
                         help='Prefix of output table files',
                         type=str, default='outtab')
     parser.add_argument('--figure_dir',
@@ -226,7 +230,7 @@ def main(args):
     parser.add_argument('--figure_prefix',
                         help='Prefix for the fit figures, i.e. im',
                         type=str, default='fig')
-    parser.add_argument('--overwrite', 
+    parser.add_argument('--overwrite',
                         help='If enabled the code will overwrite the existing products, otherwise it will skip them',
                         action='store_true', default=False)
 

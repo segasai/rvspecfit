@@ -1,12 +1,13 @@
 import sys
-sys.path.append('../')
-import vel_fit
-import spec_fit
 import astropy.io.fits as pyfits
 import numpy as np
 import matplotlib.pyplot as plt
-import fitter_ccf
-import utils
+
+from rvspecfit import fitter_ccf
+from rvspecfit import vel_fit
+from rvspecfit import spec_fit
+from rvspecfit import utils
+
 config = utils.read_config()
 
 # read data
@@ -24,7 +25,7 @@ paramDict0 = res['best_par']
 fixParam = []
 if res['best_vsini'] is not None:
     paramDict0['vsini'] = res['best_vsini']
-res1 = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
+res1 = vel_fit.process(specdata, paramDict0, fixParam=fixParam,
                     config=config, options=options)
 plt.figure(figsize=(6, 2), dpi=300)
 plt.plot(specdata[0].lam, specdata[0].spec, 'k-')

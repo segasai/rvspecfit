@@ -1,11 +1,11 @@
 import sys
-sys.path.append('../')
-import vel_fit
-import spec_fit
 import astropy.io.fits as pyfits
 import numpy as np
 import matplotlib.pyplot as plt
-import utils
+from rvspecfit import utils
+from rvspecfit import vel_fit
+from rvspecfit import spec_fit
+
 config = utils.read_config()
 
 # read data
@@ -20,14 +20,13 @@ specdata = [spec_fit.SpecData('sdss1', 10**dat['loglam'],
 options = {'npoly': 15}
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = ['vsini']
-#vel_fit.firstguess(specdata, options=options, config=config)
 
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = ['vsini']
-res = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
+res = vel_fit.process(specdata, paramDict0, fixParam=fixParam,
                    config=config, options=options)
 
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = []
-res = vel_fit.doit(specdata, paramDict0, fixParam=fixParam,
+res = vel_fit.process(specdata, paramDict0, fixParam=fixParam,
                    config=config, options=options)

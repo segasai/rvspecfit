@@ -3,9 +3,8 @@ import numpy as np
 import sys
 import time
 import matplotlib.pyplot as plt
-sys.path.append('../')
-import spec_fit
-import utils
+from rvspecfit import spec_fit
+from rvspecfit import utils
 
 setup = 'test'
 
@@ -42,10 +41,10 @@ t3 = time.time()
 print(t2 - t1, t3 - t2)
 
 rot_params = (300,)
-chisq, yfit = spec_fit.get_chisq(specdata, bestv, bestpar, rot_params, resols_params,
-                                 options=options, config=config, getModel=True)
+ret = spec_fit.get_chisq(specdata, bestv, bestpar, rot_params, resols_params,
+                                 options=options, config=config, full_output=True)
 plt.plot(specdata[0].lam, specdata[0].spec, 'k')
-plt.plot(specdata[0].lam, yfit[0], 'r')
+plt.plot(specdata[0].lam, ret['models'][0], 'r')
 plt.savefig('test1.png')
 
 
@@ -53,8 +52,8 @@ plt.savefig('test1.png')
 rot_params = None
 resol_mat = spec_fit.construct_resol_mat(specdata[0].lam, 50)
 resols_params = {'sdss1': resol_mat}
-chisq, yfit = spec_fit.get_chisq(specdata, bestv, bestpar, rot_params, resols_params,
-                                 options=options, config=config, getModel=True)
+ret = spec_fit.get_chisq(specdata, bestv, bestpar, rot_params, resols_params,
+                                 options=options, config=config, full_output=True)
 plt.plot(specdata[0].lam, specdata[0].spec, 'k')
-plt.plot(specdata[0].lam, yfit[0], 'r')
+plt.plot(specdata[0].lam, ret['models'][0], 'r')
 plt.savefig('test2.png')
