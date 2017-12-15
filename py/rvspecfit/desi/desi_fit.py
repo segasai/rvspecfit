@@ -64,7 +64,7 @@ def valid_file(fname):
     arms = 'B','R','Z'
     prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
     names0 = ['PRIMARY']
-    reqnames = names0 + ['%s_%s%'%(_,__) for _,__ in itertools.product(arms,prefs)]
+    reqnames = names0 + ['%s_%s'%(_,__) for _,__ in itertools.product(arms,prefs)]
     missing = []
     for curn in reqnames:
         if curn not in extnames:
