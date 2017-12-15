@@ -3,6 +3,7 @@ import sys
 import os
 import argparse
 import time
+import itertools
 import multiprocessing as mp
 from collections import OrderedDict
 
