@@ -126,7 +126,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
 
     def func(p):
         pdict = paramMapper(p)
-        if pdict['vel'] > maxVel or pdict['vel']<minVel:
+        if pdict['vel'] > max_vel or pdict['vel']<min_vel:
             return 1e30
         chisq = spec_fit.get_chisq(specdata, pdict['vel'],
                                    pdict['params'], pdict['rot_params'],
