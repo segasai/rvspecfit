@@ -52,6 +52,26 @@ def make_plot(specdata, res_dict, title, fig_fname):
     plt.tight_layout()
     plt.savefig(fig_fname)
 
+def valid_file(fname):
+    """
+    Check if all required extensions are present if yes return true
+    """
+    exts = pyfits.open(fname)
+    extnames = [_.name for _ in exts]
+
+
+    arms = 'B','R','Z'
+    prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
+    names0 = ['PRIMARY']
+    reqnames = names0 + ['%s_%s%'%(_,__) for _,__ in itertools.product(arms,prefs)]
+    missing = []
+    for curn in reqnames:
+        if curn not in extnames:
+            missing.append(curn)
+    if len(missing)!=0:
+        print ('WARNING Extensions %s are missing'%(','.join(missing)))
+        return False
+    return True
 
 def proc_desi(fname, ofname, fig_prefix, config):
     """
@@ -70,6 +90,8 @@ def proc_desi(fname, ofname, fig_prefix, config):
     options = {'npoly': 10}
 
     print('Processing', fname)
+    if not valid_file(fname):
+        return
     tab = pyfits.getdata(fname, 'FIBERMAP')
     mws = tab['MWS_TARGET']
     targetid = tab['TARGETID']
