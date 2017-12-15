@@ -3,27 +3,6 @@ import subprocess
 import yaml
 import frozendict
 
-
-def get_revision():
-    """
-    Get the git revision of the code
-
-    Returns:
-    --------
-    revision : string
-        The string with the git revision
-    """
-    try:
-        fname = os.path.dirname(os.path.realpath(__file__))
-        tmpout = subprocess.Popen(
-            'cd ' + fname + ' ; git log -n 1 --pretty=format:%H -- make_nd.py',
-            shell=True, bufsize=80, stdout=subprocess.PIPE).stdout
-        revision = tmpout.read()
-        return revision
-    except:
-        return ''
-
-
 def read_config(fname=None):
     """
     Read the configuration file and return the frozendict with it

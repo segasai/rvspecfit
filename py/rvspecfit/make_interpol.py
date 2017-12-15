@@ -12,8 +12,8 @@ import atpy
 
 from rvspecfit import read_grid
 from rvspecfit import utils
-
-git_rev = utils.get_revision()
+from rvspecfit import _version
+git_rev = _version.VERSION
 
 SPEC_PKL_NAME ='specs_%s.pkl'
 

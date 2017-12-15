@@ -9,8 +9,8 @@ from rvspecfit import spec_fit
 from rvspecfit import make_ccf
 from rvspecfit import make_interpol
 from rvspecfit import utils
-
-git_rev = utils.get_revision()
+from rvspecfit import _version
+git_rev = _version.VERSION
 
 CCF_PKL_NAME = 'ccf_%s.pkl'
 CCF_DAT_NAME = 'ccfdat_%s.npy'
