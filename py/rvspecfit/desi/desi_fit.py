@@ -231,29 +231,35 @@ def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=Tru
 
 def main(args):
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--nthreads', help='Number of threads for the fits',
                         type=int, default=1)
+
     parser.add_argument('--config',
                         help='The filename of the configuration file',
                         type=str, default=None)
+
     parser.add_argument('--input_file_mask',
                         help='The file mask of spectra, i.e. spectra*fits',
                         type=str, default=None)
     parser.add_argument('--input_file',
                         help='Read the list of spectra from the file',
                         type=str, default=None)
+
     parser.add_argument('--output_dir',
                         help='Output directory for the tables',
                         type=str, default=None, required=True)
     parser.add_argument('--output_tab_prefix',
                         help='Prefix of output table files',
-                        type=str, default='outtab')
+                        type=str, default='outtab', required=False)
+
     parser.add_argument('--figure_dir',
                         help='Prefix for the fit figures, i.e. fig_folder/',
                         type=str, default='./')
     parser.add_argument('--figure_prefix',
                         help='Prefix for the fit figures, i.e. im',
-                        type=str, default='fig')
+                        type=str, default='fig',required=False)
+
     parser.add_argument('--overwrite',
                         help='If enabled the code will overwrite the existing products, otherwise it will skip them',
                         action='store_true', default=False)
@@ -266,8 +272,10 @@ def main(args):
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config = args.config
+
     if mask is not None and input_file is not None:
         raise Exception('You can only specify --mask OR --input_file options but not both of them simulatenously')
+
     if mask is not None:
         files = glob.glob(mask)
     elif input_file is not None:
