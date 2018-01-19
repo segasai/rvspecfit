@@ -93,7 +93,11 @@ def fit(specdata, config):
         npoints = ccfconf.npoints
         proc_spec = make_ccf.preprocess_data(
             lam, spec, espec, badmask=cursd.badmask, ccfconf=ccfconf)
-        proc_spec /= proc_spec.std()
+        proc_spec_std = proc_spec.std()
+        if proc_spec_std==0:
+            proc_spec_std = 1
+            print ('WARNING spectrum looks like a constant...')
+        proc_spec /= proc_spec_std
         proc_specs[spec_setup] = proc_spec
         spec_fft = np.fft.fft(proc_spec)
         spec_fftconj[spec_setup] = spec_fft.conj()
