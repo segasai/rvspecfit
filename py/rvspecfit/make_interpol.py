@@ -127,7 +127,7 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
     pool.close()
     pool.join()
     specs = np.array(specs)
-    with open(('%s/' + SPEC_PKL_NAME)(oprefix, HR), 'wb') as fp:
+    with open(('%s/' + SPEC_PKL_NAME)%(oprefix, HR), 'wb') as fp:
         pickle.dump(dict(specs=specs, vec=vec, lam=lam,
                          parnames=parnames, git_rev=git_rev,
                          mapper=mapper), fp)
