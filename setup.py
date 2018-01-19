@@ -43,7 +43,7 @@ setup(
     license = "BSD",
     keywords = "example documentation tutorial",
     url = "http://github.com/segasai/rvspecfit",
-    packages=['rvspecfit','rvspecfit/desi'],
+    packages=['rvspecfit','rvspecfit/desi', 'rvspecfit/weave'],
     scripts = [fname for fname in glob.glob(os.path.join('bin', '*'))],
     package_dir={'':'py/'},
     package_data={'rvspecfit':['tests/']},
