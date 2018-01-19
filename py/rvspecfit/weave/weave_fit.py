@@ -104,8 +104,9 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
 
     print('Processing', fnames)
     fnames = fnames.split(',')
-    if not valid_file(fnames[0]):
-        return
+    #if not valid_file(fnames[0]):
+    #    return
+    
     tab = pyfits.getdata(fnames[0], 'FIBTABLE')
     hdr = pyfits.getheader(fnames[0])
     #mws = tab['MWS_TARGET']
