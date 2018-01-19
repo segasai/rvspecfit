@@ -14,7 +14,7 @@ os.environ['OMP_NUM_THREADS']='1'
 import numpy as np
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import astropy.table
+import astropy.table as atpy
 
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
 
@@ -86,7 +86,7 @@ def valid_file(fname):
         return False
     return True
 
-def proc_weave(fnames, ofname, fig_prefix, config):
+def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
     """
     Process One single file with desi spectra
 
@@ -118,12 +118,24 @@ def proc_weave(fnames, ofname, fig_prefix, config):
     waves = {}
     masks = {}
     setups = ('b','r')
+
+    xids= np.nonzero( 
+        ( tab['TARGCAT']=='GA_LRhighlat') | 
+        ( tab['TARGCAT']=='GA_LRdisk') 
+    )[0]
+    if len(xids)>0:
+        tids = np.arange(len(xids)) // max(len(xids)//nthreads,1)
+        xids  = xids[ tids==threadid]
+    if len(xids)==0:
+        return None
+
     arms = [pyfits.getheader(f)['CAMERA'].replace('WEAVE','') for f in fnames]
     if arms == ['RED','BLUE'] or arms==['BLUE','RED']:
         if arms==['RED','BLUE']:
             fnames = fnames[::-1]
     else:
         raise Exception('No RED/BLUE setups')
+
 
     for fname,s in zip(fnames,setups):
         curarm = {'b':'BLUE', 'r':'RED'}[s]
@@ -139,11 +151,6 @@ def proc_weave(fnames, ofname, fig_prefix, config):
         masks[s] = masks[s] | ((waves[s]>=9250) & (waves[s]<9545))
         masks[s] = masks[s] | ((waves[s]>=9550) & (waves[s]<10000))
 
-    #xids = np.arange(fluxes[s].shape[0])
-    xids= np.nonzero( 
-        ( tab['TARGCAT']=='GA_LRhighlat') | 
-        ( tab['TARGCAT']=='GA_LRdisk') 
-    )[0]
     columns = ['brickname','target_id',
                'vrad','vrad_err',
                'logg','teff',
@@ -211,13 +218,13 @@ def proc_weave(fnames, ofname, fig_prefix, config):
                                                                                       res1['vel'],
                                                                                       res1['vel_err'])
         make_plot(specdata, res1, title, fig_fname)
-    outtab = astropy.table.Table(outdict)
-    outtab.write(ofname, overwrite=True)
-
+    outtab = atpy.Table(outdict)
+    return outtab
 
 def proc_weave_wrapper(*args, **kwargs):
     try:
         ret = proc_weave(*args, **kwargs)
+        return ret
     except:
         print('failed with these arguments', args, kwargs)
         raise
@@ -255,13 +262,26 @@ def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=Tru
             print('skipping, products already exist', f)
             continue
         if parallel:
-            res.append(pool.apply_async(
-                proc_weave_wrapper, (f, ofname, fig_prefix, config)))
+            for i in range(nthreads):
+                res.append(pool.apply_async(
+                proc_weave_wrapper, (f, fig_prefix, config,i, nthreads)))
+            tabs = []
+            for r in res:
+                tabs.append(r.get())
+                
+            tabs = ([_ for _ in tabs if _ is not None] )
+            if len(tabs)==0:
+                continue
+            tabs = atpy.vstack(tabs)    
+            tabs.write(ofname, overwrite=True)
+
         else:
-            proc_weave_wrapper(f, ofname, fig_prefix, config)
+            
+            tabs=proc_weave_wrapper(f, fig_prefix, config, 0, 1)
+            if tabs is not None:
+                tabs.write(ofname, overwrite=True)
+
     if parallel:
-        for r in res:
-            r.get()
         pool.close()
         pool.join()
 
