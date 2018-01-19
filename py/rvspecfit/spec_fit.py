@@ -56,7 +56,9 @@ class SpecData:
         self.fd['lam'] = lam
         self.fd['spec'] = spec
         self.fd['espec'] = espec
-        self.fd['badmask'] = np.zeros(len(spec), dtype=bool)
+        if badmask is None:
+            badmask = np.zeros(len(spec), dtype=bool)
+        self.fd['badmask'] = badmask
         self.fd = utils.freezeDict(self.fd)
         # id of the object to ensure that I can cache calls on a given data
         self.id = random.getrandbits(128)
