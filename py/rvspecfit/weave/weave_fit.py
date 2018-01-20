@@ -119,11 +119,12 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
     waves = {}
     masks = {}
     setups = ('b','r')
-
-    xids= np.nonzero( 
-        ( tab['TARGCAT']=='GA_LRhighlat') | 
-        ( tab['TARGCAT']=='GA_LRdisk') 
-    )[0]
+    targcat = tab['TARGCAT']
+    programs  = ['GA_LRhighlat', 'GA_LRdisc']
+    xids = np.zeros(len(targcat),dtype=bool)
+    for _p in programs:
+        xids = xids | (targcat == _p)
+    xids= np.nonzero(xids)[0]
     if len(xids)>0:
         tids = np.arange(len(xids)) // max(len(xids)//nthreads,1)
         xids  = xids[ tids==threadid]
@@ -136,7 +137,6 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
             fnames = fnames[::-1]
     else:
         raise Exception('No RED/BLUE setups')
-
 
     for fname,s in zip(fnames,setups):
         curarm = {'b':'BLUE', 'r':'RED'}[s]
