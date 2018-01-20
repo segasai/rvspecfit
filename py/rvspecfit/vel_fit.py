@@ -47,13 +47,13 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     """
 
     # Configuration parameters, should be moved to the yaml file
-    min_vel = -1000
-    max_vel = 1000
-    vel_step0 = 5  # the starting step in velocities
+    min_vel = config.get('min_vel') or -1000
+    max_vel = config.get('max_vel') or 1000
+    vel_step0 = config.get('vel_step0') or 5 # the starting step in velocities
     vel_step = 1  # The final step in velocities TO BE CHECKED
-    max_vsini = 500
-    min_vsini = 1e-2
-    min_vel_step = 0.2
+    max_vsini = config.get('max_vsini') or 500
+    min_vsini = config.get('min_vsini') or 1e-2
+    min_vel_step = config.get('min_vel_step') or 0.2
 
     if config is None:
         raise Exception('Config must be provided')
@@ -163,6 +163,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
 
     # Here we are evaluating the chi-quares on the grid of
     # velocities to get the uncertainty
+    vel_step = vel_step0
     while True:
         vels_grid = np.concatenate((np.arange(
             best_vel, min_vel, -vel_step)[::-1], np.arange(best_vel + vel_step, max_vel, vel_step)))
@@ -178,6 +179,8 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             max_vel = min(best_vel + new_width, max_vel)
     t3 = time.time()
     ret['vel_err'] = res1['vel_err']
+    ret['skewness'] = res1['skewness']
+    ret['kurtosis'] = res1['kurtosis']
     outp = spec_fit.get_chisq(specdata, best_vel, [ret['param'][_] for _ in specParams],
                                      best_param['rot_params'],
                                      resolParams,
