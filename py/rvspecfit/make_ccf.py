@@ -81,7 +81,7 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     nodesedges = lammin * np.exp((-0.5 + np.arange(N + 1))
                                  * np.log(1 + ccfconf.splinestep / 3e5))
     medspec = np.median(spec0)
-    if medspec < 0:
+    if medspec <= 0:
         medspec = np.abs(medspec)
         if medspec == 0:
             medspec = 1
