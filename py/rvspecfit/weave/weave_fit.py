@@ -259,8 +259,8 @@ def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=Tru
 
     if parallel:
         pool = mp.Pool(nthreads)
-    res = []
     for f in files:
+        res = []
         fname = f.split('/')[-1]
         ofname = oprefix + 'outtab_' + fname
         if (not overwrite) and os.path.exists(ofname):
@@ -269,7 +269,7 @@ def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=Tru
         if parallel:
             for i in range(nthreads):
                 res.append(pool.apply_async(
-                proc_weave_wrapper, (f, fig_prefix, config,i, nthreads)))
+                proc_weave_wrapper, (f, fig_prefix, config, i, nthreads)))
             tabs = []
             for r in res:
                 tabs.append(r.get())
