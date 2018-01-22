@@ -146,11 +146,15 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
         pix = np.arange(fluxes[s].shape[1])
         wc = pywcs.WCS(pyfits.getheader(fname,'%s_DATA'%curarm));
         waves[s] = wc.all_pix2world(np.array([pix,pix*0]).T,0).T[0] * 1e10
-        masks[s] = masks[s] | ((waves[s]>=8130) & (waves[s]<8350))
-        masks[s] = masks[s] | ((waves[s]>=6850) & (waves[s]<7000))
-        masks[s] = masks[s] | ((waves[s]>=8940) & (waves[s]<9240))
-        masks[s] = masks[s] | ((waves[s]>=9250) & (waves[s]<9545))
-        masks[s] = masks[s] | ((waves[s]>=9550) & (waves[s]<10000))
+        tellurics =  ( ((waves[s]>=8130) & (waves[s]<8350) ) | 
+                      ((waves[s]>=6850) & (waves[s]<7000)) |
+                      ((waves[s]>=8940) & (waves[s]<9240)) |
+                      ((waves[s]>=9250) & (waves[s]<9545)) |
+                      ((waves[s]>=9550) & (waves[s]<10000)) )
+        #medivar = np.nanmedian(ivars[s], axis=-1)
+        # inflate the errors in the tellurics 1000 times
+        ivars[s][:,tellurics] = 1./100./np.maximum(fluxes[s][:,tellurics],1)**2 #medivar[:, None]/1000**2
+        # put the S/N in the telluric region to 1/10.
 
     columns = ['brickname','target_id',
                'vrad','vrad_err',
