@@ -483,7 +483,7 @@ def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options
     probs = probs / probs.sum()
     best_vel = vel_grid[i1]
     best_err = np.sqrt((probs * (vel_grid - best_vel)**2).sum())
-    if best_err==0:
+    if best_err<1e-10:
         kurtosis,skewness=0,0
     else:
         kurtosis = ((probs * (vel_grid - best_vel)**4).sum())/best_err**4
