@@ -58,7 +58,7 @@ class interp_cache:
     interps = {}
 
 
-def getInterpolator(HR, config):
+def getInterpolator(HR, config, warmup_cache=True):
     """ return the spectrum interpolation object for a given instrument
     setup HR and config
     """
@@ -72,6 +72,9 @@ def getInterpolator(HR, config):
         expFlag = True
         dats = np.load(config['template_lib']+ make_nd.INTERPOL_DAT_NAME % HR,
                        mmap_mode='r')
+        if warmup_cache:
+            # we read all the templates to put them in the memory cache
+            dat.sum()
         interper, extraper = (getInterp(triang, dats, exp=expFlag),
                               scipy.interpolate.LinearNDInterpolator(triang, extraflags))
         interpObj = SpecInterpolator(HR, interper, extraper, templ_lam,
