@@ -86,6 +86,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid):
         The filename where the table with parameters will be stored
     fig_prefix: str
         The prefix where the figures will be stored
+    fit_targetid: int
+        The targetid to fit. If none fit all.
     """
 
     options = {'npoly': 10}
