@@ -239,11 +239,11 @@ def main(args):
                         help='The filename of the configuration file',
                         type=str, default=None)
 
-    parser.add_argument('--input_file_mask',
-                        help='The file mask of spectra, i.e. spectra*fits',
-                        type=str, default=None)
-    parser.add_argument('--input_file',
-                        help='Read the list of spectra from the file',
+    parser.add_argument('--input_files',
+                        help='Space separated list of files to process',
+type=str, default=None, nargs='+')
+    parser.add_argument('--input_file_from',
+                        help='Read the list of spectral files from the text file',
                         type=str, default=None)
 
     parser.add_argument('--output_dir',
@@ -265,22 +265,22 @@ def main(args):
                         action='store_true', default=False)
 
     args = parser.parse_args(args)
-    mask = args.input_file_mask
-    input_file = args.input_file
+    input_files = args.input_files
+    input_file_from = args.input_file_from
 
     oprefix = args.output_dir+'/'+args.output_tab_prefix
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config = args.config
 
-    if mask is not None and input_file is not None:
-        raise Exception('You can only specify --mask OR --input_file options but not both of them simulatenously')
+    if input_files is not None and input_file_from is not None:
+        raise Exception('You can only specify --input_files OR --input_file_from options but not both of them simulatenously')
 
-    if mask is not None:
-        files = glob.glob(mask)
-    elif input_file is not None:
+    if input_files is not None:
+        files = input_files
+    elif input_file_from is not None:
         files = []
-        with open(input_file,'r') as fp:
+        with open(input_file_from,'r') as fp:
             for l in fp:
                 files.append(l.rstrip())
     else:
