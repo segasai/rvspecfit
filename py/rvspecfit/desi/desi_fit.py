@@ -74,7 +74,7 @@ def valid_file(fname):
         return False
     return True
 
-def proc_desi(fname, ofname, fig_prefix, config):
+def proc_desi(fname, ofname, fig_prefix, config, fit_targetid):
     """
     Process One single file with desi spectra
 
@@ -126,6 +126,9 @@ def proc_desi(fname, ofname, fig_prefix, config):
         specdata = []
         curbrick = brick_name[curid]
         curtargetid = targetid[curid]
+        if fit_targetid is not None and curtargetid!=fit_targetid:
+            continue
+            
         fig_fname = fig_prefix + '_%s_%d.png' % (curbrick, curtargetid)
         sns = {}
         chisqs = {}
@@ -189,7 +192,7 @@ def proc_desi_wrapper(*args, **kwargs):
 
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
 
-def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True):
+def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=True, targetid=None):
     """
     Process many spectral files
 
@@ -201,6 +204,8 @@ def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=Tru
         The prefix where the table with measurements will be stored
     fig_prefix: string
         The prfix where the figures will be stored
+    targetid: integer
+        The targetid to fit (the rest will be ignored)
     """
     config = utils.read_config(config)
 
@@ -220,9 +225,9 @@ def proc_many(files, oprefix, fig_prefix, config=None, nthreads=1, overwrite=Tru
             continue
         if parallel:
             res.append(pool.apply_async(
-                proc_desi_wrapper, (f, ofname, fig_prefix, config)))
+                proc_desi_wrapper, (f, ofname, fig_prefix, config, targetid)))
         else:
-            proc_desi_wrapper(f, ofname, fig_prefix, config)
+            proc_desi_wrapper(f, ofname, fig_prefix, config, targetid)
     if parallel:
         for r in res:
             r.get()
@@ -249,6 +254,9 @@ type=str, default=None, nargs='+')
     parser.add_argument('--output_dir',
                         help='Output directory for the tables',
                         type=str, default=None, required=True)
+    parser.add_argument('--targetid',
+                        help='Fit only a given targetid',
+                        type=int, default=None, required=False)
     parser.add_argument('--output_tab_prefix',
                         help='Prefix of output table files',
                         type=str, default='outtab', required=False)
@@ -272,6 +280,7 @@ type=str, default=None, nargs='+')
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config = args.config
+    targetid = args.targetid
 
     if input_files is not None and input_file_from is not None:
         raise Exception('You can only specify --input_files OR --input_file_from options but not both of them simulatenously')
@@ -287,7 +296,7 @@ type=str, default=None, nargs='+')
         raise Exception('You need to specify the spectra you want to fit')
 
     proc_many(files, oprefix, fig_prefix, nthreads=nthreads,
-           overwrite=args.overwrite, config=config)
+              overwrite=args.overwrite, config=config, targetid=targetid)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
