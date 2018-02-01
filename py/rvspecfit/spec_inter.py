@@ -74,7 +74,7 @@ def getInterpolator(HR, config, warmup_cache=True):
                        mmap_mode='r')
         if warmup_cache:
             # we read all the templates to put them in the memory cache
-            dat.sum()
+            dats.sum()
         interper, extraper = (getInterp(triang, dats, exp=expFlag),
                               scipy.interpolate.LinearNDInterpolator(triang, extraflags))
         interpObj = SpecInterpolator(HR, interper, extraper, templ_lam,
