@@ -115,8 +115,24 @@ def get_spec(logg, temp, met, alpha,
 
 
 def make_rebinner(lam00, lam, resolution, toair=True):
-    """ Make the sparse matrix that convolves a given spectrum to
+    """ 
+    Make the sparse matrix that convolves a given spectrum to
     a given resolution and new wavelength grid
+
+    Parameters:
+    -----------
+    lam00: array
+        The input wavelength grid of the templates
+    lam: array
+        The desired wavelegnth grid of the output
+    resolution: float
+        The resolution of the desired spectra (R=l/dl)
+    toair: bool
+        Convert the input spectra into the air frame 
+
+    Returns:
+    --------
+    The sparse matrix to perform interpolation
     """
     if toair:
         lam0 = lam00 / (1.0 + 2.735182E-4 + 131.4182 /
@@ -197,9 +213,9 @@ def rebin(lam0, spec0, newlam, resolution):
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--prefix', type=str, default='./', dest='prefix')
-    parser.add_argument('--templdb', type=str, default='files.db')
+    parser = argparse.ArgumentParser(description='Create the database descrbing the templates')
+    parser.add_argument('--prefix', type=str, default='./', dest='prefix', help='The location of the input grid')
+    parser.add_argument('--templdb', type=str, default='files.db', help='The filename where the SQLite database describing the template library will be stored')
     args = parser.parse_args()
     makedb(args.prefix, dbfile=args.templdb)
 
