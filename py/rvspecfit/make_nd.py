@@ -128,9 +128,9 @@ def execute(spec_setup, prefix=None, perturb=True):
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--prefix', type=str)
-    parser.add_argument('--setup', type=str)
+    parser = argparse.ArgumentParser(description='Create N-D spectral interpolation files')
+    parser.add_argument('--prefix', type=str, help='Location of the interpolated and convolved input spectra')
+    parser.add_argument('--setup', type=str, help='Name of the spectral configuration')
     args = parser.parse_args(args)
     execute(args.setup, args.prefix)
 

@@ -399,15 +399,15 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
     np.save(modsavefile, np.array(models))
 
 def main(args):
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--prefix', type=str)
-    parser.add_argument('--oprefix', type=str)
-    parser.add_argument('--setup', type=str)
-    parser.add_argument('--lambda0', type=float)
-    parser.add_argument('--lambda1', type=float)
-    parser.add_argument('--step', type=float)
-    parser.add_argument('--vsinis', type=str, default=None)
-    parser.add_argument('--every', type=int, default=30)
+    parser = argparse.ArgumentParser(description='Create the Fourier transformed templates')
+    parser.add_argument('--prefix', type=str, help='Location of the input spectra')
+    parser.add_argument('--oprefix', type=str, help='Location where the ouput products will be located' )
+    parser.add_argument('--setup', type=str, help='Name of spectral configuration')
+    parser.add_argument('--lambda0', type=float, help='Starting wavelength in Angstroms')
+    parser.add_argument('--lambda1', type=float, help='Wavelength endpoint')
+    parser.add_argument('--step', type=float, help='Pixel size in angstroms')
+    parser.add_argument('--vsinis', type=str, default=None, help='Comma separated list of vsini values to include in the ccf set')
+    parser.add_argument('--every', type=int, default=30, help ='Subsample the input grid by this amount')
 
     args = parser.parse_args(args)
 

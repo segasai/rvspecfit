@@ -134,18 +134,18 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
 
 
 def main(args):
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--setup', type=str)
-    parser.add_argument('--lambda0', type=float)
-    parser.add_argument('--lambda1', type=float)
-    parser.add_argument('--resol', type=float)
-    parser.add_argument('--step', type=float)
-    parser.add_argument('--log', action='store_true', default=True)
-    parser.add_argument('--templdb', type=str, default='files.db')
-    parser.add_argument('--templprefix', type=str)
-    parser.add_argument('--air', action='store_true', default=False)
-    parser.add_argument('--oprefix', type=str, default='templ_data/')
-    parser.add_argument('--wavefile', type=str)
+    parser = argparse.ArgumentParser(description='Create interpolated and convolved spectra from the input grid.')
+    parser.add_argument('--setup', type=str, help='Name of the spectral configuration')
+    parser.add_argument('--lambda0', type=float, help='Start wavelength')
+    parser.add_argument('--lambda1', type=float, help='End wavelength')
+    parser.add_argument('--resol', type=float, help='Spectral resolution R')
+    parser.add_argument('--step', type=float, help='Pixel size in angstrom')
+    parser.add_argument('--log', action='store_true', default=True, help='Generate spectra in log-waelength scale')
+    parser.add_argument('--templdb', type=str, default='files.db', help='The path to the SQLiteDB with the info about the templates')
+    parser.add_argument('--templprefix', type=str, help='The path to the templates')
+    parser.add_argument('--air', action='store_true', default=False, help='Generate spectra in the air (rather than vacuum) frame')
+    parser.add_argument('--oprefix', type=str, default='templ_data/', help='The path where the converted templates will be created')
+    parser.add_argument('--wavefile', type=str, help='The path to the fits file with the wavelength grid of the templates')
     args = parser.parse_args(args)
 
     process_all((args.setup, args.lambda0, args.lambda1,
