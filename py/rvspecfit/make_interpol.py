@@ -86,7 +86,8 @@ def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile):
 
 
 def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
-                prefix=None, wavefile=None, air=False, resolution0=None):
+                prefix=None, wavefile=None, air=False, resolution0=None,
+                fixed_fwhm=False):
     nthreads = 8
     tab = atpy.Table('sqlite', dbfile)
     ids = (tab.id).astype(int)
@@ -107,7 +108,7 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
         lamgrid = np.exp(np.arange(np.log(lamleft / fac1),
                                    np.log(lamright * fac1), np.log(1 + step / lamleft)))
 
-    mat = read_grid.make_rebinner(templ_lam, lamgrid, resol, toair=air, resolution0 = resolution0)
+    mat = read_grid.make_rebinner(templ_lam, lamgrid, resol, toair=air, resolution0 = resolution0, fixed_fwhm=fixed_fwhm)
 
     specs = []
     si.mat = mat
@@ -147,12 +148,14 @@ def main(args):
     parser.add_argument('--oprefix', type=str, default='templ_data/', help='The path where the converted templates will be created')
     parser.add_argument('--wavefile', type=str, help='The path to the fits file with the wavelength grid of the templates')
     parser.add_argument('--resolution0', type=float, default=100000, help='The resolution of the input grid')
+    parser.add_argument('--fixed_fwhm', action='store_true', default=False, help='Use to make the fwhm of the LSF to be constant rather then R=lambda/dlambda')
+
     args = parser.parse_args(args)
 
     process_all((args.setup, args.lambda0, args.lambda1,
                  args.resol, args.step, args.log), dbfile=args.templdb, oprefix=args.oprefix,
                 prefix=args.templprefix,
-                wavefile=args.wavefile, air=args.air, resolution0=args.resolution0)
+                wavefile=args.wavefile, air=args.air, resolution0=args.resolution0, fixed_fwhm=args.fixed_fwhm)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
