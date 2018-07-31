@@ -118,7 +118,7 @@ def get_spec(logg, temp, met, alpha,
     return lams, dat
 
 
-def make_rebinner(lam00, lam, resolution, toair=True):
+def make_rebinner(lam00, lam, resolution, resolution0=None, toair=True):
     """ 
     Make the sparse matrix that convolves a given spectrum to
     a given resolution and new wavelength grid
@@ -133,6 +133,8 @@ def make_rebinner(lam00, lam, resolution, toair=True):
         The resolution of the desired spectra (R=l/dl)
     toair: bool
         Convert the input spectra into the air frame 
+    resolution0: float
+        The resolution of input templates
 
     Returns:
     --------
@@ -144,11 +146,10 @@ def make_rebinner(lam00, lam, resolution, toair=True):
     else:
         lam0 = lam00
 
-    resol0 = 100000
-    assert (resolution < resol0)
+    assert (resolution < resolution0)
 
     fwhms = lam / resolution
-    fwhms0 = lam / resol0
+    fwhms0 = lam / resolution0
 
     sigs = (fwhms**2 - fwhms0**2)**.5 / 2.35
     thresh = 5  # 5 sigma
@@ -168,7 +169,7 @@ def make_rebinner(lam00, lam, resolution, toair=True):
         right = np.searchsorted(lam0, curl1)
 
         curx = np.arange(left, right + 1)
-        #curvals = scipy.stats.norm.pdf(lam0[curx], curlam, cursig)
+
         li = lam0[curx]
         li_p = lam0[curx + 1]
         C = scipy.special.erf((li_p - curlam) / np.sqrt(2) / cursig) -\
