@@ -62,7 +62,11 @@ def makedb(prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.
     DB.execute(
         'CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);')
 
-    for f in sorted(glob.glob(prefix + '*/*fits')):
+    mask = '*/*fits'
+    fs=sorted(glob.glob(prefix + mask))
+    if len(fs) == 0:
+        raise Exception("No FITS templates found in the directory specified (using mask %s"%mask)
+    for f in fs:
         hdr = pyfits.getheader(f)
         teff = hdr['PHXTEFF']
         logg = float(hdr['PHXLOGG'])
