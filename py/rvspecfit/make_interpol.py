@@ -80,7 +80,7 @@ def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile):
     spec1 = spec / get_line_continuum(si.lamgrid, spec)
     spec1 = np.log(spec1)  # log the spectrum
     if not np.isfinite(spec1).all():
-        raise Exception('nans %s' % str((teff, logg, feh, alpha)))
+        raise Exception('The spectrum is not finite (has nans or infs) at parameter values: %s' % str((teff, logg, feh, alpha)))
     spec1 = spec1.astype(np.float32)
     return spec1
 
