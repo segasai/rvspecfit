@@ -4,7 +4,6 @@ import subprocess
 import sys
 import argparse
 import pickle
-import matplotlib.pyplot as plt
 import scipy.constants
 import scipy.optimize
 import numpy as np
