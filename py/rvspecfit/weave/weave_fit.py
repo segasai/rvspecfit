@@ -6,7 +6,7 @@ import time
 import itertools
 import multiprocessing as mp
 from collections import OrderedDict
-
+import pandas
 import matplotlib
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
@@ -156,19 +156,7 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
         ivars[s][:,tellurics] = 1./100./np.maximum(fluxes[s][:,tellurics],1)**2 #medivar[:, None]/1000**2
         # put the S/N in the telluric region to 1/10.
 
-    columns = ['brickname','target_id',
-               'vrad','vrad_err',
-               'logg','teff',
-               'vsini','feh','alpha',
-               'chisq_tot']
-    for s in setups:
-        columns.append('sn_%s'%s)
-        columns.append('chisq_%s'%s)
-        columns.append('chisq_c_%s'%s)
-
-    outdict = OrderedDict()
-    for c in columns:
-        outdict[c]=[]
+    outdict = pandas.DataFrame()
     large_error = 1e9
     for curid in xids:
         specdata = []
@@ -200,26 +188,27 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
         t3 = time.time()
         chisq_cont_array = spec_fit.get_chisq_continuum( specdata, options=options)
         t4 = time.time()
-        outdict['brickname'].append(curbrick)
-        outdict['target_id'].append(curtargetid)
-        outdict['vrad'].append(res1['vel'])
-        outdict['vrad_err'].append(res1['vel_err'])
-        outdict['logg'].append(res1['param']['logg'])
-        outdict['teff'].append(res1['param']['teff'])
-        outdict['alpha'].append(res1['param']['alpha'])
-        outdict['feh'].append(res1['param']['feh'])
-        outdict['logg_err'].append(res1['param_err']['logg'])
-        outdict['teff_err'].append(res1['param_err']['teff'])
-        outdict['alpha_err'].append(res1['param_err']['alpha'])
-        outdict['feh_err'].append(res1['param_err']['feh'])
-        outdict['chisq_tot'].append(sum(res1['chisq_array']))
+        curD = {}
+        curD['brickname'] = curbrick
+        curD['target_id'] = curtargetid
+        curD['vrad'] = res1['vel']
+        curD['vrad_err'] = res1['vel_err']
+        curD['logg'] = res1['param']['logg']
+        curD['teff'] = res1['param']['teff']
+        curD['alpha'] = res1['param']['alpha']
+        curD['feh'] = res1['param']['feh']
+        curD['logg_err'] = res1['param_err']['logg']
+        curD['teff_err'] = res1['param_err']['teff']
+        curD['alpha_err'] = res1['param_err']['alpha']
+        curD['feh_err'] = res1['param_err']['feh']
+        curD['chisq_tot'] = sum(res1['chisq_array'])
         for i, s in enumerate(setups):
-            outdict['chisq_%s'%s].append(res1['chisq_array'][i])
-            outdict['chisq_c_%s'%s].append(float(chisq_cont_array[i]))
-            outdict['sn_%s'%(s,)].append(sns[s])
+            curD['chisq_%s'%s] = res1['chisq_array'][i]
+            curD['chisq_c_%s'%s] = float(chisq_cont_array[i])
+            curD['sn_%s'%(s,)] = sns[s]
 
-        outdict['vsini'].append(res1['vsini'])
-
+        curD['vsini'] = res1['vsini']
+        outdict =  outdict.append(curD)
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (res1['param']['logg'],
                                                                                       res1['param']['teff'],
                                                                                       res1['param']['feh'],
@@ -227,7 +216,7 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
                                                                                       res1['vel'],
                                                                                       res1['vel_err'])
         make_plot(specdata, res1, title, fig_fname)
-    outtab = atpy.Table(outdict)
+    outtab = atpy.Table.from_pandas(outdict)
     return outtab
 
 def proc_weave_wrapper(*args, **kwargs):
