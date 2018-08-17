@@ -208,6 +208,10 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
         outdict['teff'].append(res1['param']['teff'])
         outdict['alpha'].append(res1['param']['alpha'])
         outdict['feh'].append(res1['param']['feh'])
+        outdict['logg_err'].append(res1['param_err']['logg'])
+        outdict['teff_err'].append(res1['param_err']['teff'])
+        outdict['alpha_err'].append(res1['param_err']['alpha'])
+        outdict['feh_err'].append(res1['param_err']['feh'])
         outdict['chisq_tot'].append(sum(res1['chisq_array']))
         for i, s in enumerate(setups):
             outdict['chisq_%s'%s].append(res1['chisq_array'][i])

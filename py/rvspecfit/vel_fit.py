@@ -5,7 +5,7 @@ import astropy.io.fits as pyfits
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize
-
+import numdifftools as ndf
 from rvspecfit import spec_fit
 from rvspecfit import spec_inter
 
@@ -50,7 +50,6 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     min_vel = config.get('min_vel') or -1000
     max_vel = config.get('max_vel') or 1000
     vel_step0 = config.get('vel_step0') or 5 # the starting step in velocities
-    vel_step = 1  # The final step in velocities TO BE CHECKED
     max_vsini = config.get('max_vsini') or 500
     min_vsini = config.get('min_vsini') or 1e-2
     min_vel_step = config.get('min_vel_step') or 0.2
@@ -186,6 +185,20 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
                                      resolParams,
                                      options=options, config=config,
                                      full_output=True)
+    # compute the uncertainty of stellar params
+    def hess_func(p):
+        outp = spec_fit.get_chisq(specdata, best_vel, p,
+                                     best_param['rot_params'],
+                                     resolParams,
+                                     options=options, config=config,
+                                     full_output=True)
+        return 2*outp['chisq']
+    hess_step = np.maximum(1e-4*np.abs(np.array([ret['param'][_] for _ in \
+                                                 specParams])), 1e-4)
+    hessian = ndf.Hessian(hess_func, step=hess_step)([ret['param'][_] for _ in specParams])
+    hessian_inv = scipy.linalg.inv(hessian)
+    ret['param_err'] = dict(zip(specParams, np.sqrt(np.diag(hessian_inv))))
+
     ret['yfit'] = outp['models']
     ret['chisq'] = outp['chisq']
     ret['chisq_array'] = outp['chisq_array']
