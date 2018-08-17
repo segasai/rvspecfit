@@ -192,7 +192,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
                                      resolParams,
                                      options=options, config=config,
                                      full_output=True)
-        return 2*outp['chisq']
+        return 0.5 * outp['chisq']
     hess_step = np.maximum(1e-4*np.abs(np.array([ret['param'][_] for _ in \
                                                  specParams])), 1e-4)
     hessian = ndf.Hessian(hess_func, step=hess_step)([ret['param'][_] for _ in specParams])
