@@ -127,6 +127,7 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
     xids= np.nonzero(xids)[0]
     if len(xids)>0:
         tids = np.linspace(0, nthreads, len(xids), False).astype(int)
+        assert(tids.max()<=(nthreads-1))
         xids  = xids[ tids==threadid]
     if len(xids)==0:
         return None
