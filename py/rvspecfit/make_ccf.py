@@ -17,6 +17,7 @@ CCF_PKL_NAME = 'ccf_%s.pkl'
 CCF_DAT_NAME = 'ccfdat_%s.npy'
 CCF_MOD_NAME = 'ccfmod_%s.npy'
 
+
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
 
@@ -296,6 +297,7 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     pool.join()
     return xlogl, res, retparams, vsinisList
 
+
 def interp_masker(lam, spec, badmask):
     """ 
     Fill the gaps spectrum by interpolating across a badmask.
@@ -310,29 +312,28 @@ def interp_masker(lam, spec, badmask):
         The spectrum array
     badmask: boolean array
         The array identifying bad pixels
-    
+
     Returns:
     --------
     spec: numpy array
         The array with bad pixels interpolated away
-    
+
     """
     spec1 = spec*1
-    xbad= np.nonzero(badmask)[0]
-    xgood= np.nonzero(~badmask)[0]
-    assert(len(xgood)>0)
-    xpos = np.searchsorted(xgood,xbad)
-    leftedge= xpos == 0
-    rightedge= xpos == len(xgood)
-    mid = (~leftedge)&(~rightedge)
-    l1,l2 = lam[xgood[xpos[mid]-1]],lam[xgood[xpos[mid]]]
-    s1,s2= spec[xgood[xpos[mid]-1]],spec[xgood[xpos[mid]]]
+    xbad = np.nonzero(badmask)[0]
+    xgood = np.nonzero(~badmask)[0]
+    assert(len(xgood) > 0)
+    xpos = np.searchsorted(xgood, xbad)
+    leftedge = xpos == 0
+    rightedge = xpos == len(xgood)
+    mid = (~leftedge) & (~rightedge)
+    l1, l2 = lam[xgood[xpos[mid]-1]], lam[xgood[xpos[mid]]]
+    s1, s2 = spec[xgood[xpos[mid]-1]], spec[xgood[xpos[mid]]]
     l0 = lam[xbad[mid]]
     spec1[xbad[leftedge]] = spec[xgood[0]]
     spec1[xbad[rightedge]] = spec[xgood[-1]]
     spec1[xbad[mid]] = (-(l1-l0)*s2+(l2-l0)*s1)/(l2-l1)
     return spec1
-
 
 
 def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
@@ -437,16 +438,24 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
     np.save(datsavefile, np.array(ffts))
     np.save(modsavefile, np.array(models))
 
+
 def main(args):
-    parser = argparse.ArgumentParser(description='Create the Fourier transformed templates')
-    parser.add_argument('--prefix', type=str, help='Location of the input spectra')
-    parser.add_argument('--oprefix', type=str, help='Location where the ouput products will be located' )
-    parser.add_argument('--setup', type=str, help='Name of spectral configuration')
-    parser.add_argument('--lambda0', type=float, help='Starting wavelength in Angstroms')
+    parser = argparse.ArgumentParser(
+        description='Create the Fourier transformed templates')
+    parser.add_argument('--prefix', type=str,
+                        help='Location of the input spectra')
+    parser.add_argument('--oprefix', type=str,
+                        help='Location where the ouput products will be located')
+    parser.add_argument('--setup', type=str,
+                        help='Name of spectral configuration')
+    parser.add_argument('--lambda0', type=float,
+                        help='Starting wavelength in Angstroms')
     parser.add_argument('--lambda1', type=float, help='Wavelength endpoint')
     parser.add_argument('--step', type=float, help='Pixel size in angstroms')
-    parser.add_argument('--vsinis', type=str, default=None, help='Comma separated list of vsini values to include in the ccf set')
-    parser.add_argument('--every', type=int, default=30, help ='Subsample the input grid by this amount')
+    parser.add_argument('--vsinis', type=str, default=None,
+                        help='Comma separated list of vsini values to include in the ccf set')
+    parser.add_argument('--every', type=int, default=30,
+                        help='Subsample the input grid by this amount')
 
     args = parser.parse_args(args)
 
@@ -461,6 +470,7 @@ def main(args):
         vsinis = None
     ccf_executor(args.setup, ccfconf, args.prefix,
                  args.oprefix, args.every, vsinis)
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])
