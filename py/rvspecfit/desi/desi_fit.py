@@ -1,6 +1,7 @@
+import os
+os.environ['OMP_NUM_THREADS']='1'
 import glob
 import sys
-import os
 import argparse
 import time
 import itertools
@@ -9,7 +10,6 @@ from collections import OrderedDict
 
 import matplotlib
 import astropy.io.fits as pyfits
-os.environ['OMP_NUM_THREADS']='1'
 import numpy as np
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt

@@ -1,3 +1,5 @@
+import os
+os.environ['OMP_NUM_THREADS']='1'
 import sys
 import astropy.io.fits as pyfits
 import numpy as np
