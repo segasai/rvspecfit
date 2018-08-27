@@ -4,6 +4,7 @@ import multiprocessing as mp
 import numpy as np
 import scipy.interpolate
 import scipy.stats
+import sys
 
 from rvspecfit import spec_fit
 from rvspecfit import make_ccf
@@ -296,11 +297,30 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     return xlogl, res, retparams, vsinisList
 
 def interp_masker(lam, spec, badmask):
-    """ Mask as spectrum by linearly interpolating across a badmask
+    """ 
+    Fill the gaps spectrum by interpolating across a badmask.
+    The gaps are filled by linear interpolation. The edges are just
+    using the value of the closest valid pixel.
+
+    Parameters:
+    -----------
+    lam: numpy array
+        The array of wavelengths of pixels
+    spec: numpy array
+        The spectrum array
+    badmask: boolean array
+        The array identifying bad pixels
+    
+    Returns:
+    --------
+    spec: numpy array
+        The array with bad pixels interpolated away
+    
     """
     spec1 = spec*1
     xbad= np.nonzero(badmask)[0]
     xgood= np.nonzero(~badmask)[0]
+    assert(len(xgood)>0)
     xpos = np.searchsorted(xgood,xbad)
     leftedge= xpos == 0
     rightedge= xpos == len(xgood)
