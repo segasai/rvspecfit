@@ -295,6 +295,25 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     pool.join()
     return xlogl, res, retparams, vsinisList
 
+def interp_masker(lam, spec, badmask):
+    """ Mask as spectrum by linearly interpolating across a badmask
+    """
+    spec1 = spec*1
+    xbad= np.nonzero(badmask)[0]
+    xgood= np.nonzero(~badmask)[0]
+    xpos = np.searchsorted(xgood,xbad)
+    leftedge= xpos == 0
+    rightedge= xpos == len(xgood)
+    mid = (~leftedge)&(~rightedge)
+    l1,l2 = lam[xgood[xpos[mid]-1]],lam[xgood[xpos[mid]]]
+    s1,s2= spec[xgood[xpos[mid]-1]],spec[xgood[xpos[mid]]]
+    l0 = lam[xbad[mid]]
+    spec1[xbad[leftedge]] = spec[xgood[0]]
+    spec1[xbad[rightedge]] = spec[xgood[-1]]
+    spec1[xbad[mid]] = (-(l1-l0)*s2+(l2-l0)*s1)/(l2-l1)
+    return spec1
+
+
 
 def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     """
@@ -324,7 +343,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     curspec = spec0.copy()
     if badmask is not None:
         curespec[badmask] = curespec[badmask] * 0 + 1e9
-
+        curspec = interp_masker(lam, curspec, badmask)
     cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
     medv = np.median(curspec)
     if medv > 0:
