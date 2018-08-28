@@ -1,9 +1,11 @@
 import os
 os.environ['OMP_NUM_THREADS']='1'
 import sys
-import astropy.io.fits as pyfits
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import astropy.io.fits as pyfits
 
 from rvspecfit import fitter_ccf
 from rvspecfit import vel_fit
