@@ -24,13 +24,17 @@ class LRUDict:
         return x in self.D
 
     def __setitem__(self, x, y):
-        if len(self.D)>self.N:
+        inside = x in self.D
+        if len(self.D) == self.N and not inside:
             del self.D[next(iter(self.D.keys()))]
+        if inside:
+            self.D.move_to_end(x,last=True)
         self.D[x] = y
 
     def __getitem__(self,x):
         ret = self.D[x]
         self.D.move_to_end(x, last=True)
+        return ret
 
     def __str__(self):
         return self.D.__str__()
