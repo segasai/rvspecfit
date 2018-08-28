@@ -4,6 +4,5 @@ astropy
 pyyaml
 scipy
 frozendict
-pylru
 numdifftools
 pandas
