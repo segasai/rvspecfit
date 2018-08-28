@@ -8,10 +8,32 @@ from scipy.constants.constants import speed_of_light
 import scipy.sparse
 import scipy.signal
 import frozendict
-import pylru
+import collections
 
 from rvspecfit import utils
 from rvspecfit import spec_inter
+
+
+class LRUDict:
+    """ Simple implementation of LRU dictionary """
+    def __init__(self, N):
+        self.N = N
+        self.D = collections.OrderedDict()
+
+    def __contains__(self, x):
+        return x in self.D
+
+    def __setitem__(self, x, y):
+        if len(self.D)>self.N:
+            del self.D[next(iter(self.D.keys()))]
+        self.D[x] = y
+
+    def __getitem__(self,x):
+        ret = self.D[x]
+        self.D.move_to_end(x, last=True)
+
+    def __str__(self):
+        return self.D.__str__()
 
 
 # resolution matrix
@@ -489,7 +511,7 @@ def find_best(specdata,
               options=None,
               config=None):
     # find the best fit template and velocity from a grid
-    cache = pylru.lrucache(100)
+    cache = LRUDict(100)
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):
         for i, v in enumerate(vel_grid):
