@@ -5,7 +5,7 @@ import sys
 import argparse
 import time
 import itertools
-import multiprocessing as mp
+import concurrent.futures
 from collections import OrderedDict
 
 import matplotlib
@@ -240,7 +240,7 @@ def proc_many(files,
         parallel = False
 
     if parallel:
-        pool = mp.Pool(nthreads)
+        poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
     res = []
     for f in files:
         fname = f.split('/')[-1]
@@ -248,17 +248,17 @@ def proc_many(files,
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
             continue
+        arg = (f, ofname, fig_prefix, config, targetid)
         if parallel:
             res.append(
-                pool.apply_async(proc_desi_wrapper,
-                                 (f, ofname, fig_prefix, config, targetid)))
+                poolEx.submit(proc_desi_wrapper, 
+                            *arg)
+            )
         else:
-            proc_desi_wrapper(f, ofname, fig_prefix, config, targetid)
+            proc_desi_wrapper(*arg)
     if parallel:
-        for r in res:
-            r.get()
-        pool.close()
-        pool.join()
+        poolEx.shutdown(wait=True)
+            
 
 
 def main(args):
