@@ -1,18 +1,17 @@
 [![Build Status](https://travis-ci.org/segasai/rvspecfit.svg?branch=master)](https://travis-ci.org/segasai/rvspecfit)
 
-The spectroscopic pipeline to determine radial velocities
+Automated spectroscopic pipeline to determine radial velocities and 
+stellar atmospheric parameters
 Author: Sergey Koposov skoposov@cmu.edu, Carnegie Mellon University
 
 Dependencies: 
 pylru, frozendict
 
-== Running on DESI data == 
+##  Running on DESI/WEAVE data
 
-To run on DESI data use the code  from the desi folder rvs_desi_fit
+To run on DESI data use rvs_desi_fit or rvs_weave_fit
 
-
-
-== Creation of the template grid library ===
+## Creation of the template grid library 
 Currently only PHOENIX library is supported. 
 
 The first step is to read the template grid into the sqlite database
