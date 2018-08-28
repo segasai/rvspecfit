@@ -8,7 +8,6 @@ import scipy.stats
 import sys
 
 from rvspecfit import spec_fit
-from rvspecfit import make_ccf
 from rvspecfit import make_interpol
 from rvspecfit import utils
 from rvspecfit import _version
@@ -454,7 +453,7 @@ def main(args):
     args = parser.parse_args(args)
 
     npoints = (args.lambda1 - args.lambda0) / args.step
-    ccfconf = make_ccf.CCFConfig(logl0=np.log(args.lambda0),
+    ccfconf = CCFConfig(logl0=np.log(args.lambda0),
                                  logl1=np.log(args.lambda1),
                                  npoints=npoints)
 

@@ -4,6 +4,8 @@ import astropy.io.fits as pyfits
 import numpy as np
 import sys
 import time
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from rvspecfit import spec_fit
 from rvspecfit import utils
