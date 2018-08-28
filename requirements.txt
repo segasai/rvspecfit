@@ -1,7 +1,7 @@
 numpy
 matplotlib
 astropy
-yaml
+pyyaml
 scipy
 frozendict
 pylru
