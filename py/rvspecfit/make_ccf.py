@@ -137,14 +137,7 @@ def fit_loss(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
     res = (spec - model) / espec
 
     val = np.abs(res).sum()
-    if False:
-        import matplotlib.pyplot as plt
-        plt.clf()
-        plt.plot(lam, spec, 'k')
-        plt.plot(lam, model, 'r')
-        plt.draw()
-        plt.pause(0.01)
-        print(val)
+
     # I may need to mask outliers here...
     if not np.isfinite(val):
         return 1e30

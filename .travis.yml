@@ -21,5 +21,5 @@ script:
   - echo "template_lib: \"./templ_data/\"" >> config.yaml
   - python test1.py
   - python test2.py
+  - python test_fit.py
   - python test_fit1.py
-  - python test_fit2.py
