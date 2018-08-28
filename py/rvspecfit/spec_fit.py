@@ -34,6 +34,7 @@ class SpecData:
     '''
     Class describing a single spectrocopic dataset
     '''
+
     def __init__(self, name, lam, spec, espec, badmask=None):
         '''
         Construct the spectroscopic dataset
@@ -87,7 +88,6 @@ class SpecData:
         return self.id
 
 
-
 @functools.lru_cache(100)
 def get_polys(specdata, npoly):
     '''
@@ -117,6 +117,7 @@ def get_polys(specdata, npoly):
     for i in range(npoly):
         polys[i, :] = np.polynomial.Chebyshev(coeffs[i])(normlam)
     return polys
+
 
 def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     '''
@@ -177,6 +178,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     else:
         return chisq
 
+
 @functools.lru_cache(100)
 def getCurTempl(spec_setup, atm_param, rot_params, resol_params, config):
     """
@@ -231,7 +233,7 @@ def construct_resol_mat(lam, R):
     '''
     sigs = lam / R / 2.35
     thresh = 5
-    assert(np.all(np.diff(lam) > 0))
+    assert (np.all(np.diff(lam) > 0))
     l1 = lam - thresh * sigs
     l2 = lam + thresh * sigs
     i1 = np.searchsorted(lam, l1, 'left')
@@ -291,8 +293,10 @@ def convolve_vsini(lam_templ, templ, vsini):
     """
     eps = 0.6  # limb darkening coefficient
 
-    def kernelF(x): return (2 * (1 - eps) * np.sqrt(1 - x**2) +
-                            np.pi / 2 * eps * (1 - x**2)) / 2 / np.pi / (1 - eps / 3)
+    def kernelF(x):
+        return (2 * (1 - eps) * np.sqrt(1 - x**2) + np.pi / 2 * eps *
+                (1 - x**2)) / 2 / np.pi / (1 - eps / 3)
+
     step = np.log(lam_templ[1] / lam_templ[0])
     amp = vsini * 1e3 / speed_of_light
     npts = np.ceil(amp / step)
@@ -300,8 +304,8 @@ def convolve_vsini(lam_templ, templ, vsini):
     kernel = kernelF(xgrid)
     kernel[np.abs(xgrid) > 1] = 0
     # ensure that the lambda is spaced logarithmically
-    assert(np.allclose(lam_templ[1] / lam_templ[0],
-                       lam_templ[-1] / lam_templ[-2]))
+    assert (np.allclose(lam_templ[1] / lam_templ[0],
+                        lam_templ[-1] / lam_templ[-2]))
     templ1 = scipy.signal.fftconvolve(templ, kernel, mode='same')
     return templ1
 
@@ -380,16 +384,23 @@ def get_chisq_continuum(specdata, options=None):
         name = curdata.name
         polys = get_polys(curdata, npoly)
         templ = np.ones(len(curdata.spec))
-        curchisq, coeffs = get_chisq0(curdata.spec, templ,
-                                      polys, get_coeffs=True, espec=curdata.espec)
+        curchisq, coeffs = get_chisq0(
+            curdata.spec, templ, polys, get_coeffs=True, espec=curdata.espec)
         model = np.dot(coeffs, polys * templ)
-        curchisq = (((model-curdata.spec)/curdata.espec)**2).mean()
+        curchisq = (((model - curdata.spec) / curdata.espec)**2).mean()
         ret.append(curchisq)
     return ret
 
 
-def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
-              config=None, cache=None, full_output=False):
+def get_chisq(specdata,
+              vel,
+              atm_params,
+              rot_params,
+              resol_params,
+              options=None,
+              config=None,
+              cache=None,
+              full_output=False):
     """ Find the chi-square of the dataset at a given velocity
     atmospheric parameters, rotation parameters
     and resolution parameters
@@ -411,8 +422,7 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         name = curdata.name
 
         outside, templ_lam, templ_spec, templ_tag = getCurTempl(
-            name, atm_params, rot_params,
-            resol_params, config)
+            name, atm_params, rot_params, resol_params, config)
 
         # if the current point is outside the template grid
         # add bad value and bail out
@@ -424,9 +434,9 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
         else:
             chisq += outside
 
-
-        if (curdata.lam[0] < templ_lam[0] or curdata.lam[0] > templ_lam[-1] or
-                curdata.lam[-1] < templ_lam[0] or curdata.lam[-1] > templ_lam[-1]):
+        if (curdata.lam[0] < templ_lam[0] or curdata.lam[0] > templ_lam[-1]
+                or curdata.lam[-1] < templ_lam[0]
+                or curdata.lam[-1] > templ_lam[-1]):
             raise Exception(
                 "The template library doesn't cover this wavelength")
 
@@ -442,19 +452,23 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
 
         # take into account the resolution
         if resol_params is not None:
-            evalTempl = convolve_resol(
-                evalTempl, resol_params[name])
+            evalTempl = convolve_resol(evalTempl, resol_params[name])
 
         polys = get_polys(curdata, npoly)
 
-        curchisq = get_chisq0(curdata.spec, evalTempl,
-                              polys, get_coeffs=full_output, espec=curdata.espec)
+        curchisq = get_chisq0(
+            curdata.spec,
+            evalTempl,
+            polys,
+            get_coeffs=full_output,
+            espec=curdata.espec)
         if full_output:
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
             models.append(curmodel)
-            chisq_array.append((((curmodel-curdata.spec)/curdata.espec)**2).mean())
-        assert(np.isfinite(np.asscalar(curchisq)))
+            chisq_array.append((((curmodel - curdata.spec) / curdata.espec)
+                                **2).mean())
+        assert (np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
 
     if full_output:
@@ -467,31 +481,43 @@ def get_chisq(specdata, vel, atm_params, rot_params, resol_params, options=None,
     return ret
 
 
-def find_best(specdata, vel_grid, params_list, rot_params, resol_params, options=None,
+def find_best(specdata,
+              vel_grid,
+              params_list,
+              rot_params,
+              resol_params,
+              options=None,
               config=None):
     # find the best fit template and velocity from a grid
     cache = pylru.lrucache(100)
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):
         for i, v in enumerate(vel_grid):
-            chisq[i, j] = get_chisq(specdata, v, curparam, rot_params,
-                                    resol_params, options=options,
-                                    config=config, cache=cache)
+            chisq[i, j] = get_chisq(
+                specdata,
+                v,
+                curparam,
+                rot_params,
+                resol_params,
+                options=options,
+                config=config,
+                cache=cache)
     xind = np.argmin(chisq)
     i1, i2 = np.unravel_index(xind, chisq.shape)
     probs = np.exp(-0.5 * (chisq[:, i2] - chisq[i1, i2]))
     probs = probs / probs.sum()
     best_vel = vel_grid[i1]
     best_err = np.sqrt((probs * (vel_grid - best_vel)**2).sum())
-    if best_err<1e-10:
-        kurtosis,skewness=0,0
+    if best_err < 1e-10:
+        kurtosis, skewness = 0, 0
     else:
-        kurtosis = ((probs * (vel_grid - best_vel)**4).sum())/best_err**4
-        skewness = ((probs * (vel_grid - best_vel)**3).sum())/best_err**3
-    return dict(best_chi=chisq[i1, i2],
-                best_vel=vel_grid[i1],
-                vel_err=best_err,
-                best_param=params_list[i2],
-                kurtosis=kurtosis,
-                skewness=skewness,
-                probs=probs)
+        kurtosis = ((probs * (vel_grid - best_vel)**4).sum()) / best_err**4
+        skewness = ((probs * (vel_grid - best_vel)**3).sum()) / best_err**3
+    return dict(
+        best_chi=chisq[i1, i2],
+        best_vel=vel_grid[i1],
+        vel_err=best_err,
+        best_param=params_list[i2],
+        kurtosis=kurtosis,
+        skewness=skewness,
+        probs=probs)

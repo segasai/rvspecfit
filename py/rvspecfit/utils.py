@@ -3,6 +3,7 @@ import subprocess
 import yaml
 import frozendict
 
+
 def read_config(fname=None):
     """
     Read the configuration file and return the frozendict with it

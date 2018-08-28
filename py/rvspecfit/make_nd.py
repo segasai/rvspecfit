@@ -9,8 +9,9 @@ from rvspecfit import make_interpol
 from rvspecfit import _version
 git_rev = _version.VERSION
 
-INTERPOL_PKL_NAME='interp_%s.pkl'
-INTERPOL_DAT_NAME='interpdat_%s.npy'
+INTERPOL_PKL_NAME = 'interp_%s.pkl'
+INTERPOL_DAT_NAME = 'interpdat_%s.npy'
+
 
 def getedgevertices(vec):
     """
@@ -29,7 +30,7 @@ def getedgevertices(vec):
         The returned array of surrounding points
     """
 
-    pad = 0.2 # pad each dimension by this amount (relative to the dimension width)
+    pad = 0.2  # pad each dimension by this amount (relative to the dimension width)
     ndim = len(vec[:, 0])
     span = vec.ptp(axis=1)
     lspans = vec.min(axis=1) - pad * span
@@ -73,9 +74,11 @@ def execute(spec_setup, prefix=None, perturb=True):
     perturbation_amplitude = 1e-6
 
     postf = ''
-    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup), 'rb') as fp:
+    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
+              'rb') as fp:
         D = pickle.load(fp)
-        vec, specs, lam, parnames, mapper = D['vec'], D['specs'], D['lam'], D['parnames'], D['mapper']
+        vec, specs, lam, parnames, mapper = D['vec'], D['specs'], D['lam'], D[
+            'parnames'], D['mapper']
         del D
 
     vec = vec.astype(float)
@@ -88,8 +91,8 @@ def execute(spec_setup, prefix=None, perturb=True):
         state = np.random.get_state()
         # Make it deterministic
         np.random.seed(1)
-        vec = vec + np.random.uniform(-perturbation_amplitude,
-                                      perturbation_amplitude, size=vec.shape)
+        vec = vec + np.random.uniform(
+            -perturbation_amplitude, perturbation_amplitude, size=vec.shape)
         np.random.set_state(state)
 
     # get the positions that are outside the existing grid
@@ -123,16 +126,22 @@ def execute(spec_setup, prefix=None, perturb=True):
 
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)
-    np.save(('%s/'+INTERPOL_DAT_NAME) %
-            (prefix, spec_setup), np.asfortranarray(specs))
+    np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
+            np.asfortranarray(specs))
 
 
 def main(args):
-    parser = argparse.ArgumentParser(description='Create N-D spectral interpolation files')
-    parser.add_argument('--prefix', type=str, help='Location of the interpolated and convolved input spectra')
-    parser.add_argument('--setup', type=str, help='Name of the spectral configuration')
+    parser = argparse.ArgumentParser(
+        description='Create N-D spectral interpolation files')
+    parser.add_argument(
+        '--prefix',
+        type=str,
+        help='Location of the interpolated and convolved input spectra')
+    parser.add_argument(
+        '--setup', type=str, help='Name of the spectral configuration')
     args = parser.parse_args(args)
     execute(args.setup, args.prefix)
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])

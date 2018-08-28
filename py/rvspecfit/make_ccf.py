@@ -21,7 +21,11 @@ CCF_MOD_NAME = 'ccfmod_%s.npy'
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
 
-    def __init__(self, logl0=None, logl1=None, npoints=None, splinestep=1000,
+    def __init__(self,
+                 logl0=None,
+                 logl1=None,
+                 npoints=None,
+                 splinestep=1000,
                  maxcontpts=20):
         """
         Configure the cross-correlation
@@ -78,10 +82,10 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     N = np.log(lam0.max() / lammin) / np.log(1 + ccfconf.splinestep / 3e5)
     N = int(np.ceil(N))
     # Determine the nodes of the spline used for the continuum fit
-    nodes = lammin * np.exp(np.arange(N) *
-                            np.log(1 + ccfconf.splinestep / 3e5))
-    nodesedges = lammin * np.exp((-0.5 + np.arange(N + 1))
-                                 * np.log(1 + ccfconf.splinestep / 3e5))
+    nodes = lammin * np.exp(
+        np.arange(N) * np.log(1 + ccfconf.splinestep / 3e5))
+    nodesedges = lammin * np.exp(
+        (-0.5 + np.arange(N + 1)) * np.log(1 + ccfconf.splinestep / 3e5))
     medspec = np.median(spec0)
     if medspec <= 0:
         medspec = np.abs(medspec)
@@ -96,12 +100,13 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     lam, spec, espec = (lam0[::bin], scipy.signal.medfilt(spec0, bin)[::bin],
                         scipy.signal.medfilt(espec0, bin)[::bin])
 
-    res = scipy.optimize.minimize(fit_loss, p0,
-                                  args=(spec, espec, nodes, lam),
-                                  jac=False,
-                                  # method='Nelder-Mead'
-                                  method='BFGS'
-                                  )['x']
+    res = scipy.optimize.minimize(
+        fit_loss,
+        p0,
+        args=(spec, espec, nodes, lam),
+        jac=False,
+        # method='Nelder-Mead'
+        method='BFGS')['x']
     cont = fit_loss(res, spec0, espec0, nodes, lam0, getModel=True)
     return cont
 
@@ -194,14 +199,18 @@ def pad(x, y):
     elif np.allclose(np.diff(np.log(x)), np.log(x[1] / x[0])):
         ratx = x[1] / x[0]
         x2 = np.concatenate(deltax**(np.arange(-delta1, 0) * x[0], x,
-                                     x[-1] * deltax ** (1 + np.arange(delta2))))
+                                     x[-1] * deltax**(1 + np.arange(delta2))))
     else:
         raise Exception(
             'the wavelength axis is neither logarithmic, nor linear')
     return x2, y2
 
 
-def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None,
+def preprocess_model(logl,
+                     lammodel,
+                     model0,
+                     vsini=None,
+                     ccfconf=None,
                      modid=None):
     """
     Take the input template model and return prepared for FFT vectors.
@@ -232,8 +241,11 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None,
         m = spec_fit.convolve_vsini(lammodel, model0, vsini)
     else:
         m = model0
-    cont = get_continuum(lammodel, m, np.maximum(
-        m * 1e-5, 1e-2 * np.median(m)), ccfconf=ccfconf)
+    cont = get_continuum(
+        lammodel,
+        m,
+        np.maximum(m * 1e-5, 1e-2 * np.median(m)),
+        ccfconf=ccfconf)
 
     cont = np.maximum(cont, 1e-2 * np.median(cont))
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
@@ -242,7 +254,9 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None,
     xlogl, cpa_model = pad(logl, ca_model)
     std = (cpa_model**2).sum()**.5
     if std > 1e5:
-        print('WARNING something went wrong with the spectrum ormalization, model ', modid)
+        print(
+            'WARNING something went wrong with the spectrum ormalization, model ',
+            modid)
     cpa_model /= std
     return xlogl, cpa_model
 
@@ -278,8 +292,10 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     for imodel, m0 in enumerate(models):
         for vsini in vsinis:
             retparams.append(params[imodel])
-            q.append(pool.apply_async(preprocess_model,
-                                      (logl, lammodels, m0, vsini, ccfconf, (params[imodel]))))
+            q.append(
+                pool.apply_async(preprocess_model,
+                                 (logl, lammodels, m0, vsini, ccfconf,
+                                  (params[imodel]))))
             vsinisList.append(vsini)
 
     for ii, curx in enumerate(q):
@@ -312,20 +328,20 @@ def interp_masker(lam, spec, badmask):
         The array with bad pixels interpolated away
 
     """
-    spec1 = spec*1
+    spec1 = spec * 1
     xbad = np.nonzero(badmask)[0]
     xgood = np.nonzero(~badmask)[0]
-    assert(len(xgood) > 0)
+    assert (len(xgood) > 0)
     xpos = np.searchsorted(xgood, xbad)
     leftedge = xpos == 0
     rightedge = xpos == len(xgood)
     mid = (~leftedge) & (~rightedge)
-    l1, l2 = lam[xgood[xpos[mid]-1]], lam[xgood[xpos[mid]]]
-    s1, s2 = spec[xgood[xpos[mid]-1]], spec[xgood[xpos[mid]]]
+    l1, l2 = lam[xgood[xpos[mid] - 1]], lam[xgood[xpos[mid]]]
+    s1, s2 = spec[xgood[xpos[mid] - 1]], spec[xgood[xpos[mid]]]
     l0 = lam[xbad[mid]]
     spec1[xbad[leftedge]] = spec[xgood[0]]
     spec1[xbad[rightedge]] = spec[xgood[-1]]
-    spec1[xbad[mid]] = (-(l1-l0)*s2+(l2-l0)*s1)/(l2-l1)
+    spec1[xbad[mid]] = (-(l1 - l0) * s2 + (l2 - l0) * s1) / (l2 - l1)
     return spec1
 
 
@@ -371,13 +387,19 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     ca_spec = apodize(c_spec)
     if badmask is not None:
         ca_spec[badmask] = 0
-    ca_spec = scipy.interpolate.interp1d(np.log(lam), ca_spec, bounds_error=False,
-                                         fill_value=0, kind='linear')(logl)
+    ca_spec = scipy.interpolate.interp1d(
+        np.log(lam), ca_spec, bounds_error=False, fill_value=0,
+        kind='linear')(logl)
     lam1, cap_spec = pad(logl, ca_spec)
     return cap_spec
 
 
-def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsinis=None):
+def ccf_executor(spec_setup,
+                 ccfconf,
+                 prefix=None,
+                 oprefix=None,
+                 every=10,
+                 vsinis=None):
     """
     Prepare the FFT transformations for the CCF
 
@@ -402,9 +424,11 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
     Nothing
     """
 
-    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup), 'rb') as fp:
+    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
+              'rb') as fp:
         D = pickle.load(fp)
-        vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D['parnames']
+        vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D[
+            'parnames']
         del D
 
     ndim = len(vec[:, 0])
@@ -416,9 +440,9 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
     xlogl, models, params, vsinis = preprocess_model_list(
         lam, np.exp(specs), vec, ccfconf, vsinis=vsinis)
     ffts = np.array([np.fft.fft(x) for x in models])
-    savefile = ('%s/'+CCF_PKL_NAME) % (oprefix, spec_setup)
-    datsavefile = ('%s/'+CCF_DAT_NAME) % (oprefix, spec_setup)
-    modsavefile = ('%s/'+CCF_MOD_NAME) % (oprefix, spec_setup)
+    savefile = ('%s/' + CCF_PKL_NAME) % (oprefix, spec_setup)
+    datsavefile = ('%s/' + CCF_DAT_NAME) % (oprefix, spec_setup)
+    modsavefile = ('%s/' + CCF_MOD_NAME) % (oprefix, spec_setup)
     dHash = {}
     dHash['params'] = params
     dHash['ccfconf'] = ccfconf
@@ -435,34 +459,43 @@ def ccf_executor(spec_setup, ccfconf, prefix=None, oprefix=None, every=10, vsini
 def main(args):
     parser = argparse.ArgumentParser(
         description='Create the Fourier transformed templates')
-    parser.add_argument('--prefix', type=str,
-                        help='Location of the input spectra')
-    parser.add_argument('--oprefix', type=str,
-                        help='Location where the ouput products will be located')
-    parser.add_argument('--setup', type=str,
-                        help='Name of spectral configuration')
-    parser.add_argument('--lambda0', type=float,
-                        help='Starting wavelength in Angstroms')
+    parser.add_argument(
+        '--prefix', type=str, help='Location of the input spectra')
+    parser.add_argument(
+        '--oprefix',
+        type=str,
+        help='Location where the ouput products will be located')
+    parser.add_argument(
+        '--setup', type=str, help='Name of spectral configuration')
+    parser.add_argument(
+        '--lambda0', type=float, help='Starting wavelength in Angstroms')
     parser.add_argument('--lambda1', type=float, help='Wavelength endpoint')
     parser.add_argument('--step', type=float, help='Pixel size in angstroms')
-    parser.add_argument('--vsinis', type=str, default=None,
-                        help='Comma separated list of vsini values to include in the ccf set')
-    parser.add_argument('--every', type=int, default=30,
-                        help='Subsample the input grid by this amount')
+    parser.add_argument(
+        '--vsinis',
+        type=str,
+        default=None,
+        help='Comma separated list of vsini values to include in the ccf set')
+    parser.add_argument(
+        '--every',
+        type=int,
+        default=30,
+        help='Subsample the input grid by this amount')
 
     args = parser.parse_args(args)
 
     npoints = (args.lambda1 - args.lambda0) / args.step
-    ccfconf = CCFConfig(logl0=np.log(args.lambda0),
-                                 logl1=np.log(args.lambda1),
-                                 npoints=npoints)
+    ccfconf = CCFConfig(
+        logl0=np.log(args.lambda0),
+        logl1=np.log(args.lambda1),
+        npoints=npoints)
 
     if args.vsinis is not None:
         vsinis = [float(_) for _ in args.vsinis.split(',')]
     else:
         vsinis = None
-    ccf_executor(args.setup, ccfconf, args.prefix,
-                 args.oprefix, args.every, vsinis)
+    ccf_executor(args.setup, ccfconf, args.prefix, args.oprefix, args.every,
+                 vsinis)
 
 
 if __name__ == '__main__':

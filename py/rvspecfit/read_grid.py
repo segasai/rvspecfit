@@ -10,12 +10,12 @@ import astropy.wcs as pywcs
 import argparse
 
 
-
 class ParamMapper:
     """
     Class used to map stellar atmospheric parameters into more manageable grid
     used for interpolation
     """
+
     def __init__(self):
         pass
 
@@ -54,18 +54,22 @@ class ParamMapper:
         return np.array([10**vec[0], vec[1], vec[2], vec[3]])
 
 
-def makedb(prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
-           dbfile='files.db'):
+def makedb(
+        prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
+        dbfile='files.db'):
     """ Create an sqlite database of the templates """
     DB = sqlite3.connect(dbfile)
     id = 0
     DB.execute(
-        'CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);')
+        'CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);'
+    )
 
     mask = '*/*fits'
-    fs=sorted(glob.glob(prefix + mask))
+    fs = sorted(glob.glob(prefix + mask))
     if len(fs) == 0:
-        raise Exception("No FITS templates found in the directory specified (using mask %s"%mask)
+        raise Exception(
+            "No FITS templates found in the directory specified (using mask %s"
+            % mask)
     for f in fs:
         hdr = pyfits.getheader(f)
         teff = hdr['PHXTEFF']
@@ -74,14 +78,20 @@ def makedb(prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.
         met = float(hdr['PHXM_H'])
 
         DB.execute('insert into files  values (?, ? , ? , ? , ?, ? )',
-                        (f.replace(prefix, ''), teff, logg, met, alpha, id))
+                   (f.replace(prefix, ''), teff, logg, met, alpha, id))
         id += 1
     DB.commit()
 
-def get_spec(logg, temp, met, alpha,
-             dbfile='/tmp/files.db',
-             prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
-             wavefile='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'):
+
+def get_spec(
+        logg,
+        temp,
+        met,
+        alpha,
+        dbfile='/tmp/files.db',
+        prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
+        wavefile='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
+):
     """ returns individual spectra
     > lam,spec=read_grid.get_spec(1,5250,-1,0.4)
     """
@@ -95,10 +105,8 @@ def get_spec(logg, temp, met, alpha,
 		logg between %f and %f and
 		alpha between %f and %f and
 		met between %f and %f ''' % (
-        temp - deltatemp, temp + deltatemp,
-        logg - deltalogg, logg + deltalogg,
-        alpha - deltaalpha, alpha + deltaalpha,
-        met - deltamet, met + deltamet)
+        temp - deltatemp, temp + deltatemp, logg - deltalogg, logg + deltalogg,
+        alpha - deltaalpha, alpha + deltaalpha, met - deltamet, met + deltamet)
 
     conn = sqlite3.connect(dbfile)
     cur = conn.cursor()
@@ -118,7 +126,11 @@ def get_spec(logg, temp, met, alpha,
     return lams, dat
 
 
-def make_rebinner(lam00, lam, resolution, resolution0=None, toair=True,
+def make_rebinner(lam00,
+                  lam,
+                  resolution,
+                  resolution0=None,
+                  toair=True,
                   fixed_fwhm=False):
     """ 
     Make the sparse matrix that convolves a given spectrum to
@@ -145,14 +157,14 @@ def make_rebinner(lam00, lam, resolution, resolution0=None, toair=True,
     The sparse matrix to perform interpolation
     """
     if toair:
-        lam0 = lam00 / (1.0 + 2.735182E-4 + 131.4182 /
-                        lam00**2 + 2.76249E8 / lam00**4)
+        lam0 = lam00 / (
+            1.0 + 2.735182E-4 + 131.4182 / lam00**2 + 2.76249E8 / lam00**4)
     else:
         lam0 = lam00
 
     assert (resolution < resolution0)
     if fixed_fwhm:
-        fwhms = lam[len(lam)//2]/resolution
+        fwhms = lam[len(lam) // 2] / resolution
     else:
         fwhms = lam / resolution
     fwhms0 = lam / resolution0
@@ -180,8 +192,8 @@ def make_rebinner(lam00, lam, resolution, resolution0=None, toair=True,
         li_p = lam0[curx + 1]
         C = scipy.special.erf((li_p - curlam) / np.sqrt(2) / cursig) -\
             scipy.special.erf((li - curlam) / np.sqrt(2) / cursig)
-        D = np.exp(-0.5 * ((li - curlam) / cursig)**2) - np.exp(-0.5 *
-                                                                ((li_p - curlam) / cursig)**2)
+        D = np.exp(-0.5 * ((li - curlam) / cursig)**2) - np.exp(-0.5 * (
+            (li_p - curlam) / cursig)**2)
 
         curvals1 = (C * np.sqrt(2 * np.pi) / 2 * li *
                     (li_p - curlam) - cursig * li * D) / (li_p - li)
@@ -224,11 +236,24 @@ def rebin(lam0, spec0, newlam, resolution):
 
 
 def main(args):
-    parser = argparse.ArgumentParser(description='Create the database descrbing the templates')
-    parser.add_argument('--prefix', type=str, default='./', dest='prefix', help='The location of the input grid')
-    parser.add_argument('--templdb', type=str, default='files.db', help='The filename where the SQLite database describing the template library will be stored')
+    parser = argparse.ArgumentParser(
+        description='Create the database descrbing the templates')
+    parser.add_argument(
+        '--prefix',
+        type=str,
+        default='./',
+        dest='prefix',
+        help='The location of the input grid')
+    parser.add_argument(
+        '--templdb',
+        type=str,
+        default='files.db',
+        help=
+        'The filename where the SQLite database describing the template library will be stored'
+    )
     args = parser.parse_args()
     makedb(args.prefix, dbfile=args.templdb)
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])

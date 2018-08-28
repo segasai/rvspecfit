@@ -35,14 +35,14 @@ def get_ccf_info(spec_setup, config):
     """
     if spec_setup not in CCFCache.ccfs:
         prefix = config['template_lib']
-        ccf_info_fname = prefix + make_ccf.CCF_PKL_NAME %spec_setup
-        ccf_dat_fname = prefix + make_ccf.CCF_DAT_NAME %spec_setup
-        ccf_mod_fname = prefix + make_ccf.CCF_MOD_NAME %spec_setup
-        CCFCache.ccf_info[spec_setup] = pickle.load(
-            open(ccf_info_fname, 'rb'))
+        ccf_info_fname = prefix + make_ccf.CCF_PKL_NAME % spec_setup
+        ccf_dat_fname = prefix + make_ccf.CCF_DAT_NAME % spec_setup
+        ccf_mod_fname = prefix + make_ccf.CCF_MOD_NAME % spec_setup
+        CCFCache.ccf_info[spec_setup] = pickle.load(open(ccf_info_fname, 'rb'))
         CCFCache.ccfs[spec_setup] = np.load(ccf_dat_fname, mmap_mode='r')
         CCFCache.ccf_models[spec_setup] = np.load(ccf_mod_fname, mmap_mode='r')
-    return CCFCache.ccfs[spec_setup], CCFCache.ccf_models[spec_setup], CCFCache.ccf_info[spec_setup]
+    return CCFCache.ccfs[spec_setup], CCFCache.ccf_models[
+        spec_setup], CCFCache.ccf_info[spec_setup]
 
 
 def fit(specdata, config):
@@ -86,7 +86,8 @@ def fit(specdata, config):
         lam = cursd.lam
         spec = cursd.spec
         espec = cursd.espec
-        ccf_dats[spec_setup], ccf_mods[spec_setup], ccf_infos[spec_setup] = get_ccf_info(spec_setup, config)
+        ccf_dats[spec_setup], ccf_mods[spec_setup], ccf_infos[
+            spec_setup] = get_ccf_info(spec_setup, config)
         ccfconf = ccf_infos[spec_setup]['ccfconf']
         logl0 = ccfconf.logl0
         logl1 = ccfconf.logl1
@@ -94,9 +95,9 @@ def fit(specdata, config):
         proc_spec = make_ccf.preprocess_data(
             lam, spec, espec, badmask=cursd.badmask, ccfconf=ccfconf)
         proc_spec_std = proc_spec.std()
-        if proc_spec_std==0:
+        if proc_spec_std == 0:
             proc_spec_std = 1
-            print ('WARNING spectrum looks like a constant...')
+            print('WARNING spectrum looks like a constant...')
         proc_spec /= proc_spec_std
         proc_specs[spec_setup] = proc_spec
         spec_fft = np.fft.fft(proc_spec)
@@ -104,8 +105,8 @@ def fit(specdata, config):
         velstep[spec_setup] = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
         l = len(spec_fft)
         off[spec_setup] = l // 2
-        vels[spec_setup] = ((np.arange(l) + off[spec_setup]) %
-                            l - off[spec_setup]) * velstep[spec_setup]
+        vels[spec_setup] = ((np.arange(l) + off[spec_setup]) % l -
+                            off[spec_setup]) * velstep[spec_setup]
         vels[spec_setup] = -np.roll(vels[spec_setup], off[spec_setup])
         subind[spec_setup] = np.abs(vels[spec_setup]) < maxvel
 
@@ -124,7 +125,9 @@ def fit(specdata, config):
             ccf = np.roll(ccf, off[spec_setup])
             curccf[spec_setup] = ccf[subind[spec_setup]]
             curccf[spec_setup] = scipy.interpolate.UnivariateSpline(
-                vels[spec_setup][subind[spec_setup]][::-1], curccf[spec_setup][::-1], s=0)(vel_grid)
+                vels[spec_setup][subind[spec_setup]][::-1],
+                curccf[spec_setup][::-1],
+                s=0)(vel_grid)
             # plot(vel_grid, curccf[spec_setup],xr=[-1000,1000])#np.roll(np.fft.ifft(curf*curf.conj()),off[spec_setup]))
             #plt.draw(); plt.pause(0.1)
 
@@ -136,10 +139,11 @@ def fit(specdata, config):
             best_model = {}
             for spec_setup in setups:
                 best_model[spec_setup] = np.roll(
-                    ccf_mods[spec_setup][id], int(best_v / velstep[spec_setup]))
+                    ccf_mods[spec_setup][id],
+                    int(best_v / velstep[spec_setup]))
             best_ccf = allccf
     try:
-        assert(best_id >= 0)
+        assert (best_id >= 0)
     except:
         raise Exception('Cross-correlation step failed')
     best_par = ccf_infos[setups[0]]['params'][best_id]

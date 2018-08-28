@@ -1,5 +1,5 @@
 import os
-os.environ['OMP_NUM_THREADS']='1'
+os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 import astropy.io.fits as pyfits
 import numpy as np
@@ -17,18 +17,17 @@ err = 1. / err**.5
 err[~np.isfinite(err)] = 1e40
 
 # construct specdata object
-specdata = [spec_fit.SpecData('sdss1', 10**dat['loglam'],
-                              dat['flux'], err)]
+specdata = [spec_fit.SpecData('sdss1', 10**dat['loglam'], dat['flux'], err)]
 options = {'npoly': 15}
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = ['vsini']
 
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = ['vsini']
-res = vel_fit.process(specdata, paramDict0, fixParam=fixParam,
-                   config=config, options=options)
+res = vel_fit.process(
+    specdata, paramDict0, fixParam=fixParam, config=config, options=options)
 
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = []
-res = vel_fit.process(specdata, paramDict0, fixParam=fixParam,
-                   config=config, options=options)
+res = vel_fit.process(
+    specdata, paramDict0, fixParam=fixParam, config=config, options=options)

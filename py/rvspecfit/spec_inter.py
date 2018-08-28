@@ -5,6 +5,7 @@ import pickle
 
 from rvspecfit import make_nd
 
+
 def getInterp(triang, dats, exp=True):
     # get Interpolation object from the Delaunay triangulation
     # and array of vectors
@@ -14,20 +15,20 @@ def getInterp(triang, dats, exp=True):
         xid = triang.find_simplex(p)
         if xid == -1:
             return np.nan
-        b = triang.transform[xid, :ndim, :].dot(
-            p - triang.transform[xid, ndim, :])
+        b = triang.transform[xid, :ndim, :].dot(p -
+                                                triang.transform[xid, ndim, :])
         b1 = np.r_[b, [1 - b.sum()]]
         spec = (dats[triang.simplices[xid], :] * b1[:, None]).sum(axis=0)
         if exp:
             spec = np.exp(spec)
         return spec
+
     return func
 
 
 class SpecInterpolator:
-        # Spectrum interpolator object
-    def __init__(self, name, interper, extraper, lam, mapper,
-                 parnames):
+    # Spectrum interpolator object
+    def __init__(self, name, interper, extraper, lam, mapper, parnames):
         """ Construct the interpolator object
         The arguments are the name of the instrument setup
         The interpolator object that returns the
@@ -63,22 +64,24 @@ def getInterpolator(HR, config, warmup_cache=True):
     setup HR and config
     """
     if HR not in interp_cache.interps:
-        savefile = config['template_lib'] +  make_nd.INTERPOL_PKL_NAME % HR
+        savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
         with open(savefile, 'rb') as fd0:
             fd = pickle.load(fd0)
-            (triang, templ_lam, vecs, extraflags, mapper, parnames) = (
-                fd['triang'], fd['lam'], fd['vec'], fd['extraflags'],
-                fd['mapper'], fd['parnames'])
+            (triang, templ_lam, vecs, extraflags, mapper,
+             parnames) = (fd['triang'], fd['lam'], fd['vec'], fd['extraflags'],
+                          fd['mapper'], fd['parnames'])
         expFlag = True
-        dats = np.load(config['template_lib']+ make_nd.INTERPOL_DAT_NAME % HR,
-                       mmap_mode='r')
+        dats = np.load(
+            config['template_lib'] + make_nd.INTERPOL_DAT_NAME % HR,
+            mmap_mode='r')
         if warmup_cache:
             # we read all the templates to put them in the memory cache
             dats.sum()
         interper, extraper = (getInterp(triang, dats, exp=expFlag),
-                              scipy.interpolate.LinearNDInterpolator(triang, extraflags))
-        interpObj = SpecInterpolator(HR, interper, extraper, templ_lam,
-                                     mapper, parnames)
+                              scipy.interpolate.LinearNDInterpolator(
+                                  triang, extraflags))
+        interpObj = SpecInterpolator(HR, interper, extraper, templ_lam, mapper,
+                                     parnames)
         interp_cache.interps[HR] = interpObj
     else:
         interpObj = interp_cache.interps[HR]
