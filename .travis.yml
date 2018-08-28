@@ -11,15 +11,15 @@ install:
   - pip install .
 
 script:
-  cd tests;
-  mkdir templ_data
-  cd templ_data
-  wget -r -nd -np https://www.ast.cam.ac.uk/~koposov/files/rvspecfit_files/
-  cd ..
-  cat config.yaml |grep -v template_lib > copy.yaml
-  cp copy.yaml config.yaml
-  echo "template_lib: '/templ_data/'" >> config.yaml
-  python test1.py
-  python test2.py
-  python test_fit1.py
-  python test_fit2.py
+  - cd tests;
+  - mkdir templ_data
+  - cd templ_data
+  - wget -r -nd -np https://www.ast.cam.ac.uk/~koposov/files/rvspecfit_files/
+  - cd ..
+  - cat config.yaml |grep -v template_lib > copy.yaml
+  - cp copy.yaml config.yaml
+  - echo "template_lib: \"./templ_data/\"" >> config.yaml
+  - python test1.py
+  - python test2.py
+  - python test_fit1.py
+  - python test_fit2.py
