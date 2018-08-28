@@ -256,8 +256,15 @@ def proc_many(files,
             )
         else:
             proc_desi_wrapper(*arg)
+    
     if parallel:
-        poolEx.shutdown(wait=True)
+        try:
+            poolEx.shutdown(wait=True)
+        except KeyboardInterrupt:
+            for r in res:
+                r.cancel()
+            poolEx.shutdown(wait=False)
+            raise
             
 
 
