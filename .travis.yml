@@ -1,7 +1,6 @@
 language: python
 
 python:
-  - "2.7"
   - "3.4"
   - "3.5"
   - "3.6"
@@ -18,7 +17,7 @@ script:
   - cd ..
   - cat config.yaml |grep -v template_lib > copy.yaml
   - cp copy.yaml config.yaml
-  - echo "template_lib: \"./templ_data/\"" >> config.yaml
+  - "echo \"template_lib: './templ_data/'\" >> config.yaml"
   - python test1.py
   - python test2.py
   - python test_fit.py
