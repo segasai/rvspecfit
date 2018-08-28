@@ -7,8 +7,7 @@ import pickle
 import scipy.constants
 import scipy.optimize
 import numpy as np
-import atpy
-
+import sqlite3
 from rvspecfit import read_grid
 from rvspecfit import utils
 from rvspecfit import _version
@@ -88,9 +87,12 @@ def process_all(setupInfo, postf='', dbfile='/tmp/files.db', oprefix='psavs/',
                 prefix=None, wavefile=None, air=False, resolution0=None,
                 fixed_fwhm=False):
     nthreads = 8
-    tab = atpy.Table('sqlite', dbfile)
-    ids = (tab.id).astype(int)
-    vec = np.array((tab.teff, tab.logg, tab.met, tab.alpha))
+    conn =  sqlite3.connect(dbfile)
+    cur=conn.execute('select id, teff, logg, met, alpha from files')
+    tab=np.rec.fromrecords(cur.fetchall())
+    tab_id, tab_teff, tab_logg, tab_met, tab_alpha= tab.f0, tab.f1,tab.f2,tab.f3,tab.f4
+    ids = (tab_id).astype(int)
+    vec = np.array((tab_teff, tab_logg, tab_met, tab_alpha))
     parnames = ('teff', 'logg', 'feh', 'alpha')
     i = 0
 
