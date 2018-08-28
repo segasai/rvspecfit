@@ -1,10 +1,10 @@
+from __future__ import print_function
 import glob
 import sys
 import sqlite3
 import astropy.io.fits as pyfits
 import scipy.stats
 import scipy.sparse
-import sqlite3
 import numpy as np
 import astropy.wcs as pywcs
 import argparse
