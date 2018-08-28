@@ -248,7 +248,7 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
             curD['sn_%s' % (s, )] = sns[s]
 
         curD['vsini'] = res1['vsini']
-        outdict = outdict.append(curD)
+        outdict = outdict.append(curD, True)
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
             res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
             res1['param']['alpha'], res1['vel'], res1['vel_err'])
