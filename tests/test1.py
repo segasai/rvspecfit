@@ -11,7 +11,7 @@ setup = 'test'
 config = utils.read_config()
 
 # read data
-dat = pyfits.getdata('../examples/spec-0266-51602-0031.fits')
+dat = pyfits.getdata('./spec-0266-51602-0031.fits')
 err = dat['ivar']
 err = 1. / err**.5
 err[~np.isfinite(err)] = 1e40
