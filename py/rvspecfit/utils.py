@@ -1,7 +1,7 @@
 import os
 import subprocess
 import yaml
-import frozendict
+from rvspecfit import frozendict
 
 
 def read_config(fname=None):

@@ -5,7 +5,7 @@ stellar atmospheric parameters
 Author: Sergey Koposov skoposov@cmu.edu, Carnegie Mellon University
 
 Dependencies: 
-numpy, scipy, astropy, pyyaml, frozendict
+numpy, scipy, astropy, pyyaml, matplotlib, numdifftools, pandas
 
 ##  Running on DESI/WEAVE data
 

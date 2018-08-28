@@ -3,6 +3,5 @@ matplotlib
 astropy
 pyyaml
 scipy
-frozendict
 numdifftools
 pandas

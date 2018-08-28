@@ -7,9 +7,9 @@ import scipy.interpolate
 from scipy.constants.constants import speed_of_light
 import scipy.sparse
 import scipy.signal
-import frozendict
 import collections
 
+from rvspecfit import frozendict
 from rvspecfit import utils
 from rvspecfit import spec_inter
 
