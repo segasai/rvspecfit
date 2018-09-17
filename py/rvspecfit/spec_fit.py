@@ -1,4 +1,8 @@
-import functools
+import sys
+if (sys.version_info < (3, 0)):
+    import functools32 as functools 
+else:
+    import functools
 import random
 import numpy as np
 import numpy.random
