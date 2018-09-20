@@ -210,7 +210,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
 
 
 @functools.lru_cache(100)
-def getCurTempl(spec_setup, atm_param, rot_params, resol_params, config):
+def getCurTempl(spec_setup, atm_param, rot_params, config):
     """
     Get the spectrum in the given setup with given atmospheric parameters and
     given config
@@ -247,21 +247,31 @@ def getCurTempl(spec_setup, atm_param, rot_params, resol_params, config):
     return outside, curInterp.lam, spec, templ_tag
 
 
-def construct_resol_mat(lam, R):
+def construct_resol_mat(lam, resol=None, width=None):
     '''
     Construct a sparse resolution matrix from a resolution number R
 
     Parameters:
     lam: numpy
         The wavelength vector
-    R: real/numpy
+    resol: real/numpy
         The resolution value (R=lambda/delta lambda)
+    width: real 
+        The Gaussian width of the kernel in angstrom (cannot be specified together with resol)
 
     Returns:
     mat: scipy.sparse matrix
         The matrix describing the resolution convolution operation
     '''
-    sigs = lam / R / 2.35
+    assert(resol is None or width is None)
+    assert(resol is not None or width is not None)
+    if resol is not None:
+        sigs = lam / resol / 2.35
+    else:
+        if np.isscalar(width):
+            sigs=np.zeros(len(lam))+width
+        else:
+            sigs = width
     thresh = 5
     assert (np.all(np.diff(lam) > 0))
     l1 = lam - thresh * sigs
@@ -273,14 +283,24 @@ def construct_resol_mat(lam, R):
     xs = []
     ys = []
     vals = []
-    for i in range(len(lam)):
-        iis = np.arange(i1[i], i2[i] + 1)
-        kernel = np.exp(-0.5 * (lam[iis] - lam[i])**2 / sigs[i]**2)
-        kernel = kernel / kernel.sum()
-        ys.append(iis)
-        xs.append([i] * len(iis))
-        vals.append(kernel)
-    xs, ys, vals = [np.concatenate(_) for _ in [xs, ys, vals]]
+    lampix = np.arange(len(lam))
+    maxl = max(np.max(i2-lampix),np.max(lampix-i1))
+    xs2d = lampix[:,None] + np.arange(-maxl, maxl+1)[None,:]
+    mask = (xs2d >= 0) * (xs2d < len(lam))
+    xs2d[~mask] = 0
+    XL = np.exp(-0.5* ((lam[xs2d] - lam[:,None]) / sigs[:,None])**2) * mask
+    XL = XL / XL.sum(axis=1)[:,None]
+    xs,ys = np.nonzero(XL)
+    vals = XL[xs, ys]
+    ys = xs2d[xs, ys]
+    #for i in range(len(lam)):
+    #    iis = np.arange(i1[i], i2[i] + 1)
+    #    kernel = np.exp(-0.5 * (lam[iis] - lam[i])**2 / sigs[i]**2)
+    #    kernel = kernel / kernel.sum()
+    #    ys.append(iis)
+    #    xs.append(np.zeros(len(iis))+i)
+    #    vals.append(kernel)
+    #xs, ys, vals = [np.concatenate(_) for _ in [xs, ys, vals]]
     mat = scipy.sparse.coo_matrix((vals, (xs, ys)), shape=(len(lam), len(lam)))
     mat = mat.tocsc()
     return ResolMatrix(mat)
@@ -452,7 +472,7 @@ def get_chisq(specdata,
         name = curdata.name
 
         outside, templ_lam, templ_spec, templ_tag = getCurTempl(
-            name, atm_params, rot_params, resol_params, config)
+            name, atm_params, rot_params, config)
 
         # if the current point is outside the template grid
         # add bad value and bail out
