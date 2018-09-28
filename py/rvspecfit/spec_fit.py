@@ -467,6 +467,7 @@ def get_chisq(specdata,
     atm_params = tuple(atm_params)
 
     chisq_array = []
+    red_chisq_array = []
     # iterate over multiple datasets
     for curdata in specdata:
         name = curdata.name
@@ -516,8 +517,10 @@ def get_chisq(specdata,
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
             models.append(curmodel)
-            chisq_array.append((((curmodel - curdata.spec) / curdata.espec)
-                                **2).mean())
+            XCHISQ=(((curmodel - curdata.spec) / curdata.espec)**2).sum()
+            chisq_array.append(XCHISQ)            
+            red_chisq_array.append(XCHISQ/len(curdata.espec))
+
         assert (np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
 
@@ -525,6 +528,7 @@ def get_chisq(specdata,
         ret = {}
         ret['chisq'] = chisq
         ret['chisq_array'] = chisq_array
+        ret['red_chisq_array'] = red_chisq_array
         ret['models'] = models
     else:
         ret = chisq
