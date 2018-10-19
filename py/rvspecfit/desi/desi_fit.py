@@ -4,6 +4,7 @@ import glob
 import sys
 import argparse
 import time
+import pandas
 import itertools
 import concurrent.futures
 from collections import OrderedDict
@@ -18,7 +19,7 @@ import astropy.table
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
 
 
-def make_plot(specdata, res_dict, title, fig_fname):
+def make_plot(specdata, yfit, title, fig_fname):
     """
     Make a plot with the spectra and fits
 
@@ -26,8 +27,8 @@ def make_plot(specdata, res_dict, title, fig_fname):
     -----------
     specdata: SpecData object
         The object with specdata
-    res_dict: list
-        The list of dictionaries with fit results. The dictionaries must have yfit key
+    yfit: list fo numpy arrays
+        The list of fit models
     title: string
         The figure title
     fig_fname: string
@@ -41,7 +42,7 @@ def make_plot(specdata, res_dict, title, fig_fname):
     plt.plot(specdata[0].lam, specdata[0].spec, 'k-', linewidth=line_width)
     plt.plot(
         specdata[0].lam,
-        res_dict['yfit'][0],
+        yfit[0],
         'r-',
         alpha=alpha,
         linewidth=line_width)
@@ -50,7 +51,7 @@ def make_plot(specdata, res_dict, title, fig_fname):
     plt.plot(specdata[1].lam, specdata[1].spec, 'k-', linewidth=line_width)
     plt.plot(
         specdata[1].lam,
-        res_dict['yfit'][1],
+        yfit[1],
         'r-',
         alpha=alpha,
         linewidth=line_width)
@@ -58,7 +59,7 @@ def make_plot(specdata, res_dict, title, fig_fname):
     plt.plot(specdata[2].lam, specdata[2].spec, 'k-', linewidth=line_width)
     plt.plot(
         specdata[2].lam,
-        res_dict['yfit'][2],
+        yfit[2],
         'r-',
         alpha=alpha,
         linewidth=line_width)
@@ -89,8 +90,64 @@ def valid_file(fname):
         return False
     return True
 
+def proc_onespec(specdata, setups, config, options, fig_fname_mask):
+    chisqs = {}
+    chisqs_c  = {} 
+    t1 = time.time()
+    res = fitter_ccf.fit(specdata, config)
+    t2 = time.time()
+    paramDict0 = res['best_par']
+    fixParam = []
+    if res['best_vsini'] is not None:
+        paramDict0['vsini'] = res['best_vsini']
+    res1 = vel_fit.process(
+        specdata,
+        paramDict0,
+        fixParam=fixParam,
+        config=config,
+        options=options)
+    t3 = time.time()
+    chisq_cont_array = spec_fit.get_chisq_continuum(
+                specdata, options=options)
+    t4 = time.time()
+    outdict= dict(
+                  vrad=res1['vel'],
+                  vrad_err=res1['vel_err'],
+                  logg=res1['param']['logg'],
+                  teff=res1['param']['teff'],
+                  alpha=res1['param']['alpha'],
+                  feh=res1['param']['feh'],
+                  vsini=res1['vsini'],
+                  nexp=len(specdata)/len(setups)
+                  )
 
-def proc_desi(fname, ofname, fig_prefix, config, fit_targetid):
+    for i, curd in enumerate(specdata):
+        if curd.name not in chisqs:
+            chisqs[curd.name]=0
+            chisqs_c[curd.name]=0
+        chisqs[curd.name]+=res1['chisq_array'][i]
+        chisqs_c[curd.name]+=chisq_cont_array[i]
+
+    for s in chisqs.keys():
+        outdict['chisq_tot']=sum(chisqs.values())
+        outdict['chisq_%s' % s.replace('desi_','')]=chisqs[s]
+        outdict['chisq_c_%s' % s.replace('desi_','')]=float(chisqs_c[s])
+
+    title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
+        res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
+        res1['param']['alpha'], res1['vel'], res1['vel_err'])
+    if len(specdata)>len(setups):
+        for i in range(len(specdata)//len(setups)):
+            sl = slice(i*len(setups),(i+1)*len(setups))
+            make_plot(specdata[sl], 
+                  res1['yfit'][sl], title, fig_fname_mask%i)
+    else:
+        make_plot(specdata,
+                  res1['yfit'], title, fig_fname_mask)
+
+    return outdict
+
+def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
     """
     Process One single file with desi spectra
 
@@ -112,10 +169,11 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid):
     if not valid_file(fname):
         return
     tab = pyfits.getdata(fname, 'FIBERMAP')
-    mws = tab['MWS_TARGET']
+    mws = tab['MWS_TARGET']!=0
+    if not (mws.any()):
+        return
     targetid = tab['TARGETID']
     brick_name = tab['BRICKNAME']
-    xids = np.nonzero(mws)[0]
     setups = ('b', 'r', 'z')
     fluxes = {}
     ivars = {}
@@ -127,78 +185,59 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid):
         masks[s] = pyfits.getdata(fname, '%s_MASK' % s.upper())
         waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
 
-    columns = [
-        'brickname', 'target_id', 'vrad', 'vrad_err', 'logg', 'teff', 'vsini',
-        'feh', 'alpha', 'chisq_tot'
-    ]
-    for s in setups:
-        columns.append('sn_%s' % s)
-        columns.append('chisq_%s' % s)
-        columns.append('chisq_c_%s' % s)
-    outdict = OrderedDict()
-    for c in columns:
-        outdict[c] = []
     large_error = 1e9
-    for curid in xids:
+    utargetid = np.unique(targetid[mws])
+    outdf = pandas.DataFrame()
+    for curtargetid in utargetid:
         specdata = []
-        curbrick = brick_name[curid]
-        curtargetid = targetid[curid]
+
         if fit_targetid is not None and curtargetid != fit_targetid:
             continue
-
-        fig_fname = fig_prefix + '_%s_%d.png' % (curbrick, curtargetid)
-        sns = {}
-        chisqs = {}
-        for s in setups:
-            spec = fluxes[s][curid]
-            curivars = ivars[s][curid]
-            badmask = (curivars <= 0) | (masks[s][curid] > 0)
-            curivars[badmask] = 1. / large_error**2
-            espec = 1. / curivars**.5
-            sns[s] = np.nanmedian(spec / espec)
-            specdata.append(
-                spec_fit.SpecData(
+        xids = np.nonzero(targetid==curtargetid)[0]
+        specdatas = []
+        sns = []
+        for curid in xids:
+            curbrick = brick_name[curid]
+            specdata = []
+            cursn = {}
+            for s in setups:
+                spec = fluxes[s][curid]
+                curivars = ivars[s][curid]
+                badmask = (curivars <= 0) | (masks[s][curid] > 0)
+                curivars[badmask] = 1. / large_error**2
+                espec = 1. / curivars**.5
+                cursn[s] = np.nanmedian(spec / espec)
+                specdata.append(
+                    spec_fit.SpecData(
                     'desi_%s' % s, waves[s], spec, espec, badmask=badmask))
-        t1 = time.time()
-        res = fitter_ccf.fit(specdata, config)
-        t2 = time.time()
-        paramDict0 = res['best_par']
-        fixParam = []
-        if res['best_vsini'] is not None:
-            paramDict0['vsini'] = res['best_vsini']
-        res1 = vel_fit.process(
-            specdata,
-            paramDict0,
-            fixParam=fixParam,
-            config=config,
-            options=options)
-        t3 = time.time()
-        chisq_cont_array = spec_fit.get_chisq_continuum(
-            specdata, options=options)
-        t4 = time.time()
-        outdict['brickname'].append(curbrick)
-        outdict['target_id'].append(curtargetid)
-        outdict['vrad'].append(res1['vel'])
-        outdict['vrad_err'].append(res1['vel_err'])
-        outdict['logg'].append(res1['param']['logg'])
-        outdict['teff'].append(res1['param']['teff'])
-        outdict['alpha'].append(res1['param']['alpha'])
-        outdict['feh'].append(res1['param']['feh'])
-        outdict['chisq_tot'].append(sum(res1['chisq_array']))
-        for i, s in enumerate(setups):
-            outdict['chisq_%s' % s].append(res1['chisq_array'][i])
-            outdict['chisq_c_%s' % s].append(float(chisq_cont_array[i]))
-            outdict['sn_%s' % (s, )].append(sns[s])
+            sns.append(cursn)
+            specdatas.append(specdata)
+        fig_fname_mask = fig_prefix + '_%s_%d_%%d.png' % (curbrick, curtargetid)
+        if combine:
+            specdata = sum(specdatas,[])
+            curmask = fig_fname_mask
+            if len(specdata)==len(setups):
+                curmask=curmask%0
+            outdict = proc_onespec(specdata, setups, config, options, curmask)
+            outdict['brickname']=curbrick
+            outdict['target_id']=curtargetid
+            for f in setups:
+                outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
+            outdf =  outdf.append(outdict, True)
+                
+        else:
+            
+            for i,specdata in enumerate(specdatas):
+                outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i)
+                outdict['brickname']=curbrick
+                outdict['target_id']=curtargetid
+                for f in setups:
+                    outdict['sn_%s'%f] = sns[i][f]
 
-        outdict['vsini'].append(res1['vsini'])
-
-        title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
-            res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
-            res1['param']['alpha'], res1['vel'], res1['vel_err'])
-        make_plot(specdata, res1, title, fig_fname)
-    outtab = astropy.table.Table(outdict)
+                outdf =  outdf.append(outdict, True)
+    outtab = astropy.table.Table.from_pandas(outdf)
     outtab.write(ofname, overwrite=True)
-
+    return 1;
 
 def proc_desi_wrapper(*args, **kwargs):
     try:
@@ -217,6 +256,7 @@ def proc_many(files,
               config=None,
               nthreads=1,
               overwrite=True,
+              combine=False,
               targetid=None):
     """
     Process many spectral files
@@ -229,6 +269,8 @@ def proc_many(files,
         The prefix where the table with measurements will be stored
     fig_prefix: string
         The prfix where the figures will be stored
+    combine: bool
+        Fit spectra of same targetid together
     targetid: integer
         The targetid to fit (the rest will be ignored)
     """
@@ -248,7 +290,7 @@ def proc_many(files,
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
             continue
-        arg = (f, ofname, fig_prefix, config, targetid)
+        arg = (f, ofname, fig_prefix, config, targetid, combine)
         if parallel:
             res.append(
                 poolEx.submit(proc_desi_wrapper, 
@@ -333,6 +375,14 @@ def main(args):
         action='store_true',
         default=False)
 
+
+    parser.add_argument(
+        '--combine',
+        help=
+        'If enabled the code will simultaneously fit multiple spectra belonging to one targetid',
+        action='store_true',
+        default=False)
+
     args = parser.parse_args(args)
     input_files = args.input_files
     input_file_from = args.input_file_from
@@ -342,7 +392,7 @@ def main(args):
     nthreads = args.nthreads
     config = args.config
     targetid = args.targetid
-
+    combine = args.combine
     if input_files is not None and input_file_from is not None:
         raise Exception(
             'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
@@ -365,7 +415,8 @@ def main(args):
         nthreads=nthreads,
         overwrite=args.overwrite,
         config=config,
-        targetid=targetid)
+        targetid=targetid,
+        combine=combine)
 
 
 if __name__ == '__main__':
