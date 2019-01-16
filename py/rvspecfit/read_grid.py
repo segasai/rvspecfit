@@ -10,6 +10,37 @@ import astropy.wcs as pywcs
 import argparse
 
 
+
+def integrator (x1,x2, l1, l2, s):
+    E = np.exp(1)
+    Sqrt = np.sqrt
+    Erf = scipy.special.erf
+    Pi = np.pi
+    COEFF1 = ((-((Sqrt(2)*s*(l1 + x1 - 2*x2))*E**(-(l1 - x1)**2/(2.*s**2))) +
+        (Sqrt(2)*s*(l2 + x1 - 2*x2))*E**(-(l2 - x1)**2/(2.*s**2)) +
+         (Sqrt(2)*s*(l1 - x2))*E**(-(l1 - x2)**2/(2.*s**2)) - (Sqrt(2)*s*(l2 - x2))*E**(-(l2 - x2)**2/(2.*s**2)) +
+         Sqrt(Pi)*x1*(x1 - 2*x2)*Erf((l1 - x1)/(Sqrt(2)*s)) -
+         Sqrt(Pi)*x1*(x1 - 2*x2)*Erf((l2 - x1)/(Sqrt(2)*s)) + l1**2*Sqrt(Pi)*Erf((-l1 + x1)/(Sqrt(2)*s)) +
+         Sqrt(Pi)*s**2*Erf((-l1 + x1)/(Sqrt(2)*s)) - 2*l1*Sqrt(Pi)*x2*Erf((-l1 + x1)/(Sqrt(2)*s)) -
+         l2**2*Sqrt(Pi)*Erf((-l2 + x1)/(Sqrt(2)*s)) - Sqrt(Pi)*s**2*Erf((-l2 + x1)/(Sqrt(2)*s)) +
+         2*l2*Sqrt(Pi)*x2*Erf((-l2 + x1)/(Sqrt(2)*s)) + Sqrt(Pi)*x2**2*Erf((l1 - x2)/(Sqrt(2)*s)) -
+         Sqrt(Pi)*x2**2*Erf((l2 - x2)/(Sqrt(2)*s)) - l1**2*Sqrt(Pi)*Erf((-l1 + x2)/(Sqrt(2)*s)) -
+         Sqrt(Pi)*s**2*Erf((-l1 + x2)/(Sqrt(2)*s)) + 2*l1*Sqrt(Pi)*x2*Erf((-l1 + x2)/(Sqrt(2)*s)) +
+         l2**2*Sqrt(Pi)*Erf((-l2 + x2)/(Sqrt(2)*s)) + Sqrt(Pi)*s**2*Erf((-l2 + x2)/(Sqrt(2)*s)) -
+         2*l2*Sqrt(Pi)*x2*Erf((-l2 + x2)/(Sqrt(2)*s)))/(4.*Sqrt(Pi)*(x1 - x2)))
+
+    COEFF2 = (((Sqrt(2)*s*(l1 - x1))*E**(-(l1 - x1)**2/(2.*s**2)) - (Sqrt(2)*s*(l2 - x1))*E**(-(l2 - x1)**2/(2.*s**2)) -
+         (Sqrt(2)*s*(l1 - 2*x1 + x2))*E**(-(l1 - x2)**2/(2.*s**2)) +
+         (Sqrt(2)*s*(l2 - 2*x1 + x2))*E**(-(l2 - x2)**2/(2.*s**2)) + Sqrt(Pi)*x1**2*Erf((l1 - x1)/(Sqrt(2)*s)) -
+         Sqrt(Pi)*x1**2*Erf((l2 - x1)/(Sqrt(2)*s)) - l1**2*Sqrt(Pi)*Erf((-l1 + x1)/(Sqrt(2)*s)) -
+         Sqrt(Pi)*s**2*Erf((-l1 + x1)/(Sqrt(2)*s)) + 2*l1*Sqrt(Pi)*x1*Erf((-l1 + x1)/(Sqrt(2)*s)) +
+         l2**2*Sqrt(Pi)*Erf((-l2 + x1)/(Sqrt(2)*s)) + Sqrt(Pi)*s**2*Erf((-l2 + x1)/(Sqrt(2)*s)) -
+         2*l2*Sqrt(Pi)*x1*Erf((-l2 + x1)/(Sqrt(2)*s)) + Sqrt(Pi)*x2*(-2*x1 + x2)*Erf((l1 - x2)/(Sqrt(2)*s)) -
+         Sqrt(Pi)*x2*(-2*x1 + x2)*Erf((l2 - x2)/(Sqrt(2)*s)) + l1**2*Sqrt(Pi)*Erf((-l1 + x2)/(Sqrt(2)*s)) +
+         Sqrt(Pi)*s**2*Erf((-l1 + x2)/(Sqrt(2)*s)) - 2*l1*Sqrt(Pi)*x1*Erf((-l1 + x2)/(Sqrt(2)*s)) -
+         l2**2*Sqrt(Pi)*Erf((-l2 + x2)/(Sqrt(2)*s)) - Sqrt(Pi)*s**2*Erf((-l2 + x2)/(Sqrt(2)*s)) +
+         2*l2*Sqrt(Pi)*x1*Erf((-l2 + x2)/(Sqrt(2)*s)))/(4.*Sqrt(Pi)*(x1 - x2)))
+    return COEFF1, COEFF2    
 class ParamMapper:
     """
     Class used to map stellar atmospheric parameters into more manageable grid
@@ -177,35 +208,39 @@ def make_rebinner(lam00,
     ys = []
     vals = []
     for i in range(len(lam)):
-
+        
         curlam = lam[i]
+        if i>0:
+            leftstep = 0.5*(lam[i]-lam[i-1])
+        else:
+            leftstep = 0.5*(lam[i+1]-lam[i])
+        if i<len(lam)-1:
+            rightstep = 0.5* (lam[i+1]-lam[i])
+        else:
+            rightstep = leftstep
         cursig = sigs[i]
         curl0 = curlam - thresh * cursig
         curl1 = curlam + thresh * cursig
 
-        left = np.searchsorted(lam0, curl0)
+        left = np.searchsorted(lam0, curl0)-1
         right = np.searchsorted(lam0, curl1)
 
         curx = np.arange(left, right + 1)
 
-        li = lam0[curx]
-        li_p = lam0[curx + 1]
-        C = scipy.special.erf((li_p - curlam) / np.sqrt(2) / cursig) -\
-            scipy.special.erf((li - curlam) / np.sqrt(2) / cursig)
-        D = np.exp(-0.5 * ((li - curlam) / cursig)**2) - np.exp(-0.5 * (
-            (li_p - curlam) / cursig)**2)
+        x1 = lam0[curx];
+        x2 = lam0[curx+1]
 
-        curvals1 = (C * np.sqrt(2 * np.pi) / 2 * li *
-                    (li_p - curlam) - cursig * li * D) / (li_p - li)
-        curvals2 = (C * np.sqrt(2 * np.pi) / 2 * li_p *
-                    (curlam - li) + cursig * li_p * D) / (li_p - li)
+        l1 = curlam - leftstep
+        l2 = curlam + rightstep
+        coeff1, coeff2 = integrator(x1, x2, l1, l2, cursig)
+
         ys.append(i + curx * 0)
         xs.append(curx)
-        vals.append(curvals1)
+        vals.append(coeff1)
 
         ys.append(i + curx * 0)
         xs.append(curx + 1)
-        vals.append(curvals2)
+        vals.append(coeff2)
 
     xs = np.concatenate(xs)
     ys = np.concatenate(ys)
