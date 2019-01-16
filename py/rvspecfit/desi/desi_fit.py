@@ -188,6 +188,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
     large_error = 1e9
     utargetid = np.unique(targetid[mws])
     outdf = pandas.DataFrame()
+
     for curtargetid in utargetid:
         specdata = []
 
@@ -223,8 +224,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
             outdict['target_id']=curtargetid
             for f in setups:
                 outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
-            outdf =  outdf.append(outdict, True)
-                
+            outdf =  outdf.append(pandas.DataFrame([outdict]), True)
         else:
             
             for i,specdata in enumerate(specdatas):
@@ -234,7 +234,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
                 for f in setups:
                     outdict['sn_%s'%f] = sns[i][f]
 
-                outdf =  outdf.append(outdict, True)
+                outdf =  outdf.append(pandas.DataFrame([outdict]), True)
+                
     outtab = astropy.table.Table.from_pandas(outdf)
     outtab.write(ofname, overwrite=True)
     return 1;
