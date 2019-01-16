@@ -534,14 +534,24 @@ def get_chisq(specdata,
         ret = chisq
     return ret
 
-
+def quadratic_interp(vel_grid, chisq, i):
+    if i==0 or i==len(vel_grid)-1:
+        return vel_grid[i]
+    x=vel_grid[i-1:i+2]
+    y=chisq[i-1:i+2]
+    a2,a1,a0=scipy.polyfit(x,y,2)
+    val = -a1/2/a2
+    assert ((val<vel_grid[i+1])&(val>vel_grid[i-1]))
+    return val
+    
+    
 def find_best(specdata,
               vel_grid,
               params_list,
               rot_params,
               resol_params,
               options=None,
-              config=None):
+              config=None, quadratic=True):
     # find the best fit template and velocity from a grid
     cache = LRUDict(100)
     chisq = np.zeros((len(vel_grid), len(params_list)))
@@ -560,7 +570,10 @@ def find_best(specdata,
     i1, i2 = np.unravel_index(xind, chisq.shape)
     probs = np.exp(-0.5 * (chisq[:, i2] - chisq[i1, i2]))
     probs = probs / probs.sum()
-    best_vel = vel_grid[i1]
+    if quadratic:
+        best_vel = quadratic_interp(vel_grid, chisq[:,i2], i1)
+    else:
+        best_vel = vel_grid[i1]
     best_err = np.sqrt((probs * (vel_grid - best_vel)**2).sum())
     if best_err < 1e-10:
         kurtosis, skewness = 0, 0
@@ -569,7 +582,7 @@ def find_best(specdata,
         skewness = ((probs * (vel_grid - best_vel)**3).sum()) / best_err**3
     return dict(
         best_chi=chisq[i1, i2],
-        best_vel=vel_grid[i1],
+        best_vel=best_vel,
         vel_err=best_err,
         best_param=params_list[i2],
         kurtosis=kurtosis,
