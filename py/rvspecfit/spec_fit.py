@@ -535,6 +535,21 @@ def get_chisq(specdata,
     return ret
 
 def quadratic_interp(vel_grid, chisq, i):
+    """Find the minimum using quadratic interpolation
+
+    Parameters:
+    -----------
+    vel_grid: numpy
+        Array of velocities
+    chisq: numpy
+        Array of chi-squares
+    i: int
+        Index of the point with the smallest chisq
+
+    Returns:
+    --------
+    The estimated of velocity minimum
+    """
     if i==0 or i==len(vel_grid)-1:
         return vel_grid[i]
     x=vel_grid[i-1:i+2]
