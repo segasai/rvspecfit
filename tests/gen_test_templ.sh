@@ -2,6 +2,8 @@
 DBFILE=test.db
 PREF=tmp/
 PREF1=templ_data_test/
+mkdir -p $PREF
+mkdir -p $PREF1
 python mktemps.py $PREF wave.fits
 rm -f $DBFILE
 rvs_read_grid  --prefix tmp --templdb $DBFILE
