@@ -464,13 +464,17 @@ def main(args):
     parser.add_argument(
         '--oprefix',
         type=str,
+        default='templ_data/',
         help='Location where the ouput products will be located')
     parser.add_argument(
         '--setup', type=str, help='Name of spectral configuration')
     parser.add_argument(
-        '--lambda0', type=float, help='Starting wavelength in Angstroms')
-    parser.add_argument('--lambda1', type=float, help='Wavelength endpoint')
-    parser.add_argument('--step', type=float, help='Pixel size in angstroms')
+        '--lambda0', type=float, help='Starting wavelength in Angstroms',
+        required=True)
+    parser.add_argument('--lambda1', type=float, help='Wavelength endpoint',
+                        required=True)
+    parser.add_argument('--step', type=float, help='Pixel size in angstroms',
+                        required=True)
     parser.add_argument(
         '--vsinis',
         type=str,
