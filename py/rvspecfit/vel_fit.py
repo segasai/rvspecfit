@@ -237,7 +237,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     try:
         hessian_inv = scipy.linalg.inv(hessian)
     except np.linalg.LinAlgError:
-        print ('WARNING the inversion of the Hessian failed')
+        print ('WARNING the inversion of the Hessian failed', file=sys.stderr)
         hessian_inv = np.zeros_like(hessian) + np.nan
         #
     ret['param_err'] = dict(zip(specParams, np.sqrt(np.diag(hessian_inv))))
