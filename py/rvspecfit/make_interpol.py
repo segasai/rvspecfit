@@ -171,10 +171,14 @@ def main(args):
         'Create interpolated and convolved spectra from the input grid.')
     parser.add_argument(
         '--setup', type=str, help='Name of the spectral configuration')
-    parser.add_argument('--lambda0', type=float, help='Start wavelength')
-    parser.add_argument('--lambda1', type=float, help='End wavelength')
-    parser.add_argument('--resol', type=float, help='Spectral resolution R')
-    parser.add_argument('--step', type=float, help='Pixel size in angstrom')
+    parser.add_argument('--lambda0', type=float, help='Start wavelength of the new grid',
+                        required=True)
+    parser.add_argument('--lambda1', type=float, help='End wavelength of the new grid',
+                        required=True)
+    parser.add_argument('--resol', type=float, help='Spectral resolution of the new grid',
+                        required=True)
+    parser.add_argument('--step', type=float, help='Pixel size in angstrom of the new grid',
+                        required=True)
     parser.add_argument(
         '--log',
         action='store_true',
@@ -186,7 +190,8 @@ def main(args):
         default='files.db',
         help='The path to the SQLiteDB with the info about the templates')
     parser.add_argument(
-        '--templprefix', type=str, help='The path to the templates')
+    '--templprefix', type=str, help='The path to the templates'
+        ,required=True)
     parser.add_argument(
         '--air',
         action='store_true',
