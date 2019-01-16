@@ -136,9 +136,11 @@ def main(args):
     parser.add_argument(
         '--prefix',
         type=str,
-        help='Location of the interpolated and convolved input spectra')
+        help='Location of the interpolated and convolved input spectra',
+        required=True)
     parser.add_argument(
-        '--setup', type=str, help='Name of the spectral configuration')
+        '--setup', type=str, help='Name of the spectral configuration',
+        required=True)
     args = parser.parse_args(args)
     execute(args.setup, args.prefix)
 

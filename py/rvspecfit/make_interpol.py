@@ -154,6 +154,14 @@ def process_all(setupInfo,
     pool.close()
     pool.join()
     specs = np.array(specs)
+
+    if os.path.isdir(oprefix):
+        pass
+    else:
+        try:
+            os.mkdir(oprefix)
+        except:
+            raise Exception('Failed to create output directory: %s'%(oprefix,))
     with open(('%s/' + SPEC_PKL_NAME) % (oprefix, HR), 'wb') as fp:
         pickle.dump(
             dict(
@@ -170,7 +178,8 @@ def main(args):
         description=
         'Create interpolated and convolved spectra from the input grid.')
     parser.add_argument(
-        '--setup', type=str, help='Name of the spectral configuration')
+        '--setup', type=str, help='Name of the spectral configuration',
+        required=True)
     parser.add_argument('--lambda0', type=float, help='Start wavelength of the new grid',
                         required=True)
     parser.add_argument('--lambda1', type=float, help='End wavelength of the new grid',
