@@ -151,9 +151,11 @@ def get_polys(specdata, npoly):
 
 def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     '''
-    Get the chi-square values for the vector of velocities and grid of templates
-    after marginalizing over continuum
+    Get the chi-square values for the vector of velocities and grid of 
+    templates after marginalizing over continuum
     If espec is not provided we assume data and template are alreay normalized
+    Importantly the returned chi-square is not the true chi-square, but instead
+    the -2*log(L)
 
     Parameters:
     -----------
@@ -172,7 +174,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     Returns:
     --------
     chisq: real
-        Chi-square of the fitVsini
+        Chi-square of the data
     coeffs: numpy
         The polynomial coefficients (optional)
     '''
@@ -451,9 +453,42 @@ def get_chisq(specdata,
               config=None,
               cache=None,
               full_output=False):
-    """ Find the chi-square of the dataset at a given velocity
+    """ 
+    Find the chi-square of the dataset at a given velocity
     atmospheric parameters, rotation parameters
     and resolution parameters
+
+    Parameters:
+    ----------
+    specdata: spec_fit.SpecData
+        The object with the data to be fitted
+    vel: real
+        The radial velocity
+    atm_params: tuple
+        The tuple with parameters of the star
+    rot_parameters: tuple
+        The tuple with parameters of the rotation (can be None)
+    resol_parameters: tuple
+        The parameters of the spectral resolution (can be None)
+    options: dict
+        The dictionary with fitting options (such as npoly for the degree of 
+        the polynomial)
+    config: dict (optional) 
+        The configuration objection
+    cache: dict (optional)
+        The cache object, to preserve info between calls
+    full_output: bool
+        If full_output is set more info is returned
+
+    Returns:
+    --------
+    ret: float or tuple
+        If full_output is False, ret is the float = -2*log(L) of the whole data
+        If full_output is True ret is a dictionary with the following keys
+        chisq -- this is the -2*log(L) of the whole dataset
+        chisq_array -- this is the array of chi-squares (proper ones) 
+                       for each of the fited spectra
+        redchisq_array -- this is the array of reduced chi-squares
     """
     npoly = options.get('npoly') or 5
     chisq = 0
@@ -517,12 +552,14 @@ def get_chisq(specdata,
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
             models.append(curmodel)
-            XCHISQ=(((curmodel - curdata.spec) / curdata.espec)**2).sum()
+            XCHISQ = (((curmodel - curdata.spec) / curdata.espec)**2).sum()
             chisq_array.append(XCHISQ)            
-            red_chisq_array.append(XCHISQ/len(curdata.espec))
+            red_chisq_array.append( XCHISQ / len(curdata.espec))
 
         assert (np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
+
+    # chisq here is the -2*log(L)
 
     if full_output:
         ret = {}
