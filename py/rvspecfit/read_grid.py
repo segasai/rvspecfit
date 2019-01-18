@@ -10,37 +10,74 @@ import astropy.wcs as pywcs
 import argparse
 
 
-
-def integrator (x1,x2, l1, l2, s):
+def integrator(x1, x2, l1, l2, s):
+    """
+    Integrate the flux within the pixel given the lsf.
+    We assume that the flux before LSF convolution is given by linear
+    interpolation from x1,x2.
+    The l1,l2 are scalar edges of the pixel within which we want to compute
+    the flux. s is the sigma of the LSF
+    The function returns two values of weights for y1,y2 where y1,y2 are 
+    the values of the non-convolved spectra at x1,x2
+    """
     E = np.exp(1)
     Sqrt = np.sqrt
     Erf = scipy.special.erf
     Pi = np.pi
-    COEFF1 = ((-((Sqrt(2)*s*(l1 + x1 - 2*x2))*E**(-(l1 - x1)**2/(2.*s**2))) +
-        (Sqrt(2)*s*(l2 + x1 - 2*x2))*E**(-(l2 - x1)**2/(2.*s**2)) +
-         (Sqrt(2)*s*(l1 - x2))*E**(-(l1 - x2)**2/(2.*s**2)) - (Sqrt(2)*s*(l2 - x2))*E**(-(l2 - x2)**2/(2.*s**2)) +
-         Sqrt(Pi)*x1*(x1 - 2*x2)*Erf((l1 - x1)/(Sqrt(2)*s)) -
-         Sqrt(Pi)*x1*(x1 - 2*x2)*Erf((l2 - x1)/(Sqrt(2)*s)) + l1**2*Sqrt(Pi)*Erf((-l1 + x1)/(Sqrt(2)*s)) +
-         Sqrt(Pi)*s**2*Erf((-l1 + x1)/(Sqrt(2)*s)) - 2*l1*Sqrt(Pi)*x2*Erf((-l1 + x1)/(Sqrt(2)*s)) -
-         l2**2*Sqrt(Pi)*Erf((-l2 + x1)/(Sqrt(2)*s)) - Sqrt(Pi)*s**2*Erf((-l2 + x1)/(Sqrt(2)*s)) +
-         2*l2*Sqrt(Pi)*x2*Erf((-l2 + x1)/(Sqrt(2)*s)) + Sqrt(Pi)*x2**2*Erf((l1 - x2)/(Sqrt(2)*s)) -
-         Sqrt(Pi)*x2**2*Erf((l2 - x2)/(Sqrt(2)*s)) - l1**2*Sqrt(Pi)*Erf((-l1 + x2)/(Sqrt(2)*s)) -
-         Sqrt(Pi)*s**2*Erf((-l1 + x2)/(Sqrt(2)*s)) + 2*l1*Sqrt(Pi)*x2*Erf((-l1 + x2)/(Sqrt(2)*s)) +
-         l2**2*Sqrt(Pi)*Erf((-l2 + x2)/(Sqrt(2)*s)) + Sqrt(Pi)*s**2*Erf((-l2 + x2)/(Sqrt(2)*s)) -
-         2*l2*Sqrt(Pi)*x2*Erf((-l2 + x2)/(Sqrt(2)*s)))/(4.*Sqrt(Pi)*(x1 - x2)))
+    COEFF1 = (
+        (-((Sqrt(2) * s * (l1 + x1 - 2 * x2)) * E**
+           (-(l1 - x1)**2 / (2. * s**2))) + (Sqrt(2) * s *
+                                             (l2 + x1 - 2 * x2)) * E**
+         (-(l2 - x1)**2 / (2. * s**2)) + (Sqrt(2) * s * (l1 - x2)) * E**
+         (-(l1 - x2)**2 / (2. * s**2)) - (Sqrt(2) * s * (l2 - x2)) * E**
+         (-(l2 - x2)**2 / (2. * s**2)) + Sqrt(Pi) * x1 * (x1 - 2 * x2) * Erf(
+             (l1 - x1) / (Sqrt(2) * s)) - Sqrt(Pi) * x1 * (x1 - 2 * x2) * Erf(
+                 (l2 - x1) / (Sqrt(2) * s)) + l1**2 * Sqrt(Pi) * Erf(
+                     (-l1 + x1) / (Sqrt(2) * s)) + Sqrt(Pi) * s**2 * Erf(
+                         (-l1 + x1) / (Sqrt(2) * s)) - 2 * l1 * Sqrt(Pi) * x2
+         * Erf((-l1 + x1) / (Sqrt(2) * s)) - l2**2 * Sqrt(Pi) * Erf(
+             (-l2 + x1) / (Sqrt(2) * s)) - Sqrt(Pi) * s**2 * Erf(
+                 (-l2 + x1) / (Sqrt(2) * s)) + 2 * l2 * Sqrt(Pi) * x2 * Erf(
+                     (-l2 + x1) / (Sqrt(2) * s)) + Sqrt(Pi) * x2**2 * Erf(
+                         (l1 - x2) / (Sqrt(2) * s)) - Sqrt(Pi) * x2**2 * Erf(
+                             (l2 - x2) / (Sqrt(2) * s)) -
+         l1**2 * Sqrt(Pi) * Erf(
+             (-l1 + x2) / (Sqrt(2) * s)) - Sqrt(Pi) * s**2 * Erf(
+                 (-l1 + x2) / (Sqrt(2) * s)) + 2 * l1 * Sqrt(Pi) * x2 * Erf(
+                     (-l1 + x2) / (Sqrt(2) * s)) + l2**2 * Sqrt(Pi) * Erf(
+                         (-l2 + x2) / (Sqrt(2) * s)) + Sqrt(Pi) * s**2 * Erf(
+                             (-l2 + x2) / (Sqrt(2) * s)) -
+         2 * l2 * Sqrt(Pi) * x2 * Erf(
+             (-l2 + x2) / (Sqrt(2) * s))) / (4. * Sqrt(Pi) * (x1 - x2)))
 
-    COEFF2 = (((Sqrt(2)*s*(l1 - x1))*E**(-(l1 - x1)**2/(2.*s**2)) - (Sqrt(2)*s*(l2 - x1))*E**(-(l2 - x1)**2/(2.*s**2)) -
-         (Sqrt(2)*s*(l1 - 2*x1 + x2))*E**(-(l1 - x2)**2/(2.*s**2)) +
-         (Sqrt(2)*s*(l2 - 2*x1 + x2))*E**(-(l2 - x2)**2/(2.*s**2)) + Sqrt(Pi)*x1**2*Erf((l1 - x1)/(Sqrt(2)*s)) -
-         Sqrt(Pi)*x1**2*Erf((l2 - x1)/(Sqrt(2)*s)) - l1**2*Sqrt(Pi)*Erf((-l1 + x1)/(Sqrt(2)*s)) -
-         Sqrt(Pi)*s**2*Erf((-l1 + x1)/(Sqrt(2)*s)) + 2*l1*Sqrt(Pi)*x1*Erf((-l1 + x1)/(Sqrt(2)*s)) +
-         l2**2*Sqrt(Pi)*Erf((-l2 + x1)/(Sqrt(2)*s)) + Sqrt(Pi)*s**2*Erf((-l2 + x1)/(Sqrt(2)*s)) -
-         2*l2*Sqrt(Pi)*x1*Erf((-l2 + x1)/(Sqrt(2)*s)) + Sqrt(Pi)*x2*(-2*x1 + x2)*Erf((l1 - x2)/(Sqrt(2)*s)) -
-         Sqrt(Pi)*x2*(-2*x1 + x2)*Erf((l2 - x2)/(Sqrt(2)*s)) + l1**2*Sqrt(Pi)*Erf((-l1 + x2)/(Sqrt(2)*s)) +
-         Sqrt(Pi)*s**2*Erf((-l1 + x2)/(Sqrt(2)*s)) - 2*l1*Sqrt(Pi)*x1*Erf((-l1 + x2)/(Sqrt(2)*s)) -
-         l2**2*Sqrt(Pi)*Erf((-l2 + x2)/(Sqrt(2)*s)) - Sqrt(Pi)*s**2*Erf((-l2 + x2)/(Sqrt(2)*s)) +
-         2*l2*Sqrt(Pi)*x1*Erf((-l2 + x2)/(Sqrt(2)*s)))/(4.*Sqrt(Pi)*(x1 - x2)))
-    return COEFF1, COEFF2    
+    COEFF2 = ((
+        (Sqrt(2) * s * (l1 - x1)) * E**
+        (-(l1 - x1)**2 / (2. * s**2)) - (Sqrt(2) * s * (l2 - x1)) * E**
+        (-(l2 - x1)**2 / (2. * s**2)) -
+        (Sqrt(2) * s * (l1 - 2 * x1 + x2)) * E**(-(l1 - x2)**2 / (2. * s**2)) +
+        (Sqrt(2) * s * (l2 - 2 * x1 + x2)) * E**
+        (-(l2 - x2)**2 / (2. * s**2)) + Sqrt(Pi) * x1**2 * Erf(
+            (l1 - x1) / (Sqrt(2) * s)) - Sqrt(Pi) * x1**2 * Erf(
+                (l2 - x1) / (Sqrt(2) * s)) - l1**2 * Sqrt(Pi) * Erf(
+                    (-l1 + x1) / (Sqrt(2) * s)) - Sqrt(Pi) * s**2 * Erf(
+                        (-l1 + x1) / (Sqrt(2) * s)) +
+        2 * l1 * Sqrt(Pi) * x1 * Erf(
+            (-l1 + x1) / (Sqrt(2) * s)) + l2**2 * Sqrt(Pi) * Erf(
+                (-l2 + x1) / (Sqrt(2) * s)) + Sqrt(Pi) * s**2 * Erf(
+                    (-l2 + x1) / (Sqrt(2) * s)) - 2 * l2 * Sqrt(Pi) * x1 * Erf(
+                        (-l2 + x1) / (Sqrt(2) * s)) + Sqrt(Pi) * x2 *
+        (-2 * x1 + x2) * Erf(
+            (l1 - x2) / (Sqrt(2) * s)) - Sqrt(Pi) * x2 * (-2 * x1 + x2) * Erf(
+                (l2 - x2) / (Sqrt(2) * s)) + l1**2 * Sqrt(Pi) * Erf(
+                    (-l1 + x2) / (Sqrt(2) * s)) + Sqrt(Pi) * s**2 * Erf(
+                        (-l1 + x2) / (Sqrt(2) * s)) - 2 * l1 * Sqrt(Pi) * x1
+        * Erf((-l1 + x2) / (Sqrt(2) * s)) - l2**2 * Sqrt(Pi) * Erf(
+            (-l2 + x2) / (Sqrt(2) * s)) - Sqrt(Pi) * s**2 * Erf(
+                (-l2 + x2) / (Sqrt(2) * s)) + 2 * l2 * Sqrt(Pi) * x1 * Erf(
+                    (-l2 + x2) / (Sqrt(2) * s))) / (4. * Sqrt(Pi) * (x1 - x2)))
+    return COEFF1, COEFF2
+
+
 class ParamMapper:
     """
     Class used to map stellar atmospheric parameters into more manageable grid
@@ -208,27 +245,27 @@ def make_rebinner(lam00,
     ys = []
     vals = []
     for i in range(len(lam)):
-        
+
         curlam = lam[i]
-        if i>0:
-            leftstep = 0.5*(lam[i]-lam[i-1])
+        if i > 0:
+            leftstep = 0.5 * (lam[i] - lam[i - 1])
         else:
-            leftstep = 0.5*(lam[i+1]-lam[i])
-        if i<len(lam)-1:
-            rightstep = 0.5* (lam[i+1]-lam[i])
+            leftstep = 0.5 * (lam[i + 1] - lam[i])
+        if i < len(lam) - 1:
+            rightstep = 0.5 * (lam[i + 1] - lam[i])
         else:
             rightstep = leftstep
         cursig = sigs[i]
         curl0 = curlam - thresh * cursig
         curl1 = curlam + thresh * cursig
 
-        left = np.searchsorted(lam0, curl0)-1
+        left = np.searchsorted(lam0, curl0) - 1
         right = np.searchsorted(lam0, curl1)
 
         curx = np.arange(left, right + 1)
 
-        x1 = lam0[curx];
-        x2 = lam0[curx+1]
+        x1 = lam0[curx]
+        x2 = lam0[curx + 1]
 
         l1 = curlam - leftstep
         l2 = curlam + rightstep
@@ -246,8 +283,8 @@ def make_rebinner(lam00,
     ys = np.concatenate(ys)
     vals = np.concatenate(vals)
 
-    mat = scipy.sparse.coo_matrix(
-        (vals, (xs, ys)), shape=(len(lam0), len(lam)))
+    mat = scipy.sparse.coo_matrix((vals, (xs, ys)),
+                                  shape=(len(lam0), len(lam)))
     mat = mat.tocsc()
     return mat
 
