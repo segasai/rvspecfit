@@ -524,7 +524,7 @@ def get_chisq(specdata,
                 or curdata.lam[-1] < templ_lam[0]
                 or curdata.lam[-1] > templ_lam[-1]):
             raise Exception(
-                "The template library (%,%f)  doesn't cover this wavelength range (%f,%f)"%(templ_lam[0],templ_lam[-1],curdata.lam[0],curdata.lam[-1]))
+                "The template library (%f,%f)  doesn't cover this wavelength range (%f,%f)"%(templ_lam[0],templ_lam[-1],curdata.lam[0],curdata.lam[-1]))
 
         # current template interpolator object
         if cache is None or templ_tag not in cache:
