@@ -173,7 +173,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
     if not (mws.any()):
         return
     targetid = tab['TARGETID']
-    brick_name = tab['BRICKNAME']
+    brickid = tab['BRICKID']
     setups = ('b', 'r', 'z')
     fluxes = {}
     ivars = {}
@@ -198,7 +198,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
         specdatas = []
         sns = []
         for curid in xids:
-            curbrick = brick_name[curid]
+            curbrick = brickid[curid]
             specdata = []
             cursn = {}
             for s in setups:
@@ -213,15 +213,15 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
                     'desi_%s' % s, waves[s], spec, espec, badmask=badmask))
             sns.append(cursn)
             specdatas.append(specdata)
-        fig_fname_mask = fig_prefix + '_%s_%d_%%d.png' % (curbrick, curtargetid)
+        fig_fname_mask = fig_prefix + '_%d_%d_%%d.png' % (curbrick, curtargetid)
         if combine:
             specdata = sum(specdatas,[])
             curmask = fig_fname_mask
             if len(specdata)==len(setups):
                 curmask=curmask%0
             outdict = proc_onespec(specdata, setups, config, options, curmask)
-            outdict['brickname']=curbrick
-            outdict['target_id']=curtargetid
+            outdict['brickid']=curbrick
+            outdict['targetid']=curtargetid
             for f in setups:
                 outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
             outdf =  outdf.append(pandas.DataFrame([outdict]), True)
@@ -229,8 +229,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
             
             for i,specdata in enumerate(specdatas):
                 outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i)
-                outdict['brickname']=curbrick
-                outdict['target_id']=curtargetid
+                outdict['brickid']=curbrick
+                outdict['targetid']=curtargetid
                 for f in setups:
                     outdict['sn_%s'%f] = sns[i][f]
 
