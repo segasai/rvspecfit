@@ -403,7 +403,8 @@ def evalRV(interpol, vel, lams):
     spec: numpy
         Evaluated spectrum
     """
-    return interpol(lams / (1 + vel * 1000. / speed_of_light))
+    beta  = vel * 1000. / speed_of_light
+    return interpol(lams * np.sqrt((1 - beta) / (1 + beta))
 
 
 def param_dict_to_tuple(paramDict, setup, config):
