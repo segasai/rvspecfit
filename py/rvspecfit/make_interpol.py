@@ -209,8 +209,8 @@ def main(args):
         action='store_true',
         default=True,
         help='Generate spectra in log-waelength scale')
-    add_bool_argr(parser, 'log', default=True, help='Generate the spectr in log-wavelength scale')
-    add_bool_argr(parser, 'normalize', default=True, help='Normalize the spectra')
+    add_bool_arg(parser, 'log', default=True, help='Generate the spectr in log-wavelength scale')
+    add_bool_arg(parser, 'normalize', default=True, help='Normalize the spectra')
 
     parser.add_argument(
         '--templdb',
