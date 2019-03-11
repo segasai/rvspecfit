@@ -380,8 +380,8 @@ def getRVInterpol(lam_templ, templ):
         The object that can be used to evaluate template at any wavelength
     """
 
-    interpol = scipy.interpolate.UnivariateSpline(
-        lam_templ, templ, s=0, k=3, ext=2)
+    interpol = scipy.interpolate.CubicSpline(
+        lam_templ, templ, extrapolate=False)
     return interpol
 
 
