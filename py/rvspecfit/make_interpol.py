@@ -50,7 +50,8 @@ class si:
     lamgrid = None
 
 
-def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile):
+def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile,
+                     normalize=True):
     """
     Exctract a spectrum of a given parameters then apply the resolution smearing
     and divide by the continuum
@@ -72,6 +73,8 @@ def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile):
         Prefix to the data files
     wavefile: string
         Path to the file with wavelengths
+    normalize: boolean
+        Normalize the spectrum by a linear continuum
     """
 
     lam, spec = read_grid.get_spec(
@@ -83,7 +86,10 @@ def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile):
         prefix=prefix,
         wavefile=wavefile)
     spec = read_grid.apply_rebinner(si.mat, spec)
-    spec1 = spec / get_line_continuum(si.lamgrid, spec)
+    if normalize:
+        spec1 = spec / get_line_continuum(si.lamgrid, spec)
+    else:
+        spec1 = spec
     spec1 = np.log(spec1)  # log the spectrum
     if not np.isfinite(spec1).all():
         raise Exception(
@@ -101,7 +107,8 @@ def process_all(setupInfo,
                 wavefile=None,
                 air=False,
                 resolution0=None,
-                fixed_fwhm=False):
+                fixed_fwhm=False,
+                normalize=True):
     nthreads = 8
     conn = sqlite3.connect(dbfile)
     cur = conn.execute('select id, teff, logg, met, alpha from files')
@@ -146,7 +153,7 @@ def process_all(setupInfo,
         specs.append(
             pool.apply_async(extract_spectrum,
                              (curlogg, curteff, curfeh, curalpha, dbfile,
-                              prefix, wavefile)))
+                              prefix, wavefile, normalize)))
     lam = lamgrid
     for i in range(len(specs)):
         specs[i] = specs[i].get()
@@ -172,6 +179,15 @@ def process_all(setupInfo,
                 git_rev=git_rev,
                 mapper=mapper), fp)
 
+def add_bool_arg(parser, name, default=False, help=None):
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--' + name, dest=name, action='store_true',
+                       help=help)
+    group.add_argument('--no-' + name, dest=name, action='store_false',
+                       help='Invert the '+name+' option')
+    parser.set_defaults(**{name:default})
+    # https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse/19233287
+    
 
 def main(args):
     parser = argparse.ArgumentParser(
@@ -193,6 +209,9 @@ def main(args):
         action='store_true',
         default=True,
         help='Generate spectra in log-waelength scale')
+    add_bool_argr(parser, 'log', default=True, help='Generate the spectr in log-wavelength scale')
+    add_bool_argr(parser, 'normalize', default=True, help='Normalize the spectra')
+
     parser.add_argument(
         '--templdb',
         type=str,
