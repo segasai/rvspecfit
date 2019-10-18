@@ -198,6 +198,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             resolParams,
             config=config,
             options=options)
+        best_vel = res1['best_vel']
         if vel_step < res1['vel_err'] / crit_ratio or vel_step < min_vel_step:
             break
         else:
@@ -206,6 +207,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             min_vel = max(best_vel - new_width, min_vel)
             max_vel = min(best_vel + new_width, max_vel)
     t3 = time.time()
+    ret['vel'] =best_vel
     ret['vel_err'] = res1['vel_err']
     ret['skewness'] = res1['skewness']
     ret['kurtosis'] = res1['kurtosis']
