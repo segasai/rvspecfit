@@ -163,7 +163,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         })
     res = scipy.optimize.minimize(
         func,
-        res['x'], method='BFGS")
+        res['x'], method='BFGS')
     best_param = paramMapper(res['x'])
     ret = {}
     ret['param'] = dict(zip(specParams, best_param['params']))
