@@ -152,6 +152,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
 
     method = 'Nelder-Mead'
     t1 = time.time()
+
     res = scipy.optimize.minimize(
         func,
         startParam,
@@ -160,6 +161,9 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             'fatol': 1e-3,
             'xatol': 1e-2
         })
+    res = scipy.optimize.minimize(
+        func,
+        res['x'], method='BFGS")
     best_param = paramMapper(res['x'])
     ret = {}
     ret['param'] = dict(zip(specParams, best_param['params']))
