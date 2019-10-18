@@ -5,7 +5,7 @@ import astropy.io.fits as pyfits
 lamcen = 5000
 
 def getspec(lam, teff, logg, alpha, met):
-    w=0.1
+    w=0.01+(10*logg/5)
     return ( teff**4 *1./lam * (1 - min(1,np.exp(met))*
              np.exp(-0.5*(lam-lamcen)**2/w**2)))
 
