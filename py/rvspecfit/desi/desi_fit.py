@@ -6,6 +6,7 @@ import argparse
 import time
 import pandas
 import itertools
+import traceback
 import concurrent.futures
 from collections import OrderedDict
 
@@ -243,8 +244,9 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
 def proc_desi_wrapper(*args, **kwargs):
     try:
         ret = proc_desi(*args, **kwargs)
-    except:
+    except Exception as e:
         print('failed with these arguments', args, kwargs)
+        traceback.print_exc()
         raise
 
 
