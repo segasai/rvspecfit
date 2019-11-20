@@ -37,6 +37,7 @@ def make_plot(specdata, yfit, title, fig_fname):
     """
     alpha = 0.7
     line_width = 0.8
+    dpi = 100
     plt.clf()
     plt.figure(1, figsize=(6, 6), dpi=300)
     plt.subplot(3, 1, 1)
@@ -66,7 +67,7 @@ def make_plot(specdata, yfit, title, fig_fname):
         linewidth=line_width)
     plt.xlabel(r'$\lambda$ [$\AA$]')
     plt.tight_layout()
-    plt.savefig(fig_fname)
+    plt.savefig(fig_fname, dpi=dpi)
 
 
 def valid_file(fname):
