@@ -166,6 +166,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
     """
 
     options = {'npoly': 10}
+    minsn = -1e9  # allows to filter low-SN spectra (for comissioning)
 
     print('Processing', fname)
     if not valid_file(fname):
@@ -230,6 +231,13 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
         else:
             
             for i,specdata in enumerate(specdatas):
+                curmaxsn = -1
+                for f in setups:
+                    curmaxsn = max(sns[i][f],curmaxsn)
+                if curmaxsn < minsn:
+                    print ('Skipping spectrum because of low S/N')
+                    continue
+
                 outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i)
                 outdict['brickid']=curbrick
                 outdict['targetid']=curtargetid
