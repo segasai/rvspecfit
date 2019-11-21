@@ -233,7 +233,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
             outdict = proc_onespec(specdata, setups, config, options, curmask)
             outdict['brickid']=curbrick
             outdict['targetid']=curtargetid
-            for col in curCols.items():
+            for col in curCols.keys():
                 outdict[col] = curCols[col]
             for f in setups:
                 outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
@@ -251,7 +251,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
                 outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i)
                 outdict['brickid']=curbrick
                 outdict['targetid']=curtargetid
-                for col in curCols.items():
+                for col in curCols.keys():
                     outdict[col] = curCols[col]
 
                 for f in setups:
