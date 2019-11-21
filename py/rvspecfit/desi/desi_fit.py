@@ -149,7 +149,8 @@ def proc_onespec(specdata, setups, config, options, fig_fname_mask):
 
     return outdict
 
-def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
+def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
+              mwonly=True):
     """
     Process One single file with desi spectra
 
@@ -172,12 +173,16 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
     if not valid_file(fname):
         return
     tab = pyfits.getdata(fname, 'FIBERMAP')
-    mws = tab['MWS_TARGET']!=0
+    if mwonly:
+        mws = tab['MWS_TARGET']!=0
+    else:
+        mws = np.ones(len(tab), dtype=bool)
     if not (mws.any()):
         return
     targetid = tab['TARGETID']
     brickid = tab['BRICKID']
-    fiber = tab['FIBER']
+    columnsCopy = ['FIBER', 'REF_ID','TARGET_RA','TARGET_DEC']
+
     setups = ('b', 'r', 'z')
     fluxes = {}
     ivars = {}
@@ -203,7 +208,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
         sns = []
         for curid in xids:
             curbrick = brickid[curid]
-            curfiber = fiber[curid]
+
+            curcols = dict([(_,tab[_][curid]) for _ in columnsCopy])
             specdata = []
             cursn = {}
             for s in setups:
@@ -227,7 +233,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
             outdict = proc_onespec(specdata, setups, config, options, curmask)
             outdict['brickid']=curbrick
             outdict['targetid']=curtargetid
-            outdict['fiber'] = curfiber
+            for col in curCols.items():
+                outdict[col] = curcols[col]
             for f in setups:
                 outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
             outdf =  outdf.append(pandas.DataFrame([outdict]), True)
@@ -273,7 +280,8 @@ def proc_many(files,
               nthreads=1,
               overwrite=True,
               combine=False,
-              targetid=None):
+              targetid=None,
+              mwonly=True):
     """
     Process many spectral files
 
@@ -289,6 +297,8 @@ def proc_many(files,
         Fit spectra of same targetid together
     targetid: integer
         The targetid to fit (the rest will be ignored)
+    mwonly: bool
+        Only fit mws_target
     """
     config = utils.read_config(config)
 
@@ -306,7 +316,7 @@ def proc_many(files,
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
             continue
-        arg = (f, ofname, fig_prefix, config, targetid, combine)
+        arg = (f, ofname, fig_prefix, config, targetid, combine, mwonly)
         if parallel:
             res.append(
                 poolEx.submit(proc_desi_wrapper, 
@@ -399,6 +409,13 @@ def main(args):
         action='store_true',
         default=False)
 
+    parser.add_argument(
+        '--allobjects',
+        help=
+        'Fit all objects not only MW_TARGET',
+        action='store_true',
+        default=False)
+
     args = parser.parse_args(args)
     input_files = args.input_files
     input_file_from = args.input_file_from
@@ -409,6 +426,7 @@ def main(args):
     config = args.config
     targetid = args.targetid
     combine = args.combine
+    mwonly = not args.allobjects
     if input_files is not None and input_file_from is not None:
         raise Exception(
             'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
@@ -432,7 +450,8 @@ def main(args):
         overwrite=args.overwrite,
         config=config,
         targetid=targetid,
-        combine=combine)
+        combine=combine,
+        mwonly=mwonly)
 
 
 if __name__ == '__main__':
