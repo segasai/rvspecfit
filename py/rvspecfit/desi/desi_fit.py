@@ -209,7 +209,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
         for curid in xids:
             curbrick = brickid[curid]
 
-            curcols = dict([(_,tab[_][curid]) for _ in columnsCopy])
+            curCols = dict([(_,tab[_][curid]) for _ in columnsCopy])
             specdata = []
             cursn = {}
             for s in setups:
@@ -234,7 +234,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
             outdict['brickid']=curbrick
             outdict['targetid']=curtargetid
             for col in curCols.items():
-                outdict[col] = curcols[col]
+                outdict[col] = curCols[col]
             for f in setups:
                 outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
             outdf =  outdf.append(pandas.DataFrame([outdict]), True)
@@ -251,7 +251,9 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
                 outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i)
                 outdict['brickid']=curbrick
                 outdict['targetid']=curtargetid
-                outdict['fiber']=curfiber
+                for col in curCols.items():
+                    outdict[col] = curcols[col]
+
                 for f in setups:
                     outdict['sn_%s'%f] = sns[i][f]
 
