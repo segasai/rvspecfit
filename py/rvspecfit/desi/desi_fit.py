@@ -252,7 +252,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
                 outdict['brickid']=curbrick
                 outdict['targetid']=curtargetid
                 for col in curCols.items():
-                    outdict[col] = curcols[col]
+                    outdict[col] = curCols[col]
 
                 for f in setups:
                     outdict['sn_%s'%f] = sns[i][f]
