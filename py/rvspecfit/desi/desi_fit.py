@@ -177,6 +177,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
         return
     targetid = tab['TARGETID']
     brickid = tab['BRICKID']
+    fiber = tab['FIBER']
     setups = ('b', 'r', 'z')
     fluxes = {}
     ivars = {}
@@ -202,6 +203,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
         sns = []
         for curid in xids:
             curbrick = brickid[curid]
+            curfiber = fiber[curid]
             specdata = []
             cursn = {}
             for s in setups:
@@ -225,6 +227,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
             outdict = proc_onespec(specdata, setups, config, options, curmask)
             outdict['brickid']=curbrick
             outdict['targetid']=curtargetid
+            outdict['fiber'] = curfiber
             for f in setups:
                 outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
             outdf =  outdf.append(pandas.DataFrame([outdict]), True)
@@ -241,6 +244,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False):
                 outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i)
                 outdict['brickid']=curbrick
                 outdict['targetid']=curtargetid
+                outdict['fiber']=curfiber
                 for f in setups:
                     outdict['sn_%s'%f] = sns[i][f]
 
