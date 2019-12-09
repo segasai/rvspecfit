@@ -327,7 +327,7 @@ def proc_many(files,
     res = []
     for f in files:
         fname = f.split('/')[-1]
-        ofname = oprefix + 'outtab_' + fname
+        ofname = oprefix + '_' + fname
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
             continue
@@ -403,7 +403,7 @@ def main(args):
         '--output_tab_prefix',
         help='Prefix of output table files',
         type=str,
-        default='outtab',
+        default='rvtab',
         required=False)
 
     parser.add_argument(
