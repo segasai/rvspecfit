@@ -330,14 +330,17 @@ def proc_many(files,
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
             continue
-        arg = (f, ofname, fig_prefix, config, targetid, combine, mwonly)
+        args = (f, ofname, fig_prefix, config, targetid)
+        kwargs = dict(combine=combine,
+                      mwonly=mwonly,
+                      doplot=doplot)
         if parallel:
             res.append(
                 poolEx.submit(proc_desi_wrapper, 
-                            *arg)
+                            *args, **kwargs)
             )
         else:
-            proc_desi_wrapper(*arg)
+            proc_desi_wrapper(*args, **kwargs)
     
     if parallel:
         try:
