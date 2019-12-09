@@ -3,7 +3,6 @@ import time
 import itertools
 import astropy.io.fits as pyfits
 import numpy as np
-import matplotlib.pyplot as plt
 import scipy.optimize
 import numdifftools as ndf
 from rvspecfit import spec_fit
