@@ -92,7 +92,8 @@ def valid_file(fname):
         return False
     return True
 
-def proc_onespec(specdata, setups, config, options, fig_fname_mask, doplot=True):
+def proc_onespec(specdata, setups, config, options, fig_fname_mask,
+                 doplot=True):
     chisqs = {}
     chisqs_c  = {} 
     t1 = time.time()
@@ -254,7 +255,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
                     print ('Skipping spectrum because of low S/N')
                     continue
 
-                outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i)
+                outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i, doplot=doplot)
                 outdict['brickid']=curbrick
                 outdict['targetid']=curtargetid
                 for col in curCols.keys():
