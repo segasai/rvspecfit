@@ -265,7 +265,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
                     outdict['sn_%s'%f] = sns[i][f]
 
                 outdf =  outdf.append(pandas.DataFrame([outdict]), True)
-                
+    if len(outdf)==0:
+        return
     outtab = astropy.table.Table.from_pandas(outdf)
     outtab.write(ofname, overwrite=True)
     return 1;
