@@ -335,7 +335,7 @@ def proc_many(files,
         kwargs = dict(combine=combine,
                       mwonly=mwonly,
                       doplot=doplot,
-                      minsn=misn)
+                      minsn=minsn)
         if parallel:
             res.append(
                 poolEx.submit(proc_desi_wrapper, 
