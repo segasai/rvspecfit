@@ -92,7 +92,7 @@ def valid_file(fname):
         return False
     return True
 
-def proc_onespec(specdata, setups, config, options, fig_fname_mask):
+def proc_onespec(specdata, setups, config, options, fig_fname_mask, doplot=True):
     chisqs = {}
     chisqs_c  = {} 
     t1 = time.time()
@@ -135,22 +135,23 @@ def proc_onespec(specdata, setups, config, options, fig_fname_mask):
         outdict['chisq_%s' % s.replace('desi_','')]=chisqs[s]
         outdict['chisq_c_%s' % s.replace('desi_','')]=float(chisqs_c[s])
 
-    title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
+    if doplot:
+        title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
         res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
         res1['param']['alpha'], res1['vel'], res1['vel_err'])
-    if len(specdata)>len(setups):
-        for i in range(len(specdata)//len(setups)):
-            sl = slice(i*len(setups),(i+1)*len(setups))
-            make_plot(specdata[sl], 
+        if len(specdata)>len(setups):
+            for i in range(len(specdata)//len(setups)):
+                sl = slice(i*len(setups),(i+1)*len(setups))
+                make_plot(specdata[sl], 
                   res1['yfit'][sl], title, fig_fname_mask%i)
-    else:
-        make_plot(specdata,
+        else:
+            make_plot(specdata,
                   res1['yfit'], title, fig_fname_mask)
 
     return outdict
 
 def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
-              mwonly=True):
+              mwonly=True, doplot=True, minsn=-1e9):
     """
     Process One single file with desi spectra
 
@@ -164,10 +165,15 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
         The prefix where the figures will be stored
     fit_targetid: int
         The targetid to fit. If none fit all.
+    mwonly: bool
+        Fit only MWS_TARGET or every object
+    doplot: bool
+        Produce plots
+    minsn: real
+        The slallest S/N for processing
     """
 
     options = {'npoly': 10}
-    minsn = -1e9  # allows to filter low-SN spectra (for comissioning)
 
     print('Processing', fname)
     if not valid_file(fname):
@@ -230,7 +236,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
             curmask = fig_fname_mask
             if len(specdata)==len(setups):
                 curmask=curmask%0
-            outdict = proc_onespec(specdata, setups, config, options, curmask)
+            outdict = proc_onespec(specdata, setups, config, options, curmask, doplot=doplot)
             outdict['brickid']=curbrick
             outdict['targetid']=curtargetid
             for col in curCols.keys():
@@ -283,7 +289,9 @@ def proc_many(files,
               overwrite=True,
               combine=False,
               targetid=None,
-              mwonly=True):
+              mwonly=True,
+              minsn=-1e9,
+              doplot=True):
     """
     Process many spectral files
 
@@ -301,6 +309,10 @@ def proc_many(files,
         The targetid to fit (the rest will be ignored)
     mwonly: bool
         Only fit mws_target
+    doplot: bool
+        Plotting
+    minsn: real
+        THe min S/N to fit
     """
     config = utils.read_config(config)
 
@@ -378,6 +390,12 @@ def main(args):
         default=None,
         required=False)
     parser.add_argument(
+        '--minsn',
+        help='Fit only S/N larger than this',
+        type=float,
+        default=-1e9,
+        required=False)
+    parser.add_argument(
         '--output_tab_prefix',
         help='Prefix of output table files',
         type=str,
@@ -403,6 +421,12 @@ def main(args):
         action='store_true',
         default=False)
 
+    parser.add_argument(
+        '--doplot',
+        help=
+        'If enabled the code will overwrite the existing products, otherwise it will skip them',
+        action='store_true',
+        default=False)
 
     parser.add_argument(
         '--combine',
@@ -429,6 +453,8 @@ def main(args):
     targetid = args.targetid
     combine = args.combine
     mwonly = not args.allobjects
+    doplot = args.doplot
+    minsn = args.minsn
     if input_files is not None and input_file_from is not None:
         raise Exception(
             'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
@@ -453,7 +479,9 @@ def main(args):
         config=config,
         targetid=targetid,
         combine=combine,
-        mwonly=mwonly)
+        mwonly=mwonly,
+        doplot=doplot,
+        minsn=minsn)
 
 
 if __name__ == '__main__':
