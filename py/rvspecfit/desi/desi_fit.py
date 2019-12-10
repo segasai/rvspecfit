@@ -251,12 +251,14 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
         fig_fname_mask = fig_prefix + '_%d_%d_%%d.png' % (curbrick, curtargetid)
 
         curmaxsn = -1
+
         for i,specdata in enumerate(specdatas):
             for f in setups:
                 curmaxsn = max(sns[i][f],curmaxsn)
         if curmaxsn < minsn:
             continue
         if combine:
+
             specdata = sum(specdatas,[])
             curmask = fig_fname_mask
             if len(specdata)==len(setups):
@@ -282,7 +284,7 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
 
             outdf =  outdf.append(pandas.DataFrame([outdict]), True)
             for ii, curd in enumerate(specdata):
-                models[curd.name].append(curmodel[i])
+                models[curd.name].append(curmodel[ii])
             
         fiberSubset[curseqid] = True
     if len(outdf)==0:
