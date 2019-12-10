@@ -12,7 +12,7 @@ script:
   - cd tests;
   - mkdir templ_data
   - cd templ_data
-  - wget -r -nd -np https://www.ast.cam.ac.uk/~koposov/files/rvspecfit_files/
+  - wget -r -nd -np https://people.ast.cam.ac.uk/~koposov/files/rvspecfit_files/
   - mv small_phoenix.tar.gz ../
   - cd ..
   - tar xfz small_phoenix.tar.gz
