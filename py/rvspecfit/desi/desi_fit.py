@@ -121,7 +121,7 @@ def proc_onespec(specdata, setups, config, options, fig_fname_mask,
                   alpha=res1['param']['alpha'],
                   feh=res1['param']['feh'],
                   vsini=res1['vsini'],
-                  nexp=len(specdata)/len(setups)
+                  nexp=len(specdata)/len(setups),
                   )
 
     for i, curd in enumerate(specdata):
@@ -149,7 +149,7 @@ def proc_onespec(specdata, setups, config, options, fig_fname_mask,
             make_plot(specdata,
                   res1['yfit'], title, fig_fname_mask)
 
-    return outdict
+    return outdict, res1['yfit']
 
 def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, combine=False,
               mwonly=True, doplot=True, minsn=-1e9):
@@ -212,6 +212,8 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
 
     outdf = pandas.DataFrame()
     models = {}
+    for curs in setups:
+        models['desi_%s'%curs]=[]
     
     for curseqid in uuid:
         curtargetid = targetid[curseqid]
@@ -259,7 +261,7 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
             curmask = fig_fname_mask
             if len(specdata)==len(setups):
                 curmask=curmask%0
-            outdict = proc_onespec(specdata, setups, config, options, curmask, doplot=doplot)
+            outdict,curmodel = proc_onespec(specdata, setups, config, options, curmask, doplot=doplot)
             outdict['BRICKID']=curbrick
             outdict['TARGETID']=curtargetid
             for col in curCols.keys():
@@ -268,8 +270,8 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
                 outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
             outdf =  outdf.append(pandas.DataFrame([outdict]), True)
         else:
-            
-            outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i, doplot=doplot)
+            assert(len(specdatas)==1)
+            outdict,curmodel = proc_onespec(specdata, setups, config, options, fig_fname_mask%i, doplot=doplot)
             outdict['BRICKID']=curbrick
             outdict['TARGETID']=curtargetid
             for col in curCols.keys():
@@ -279,9 +281,25 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
                 outdict['sn_%s'%f] = sns[0][f]
 
             outdf =  outdf.append(pandas.DataFrame([outdict]), True)
+            for ii, curd in enumerate(specdata):
+                models[curd.name].append(curmodel[i])
+            
         fiberSubset[curseqid] = True
     if len(outdf)==0:
         return
+    outputmod = [pyfits.PrimaryHDU()]
+
+    # TODO 
+    # in the combine mode I don't know how to write the model
+    #
+
+    for curs in setups:
+        outputmod.append(pyfits.ImageHDU(pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper()),
+                        name ='%s_WAVELENGTH'%s.upper()))
+        outputmod.append(pyfits.ImageHDU(np.vstack(models['desi_%s'%curs]),
+                                         name='%s_MODEL'%s.upper()))
+    pyfits.HDUList(outputmod).writeto(mod_ofname, overwrite=True)
+
     outtab = atpy.Table.from_pandas(outdf)
     hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),pyfits.BinTableHDU(outtab),
                               pyfits.BinTableHDU(atpy.Table(tab)[fiberSubset],name='FIBERMAP')])
