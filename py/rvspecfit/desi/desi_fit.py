@@ -151,7 +151,7 @@ def proc_onespec(specdata, setups, config, options, fig_fname_mask,
 
     return outdict
 
-def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
+def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, combine=False,
               mwonly=True, doplot=True, minsn=-1e9):
     """
     Process One single file with desi spectra
@@ -206,10 +206,12 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
     large_error = 1e9
     
     utargetid, uuid  = np.unique(targetid[mws],return_index=True)
+    uuid = np.nonzero(mws)[0][uuid]
     if not combine:
         uuid = seqid
 
     outdf = pandas.DataFrame()
+    models = {}
     
     for curseqid in uuid:
         curtargetid = targetid[curseqid]
@@ -302,6 +304,7 @@ proc_desi_wrapper.__doc__ = proc_desi.__doc__
 def proc_many(files,
               output_dir,
               output_tab_prefix,
+              output_mod_prefix,
               fig_prefix,
               config=None,
               nthreads=1,
@@ -348,12 +351,15 @@ def proc_many(files,
         assert(len(f.split('/'))>2)
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
+        suffix =  ('-'.join(fname.split('-')[1:]))
         os.makedirs(folder_path, exist_ok=True)
-        ofname = folder_path + output_tab_prefix + '-'+ ('-'.join(fname.split('-')[1:]))
+        tab_ofname = folder_path + output_tab_prefix + '-'+suffix
+        mod_ofname = folder_path + output_mod_prefix + '-'+suffix
+
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
             continue
-        args = (f, ofname, fig_prefix, config, targetid)
+        args = (f, tab_ofname, mod_ofname, fig_prefix, config, targetid)
         kwargs = dict(combine=combine,
                       mwonly=mwonly,
                       doplot=doplot,
@@ -428,6 +434,12 @@ def main(args):
         type=str,
         default='rvtab',
         required=False)
+    parser.add_argument(
+        '--output_mod_prefix',
+        help='Prefix of output model files',
+        type=str,
+        default='rvmod',
+        required=False)
 
     parser.add_argument(
         '--figure_dir',
@@ -473,7 +485,7 @@ def main(args):
     input_files = args.input_files
     input_file_from = args.input_file_from
 
-    output_dir,output_tab_prefix = args.output_dir, args.output_tab_prefix
+    output_dir,output_tab_prefix,output_mod_prefix = args.output_dir, args.output_tab_prefix, args.output_mod_prefix
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config = args.config
@@ -501,6 +513,7 @@ def main(args):
         files,
         output_dir,
         output_tab_prefix,
+        output_mod_prefix,
         fig_prefix,
         nthreads=nthreads,
         overwrite=args.overwrite,
