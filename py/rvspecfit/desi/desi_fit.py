@@ -10,11 +10,8 @@ import traceback
 import concurrent.futures
 from collections import OrderedDict
 
-import matplotlib
 import astropy.io.fits as pyfits
 import numpy as np
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import astropy.table
 
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
@@ -35,6 +32,10 @@ def make_plot(specdata, yfit, title, fig_fname):
     fig_fname: string
         The filename of the figure
     """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
     alpha = 0.7
     line_width = 0.8
     dpi = 100
