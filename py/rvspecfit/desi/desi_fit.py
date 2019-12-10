@@ -295,10 +295,10 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
     #
 
     for curs in setups:
-        outputmod.append(pyfits.ImageHDU(pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper()),
-                        name ='%s_WAVELENGTH'%s.upper()))
+        outputmod.append(pyfits.ImageHDU(pyfits.getdata(fname, '%s_WAVELENGTH' % curs.upper()),
+                        name ='%s_WAVELENGTH'%curs.upper()))
         outputmod.append(pyfits.ImageHDU(np.vstack(models['desi_%s'%curs]),
-                                         name='%s_MODEL'%s.upper()))
+                                         name='%s_MODEL'%curs.upper()))
     pyfits.HDUList(outputmod+[fibermap_copy]).writeto(mod_ofname, overwrite=True)
 
     outtab = atpy.Table.from_pandas(outdf)
