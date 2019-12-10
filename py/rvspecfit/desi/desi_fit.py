@@ -302,7 +302,8 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
     pyfits.HDUList(outputmod+[fibermap_copy]).writeto(mod_ofname, overwrite=True)
 
     outtab = atpy.Table.from_pandas(outdf)
-    hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),pyfits.BinTableHDU(outtab),
+    hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),pyfits.BinTableHDU(outtab,
+                                                                     name='RVTAB'),
                               fibermap_copy])
     hdulist.writeto(tab_ofname, overwrite=True)
     return 1;
