@@ -287,6 +287,7 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
         fiberSubset[curseqid] = True
     if len(outdf)==0:
         return
+    fibermap_copy = pyfits.BinTableHDU(atpy.Table(tab)[fiberSubset],name='FIBERMAP')
     outputmod = [pyfits.PrimaryHDU()]
 
     # TODO 
@@ -298,11 +299,11 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
                         name ='%s_WAVELENGTH'%s.upper()))
         outputmod.append(pyfits.ImageHDU(np.vstack(models['desi_%s'%curs]),
                                          name='%s_MODEL'%s.upper()))
-    pyfits.HDUList(outputmod).writeto(mod_ofname, overwrite=True)
+    pyfits.HDUList(outputmod+[fibermap_copy]).writeto(mod_ofname, overwrite=True)
 
     outtab = atpy.Table.from_pandas(outdf)
     hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),pyfits.BinTableHDU(outtab),
-                              pyfits.BinTableHDU(atpy.Table(tab)[fiberSubset],name='FIBERMAP')])
+                              fibermap_copy])
     hdulist.writeto(tab_ofname, overwrite=True)
     return 1;
 
@@ -373,7 +374,7 @@ def proc_many(files,
         tab_ofname = folder_path + output_tab_prefix + '-'+suffix
         mod_ofname = folder_path + output_mod_prefix + '-'+suffix
 
-        if (not overwrite) and os.path.exists(ofname):
+        if (not overwrite) and os.path.exists(tab_ofname):
             print('skipping, products already exist', f)
             continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config, targetid)
