@@ -250,7 +250,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
         for i,specdata in enumerate(specdatas):
             for f in setups:
                 curmaxsn = max(sns[i][f],curmaxsn)
-
+        if curmaxsn < minsn:
+            continue
         if combine:
             specdata = sum(specdatas,[])
             curmask = fig_fname_mask
@@ -347,7 +348,7 @@ def proc_many(files,
         assert(len(f.split('/'))>2)
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
-        os.makedirs(folder_path)
+        os.makedirs(folder_path, exist_ok=True)
         ofname = folder_path + output_tab_prefix + '-'+ ('-'.join(fname.split('-')[1:]))
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
