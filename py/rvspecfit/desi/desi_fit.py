@@ -9,10 +9,9 @@ import itertools
 import traceback
 import concurrent.futures
 from collections import OrderedDict
-
+import astropy.table as atpy
 import astropy.io.fits as pyfits
 import numpy as np
-import astropy.table
 
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
 
@@ -190,6 +189,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
     targetid = tab['TARGETID']
     brickid = tab['BRICKID']
     columnsCopy = ['FIBER', 'REF_ID','TARGET_RA','TARGET_DEC']
+    seqid = np.arange(len(targetid))
+    fiberSubset = np.zeros(len(tab),dtype=bool)
 
     setups = ('b', 'r', 'z')
     fluxes = {}
@@ -203,20 +204,31 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
         waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
 
     large_error = 1e9
-    utargetid = np.unique(targetid[mws])
-    outdf = pandas.DataFrame()
+    
+    utargetid, uuid  = np.unique(targetid[mws],return_index=True)
+    if not combine:
+        uuid = seqid
 
-    for curtargetid in utargetid:
+    outdf = pandas.DataFrame()
+        
+    for curseqid in uuid:
+        curtargetid = targetid[curseqid]
+
         specdata = []
 
         if fit_targetid is not None and curtargetid != fit_targetid:
             continue
-        xids = np.nonzero(targetid==curtargetid)[0]
+        if combine:
+            xids = np.nonzero(targetid==curtargetid)[0]
+        else:
+            xids = [curseqid]
+
         specdatas = []
-        sns = []
+        sns = [] # sns of all the datasets collected
+        
+        # collect data (if combining that means multiple spectra)
         for curid in xids:
             curbrick = brickid[curid]
-
             curCols = dict([(_,tab[_][curid]) for _ in columnsCopy])
             specdata = []
             cursn = {}
@@ -233,6 +245,15 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
             sns.append(cursn)
             specdatas.append(specdata)
         fig_fname_mask = fig_prefix + '_%d_%d_%%d.png' % (curbrick, curtargetid)
+
+        curmaxsn = -1
+        for i,specdata in enumerate(specdatas):
+            for f in setups:
+                curmaxsn = max(sns[i][f],curmaxsn)
+        if curmaxsn < minsn:
+            print ('Skipping spectrum because of low S/N')
+            continue
+
         if combine:
             specdata = sum(specdatas,[])
             curmask = fig_fname_mask
@@ -248,29 +269,22 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
             outdf =  outdf.append(pandas.DataFrame([outdict]), True)
         else:
             
-            for i,specdata in enumerate(specdatas):
-                curmaxsn = -1
-                for f in setups:
-                    curmaxsn = max(sns[i][f],curmaxsn)
-                if curmaxsn < minsn:
-                    print ('Skipping spectrum because of low S/N')
-                    continue
+            outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i, doplot=doplot)
+            outdict['brickid']=curbrick
+            outdict['targetid']=curtargetid
+            for col in curCols.keys():
+                outdict[col] = curCols[col]
+                
+            for f in setups:
+                outdict['sn_%s'%f] = sns[0][f]
 
-                outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i, doplot=doplot)
-                outdict['brickid']=curbrick
-                outdict['targetid']=curtargetid
-                for col in curCols.keys():
-                    outdict[col] = curCols[col]
-
-                for f in setups:
-                    outdict['sn_%s'%f] = sns[i][f]
-
-                outdf =  outdf.append(pandas.DataFrame([outdict]), True)
+            outdf =  outdf.append(pandas.DataFrame([outdict]), True)
+        fiberSubset[curseqid] = True
     if len(outdf)==0:
         return
-    outtab = astropy.table.Table.from_pandas(outdf)
+    outtab = atpy.Table.from_pandas(outdf)
     hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),pyfits.BinTableHDU(outtab),
-                              pyfits.BinTableHDU(tab,name='FIBERMAP')])
+                              pyfits.BinTableHDU(atpy.Table(tab)[fiberSubset],name='FIBERMAP')])
     #outtab.write(ofname, overwrite=True)
     hdulist.writeto(ofname, overwrite=True)
     return 1;
