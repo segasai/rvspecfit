@@ -245,7 +245,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         print ('WARNING the inversion of the Hessian failed', file=sys.stderr)
         hessian_inv = np.zeros_like(hessian) + np.nan
         #
-    diag_hess = np.diag(hessian_inv)
+    diag_hess = np.array(np.diag(hessian_inv))
     bad_diag_hess = diag_hess<0
     diag_hess[bad_diag_hess ] =0
     diag_err = np.sqrt(diag_hess)
