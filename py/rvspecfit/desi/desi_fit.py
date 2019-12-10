@@ -258,8 +258,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
             if len(specdata)==len(setups):
                 curmask=curmask%0
             outdict = proc_onespec(specdata, setups, config, options, curmask, doplot=doplot)
-            outdict['brickid']=curbrick
-            outdict['targetid']=curtargetid
+            outdict['BRICKID']=curbrick
+            outdict['TARGETID']=curtargetid
             for col in curCols.keys():
                 outdict[col] = curCols[col]
             for f in setups:
@@ -268,8 +268,8 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
         else:
             
             outdict = proc_onespec(specdata, setups, config, options, fig_fname_mask%i, doplot=doplot)
-            outdict['brickid']=curbrick
-            outdict['targetid']=curtargetid
+            outdict['BRICKID']=curbrick
+            outdict['TARGETID']=curtargetid
             for col in curCols.keys():
                 outdict[col] = curCols[col]
                 
