@@ -210,7 +210,7 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
         uuid = seqid
 
     outdf = pandas.DataFrame()
-        
+    
     for curseqid in uuid:
         curtargetid = targetid[curseqid]
 
@@ -250,9 +250,6 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
         for i,specdata in enumerate(specdatas):
             for f in setups:
                 curmaxsn = max(sns[i][f],curmaxsn)
-        if curmaxsn < minsn:
-            print ('Skipping spectrum because of low S/N')
-            continue
 
         if combine:
             specdata = sum(specdatas,[])
@@ -317,8 +314,8 @@ def proc_many(files,
 
     Parameters:
     -----------
-    mask: string
-        The filename mask with spectra, i.e path/*fits
+    files: strings
+        The files with spectra
     oprefix: string
         The prefix where the table with measurements will be stored
     fig_prefix: string
@@ -346,7 +343,8 @@ def proc_many(files,
     res = []
     for f in files:
         fname = f.split('/')[-1]
-        ofname = oprefix + '_' + fname
+        ofname = oprefix+'-'+ ('-'.join(fname.split('-')[1:]))
+
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
             continue
