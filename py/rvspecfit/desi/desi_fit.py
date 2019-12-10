@@ -299,7 +299,8 @@ proc_desi_wrapper.__doc__ = proc_desi.__doc__
 
 
 def proc_many(files,
-              oprefix,
+              output_dir,
+              output_tab_prefix,
               fig_prefix,
               config=None,
               nthreads=1,
@@ -343,8 +344,11 @@ def proc_many(files,
     res = []
     for f in files:
         fname = f.split('/')[-1]
-        ofname = oprefix+'-'+ ('-'.join(fname.split('-')[1:]))
-
+        assert(len(f.split('/'))>2)
+        fdirs = f.split('/')
+        folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
+        os.makedirs(folder_path)
+        ofname = folder_path + output_tab_prefix + '-'+ ('-'.join(fname.split('-')[1:]))
         if (not overwrite) and os.path.exists(ofname):
             print('skipping, products already exist', f)
             continue
@@ -468,7 +472,7 @@ def main(args):
     input_files = args.input_files
     input_file_from = args.input_file_from
 
-    oprefix = args.output_dir + '/' + args.output_tab_prefix
+    output_dir,output_tab_prefix = args.output_dir, args.output_tab_prefix
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config = args.config
@@ -494,7 +498,8 @@ def main(args):
 
     proc_many(
         files,
-        oprefix,
+        output_dir,
+        output_tab_prefix,
         fig_prefix,
         nthreads=nthreads,
         overwrite=args.overwrite,
