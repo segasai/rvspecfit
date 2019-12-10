@@ -285,8 +285,7 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
     outtab = atpy.Table.from_pandas(outdf)
     hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),pyfits.BinTableHDU(outtab),
                               pyfits.BinTableHDU(atpy.Table(tab)[fiberSubset],name='FIBERMAP')])
-    #outtab.write(ofname, overwrite=True)
-    hdulist.writeto(ofname, overwrite=True)
+    hdulist.writeto(tab_ofname, overwrite=True)
     return 1;
 
 def proc_desi_wrapper(*args, **kwargs):
