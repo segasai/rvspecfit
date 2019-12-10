@@ -245,7 +245,12 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         print ('WARNING the inversion of the Hessian failed', file=sys.stderr)
         hessian_inv = np.zeros_like(hessian) + np.nan
         #
-    ret['param_err'] = dict(zip(specParams, np.sqrt(np.diag(hessian_inv))))
+    diag_hess = np.diag(hessian_inv)
+    bad_diag_hess = diag_hess<0
+    diag_hess[bad_diag_hess ] =0
+    diag_err = np.sqrt(diag_hess)
+    diag_err[bad_diag_hess]  = np.nan
+    ret['param_err'] = dict(zip(specParams, diag_err))
 
     ret['yfit'] = outp['models']
     ret['chisq'] = outp['chisq']
