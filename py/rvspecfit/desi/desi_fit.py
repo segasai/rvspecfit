@@ -268,7 +268,10 @@ def proc_desi(fname, ofname, fig_prefix, config, fit_targetid, combine=False,
     if len(outdf)==0:
         return
     outtab = astropy.table.Table.from_pandas(outdf)
-    outtab.write(ofname, overwrite=True)
+    hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),pyfits.BinTableHDU(outtab),
+                              pyfits.BinTableHDU(tab,name='FIBERMAP')])
+    #outtab.write(ofname, overwrite=True)
+    hdulist.writeto(ofname, overwrite=True)
     return 1;
 
 def proc_desi_wrapper(*args, **kwargs):
