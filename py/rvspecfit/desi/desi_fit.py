@@ -42,29 +42,14 @@ def make_plot(specdata, yfit, title, fig_fname):
     plt.figure(1, figsize=(6, 6), dpi=300)
     plt.subplot(3, 1, 1)
     plt.plot(specdata[0].lam, specdata[0].spec, 'k-', linewidth=line_width)
-    plt.plot(
-        specdata[0].lam,
-        yfit[0],
-        'r-',
-        alpha=alpha,
-        linewidth=line_width)
+    plt.plot(specdata[0].lam, yfit[0], 'r-', alpha=alpha, linewidth=line_width)
     plt.title(title)
     plt.subplot(3, 1, 2)
     plt.plot(specdata[1].lam, specdata[1].spec, 'k-', linewidth=line_width)
-    plt.plot(
-        specdata[1].lam,
-        yfit[1],
-        'r-',
-        alpha=alpha,
-        linewidth=line_width)
+    plt.plot(specdata[1].lam, yfit[1], 'r-', alpha=alpha, linewidth=line_width)
     plt.subplot(3, 1, 3)
     plt.plot(specdata[2].lam, specdata[2].spec, 'k-', linewidth=line_width)
-    plt.plot(
-        specdata[2].lam,
-        yfit[2],
-        'r-',
-        alpha=alpha,
-        linewidth=line_width)
+    plt.plot(specdata[2].lam, yfit[2], 'r-', alpha=alpha, linewidth=line_width)
     plt.xlabel(r'$\lambda$ [$\AA$]')
     plt.tight_layout()
     plt.savefig(fig_fname, dpi=dpi)
@@ -92,10 +77,15 @@ def valid_file(fname):
         return False
     return True
 
-def proc_onespec(specdata, setups, config, options, fig_fname_mask,
+
+def proc_onespec(specdata,
+                 setups,
+                 config,
+                 options,
+                 fig_fname_mask,
                  doplot=True):
     chisqs = {}
-    chisqs_c  = {} 
+    chisqs_c = {}
     t1 = time.time()
     res = fitter_ccf.fit(specdata, config)
     t2 = time.time()
@@ -103,56 +93,62 @@ def proc_onespec(specdata, setups, config, options, fig_fname_mask,
     fixParam = []
     if res['best_vsini'] is not None:
         paramDict0['vsini'] = res['best_vsini']
-    res1 = vel_fit.process(
-        specdata,
-        paramDict0,
-        fixParam=fixParam,
-        config=config,
-        options=options)
+    res1 = vel_fit.process(specdata,
+                           paramDict0,
+                           fixParam=fixParam,
+                           config=config,
+                           options=options)
     t3 = time.time()
-    chisq_cont_array = spec_fit.get_chisq_continuum(
-                specdata, options=options)
+    chisq_cont_array = spec_fit.get_chisq_continuum(specdata, options=options)
     t4 = time.time()
-    outdict= dict(
-                  vrad=res1['vel'],
-                  vrad_err=res1['vel_err'],
-                  logg=res1['param']['logg'],
-                  teff=res1['param']['teff'],
-                  alpha=res1['param']['alpha'],
-                  feh=res1['param']['feh'],
-                  vsini=res1['vsini'],
-                  nexp=len(specdata)/len(setups),
-                  )
+    outdict = dict(
+        vrad=res1['vel'],
+        vrad_err=res1['vel_err'],
+        logg=res1['param']['logg'],
+        teff=res1['param']['teff'],
+        alpha=res1['param']['alpha'],
+        feh=res1['param']['feh'],
+        vsini=res1['vsini'],
+        nexp=len(specdata) / len(setups),
+    )
 
     for i, curd in enumerate(specdata):
         if curd.name not in chisqs:
-            chisqs[curd.name]=0
-            chisqs_c[curd.name]=0
-        chisqs[curd.name]+=res1['chisq_array'][i]
-        chisqs_c[curd.name]+=chisq_cont_array[i]
+            chisqs[curd.name] = 0
+            chisqs_c[curd.name] = 0
+        chisqs[curd.name] += res1['chisq_array'][i]
+        chisqs_c[curd.name] += chisq_cont_array[i]
 
     for s in chisqs.keys():
-        outdict['chisq_tot']=sum(chisqs.values())
-        outdict['chisq_%s' % s.replace('desi_','')]=chisqs[s]
-        outdict['chisq_c_%s' % s.replace('desi_','')]=float(chisqs_c[s])
+        outdict['chisq_tot'] = sum(chisqs.values())
+        outdict['chisq_%s' % s.replace('desi_', '')] = chisqs[s]
+        outdict['chisq_c_%s' % s.replace('desi_', '')] = float(chisqs_c[s])
 
     if doplot:
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
-        res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
-        res1['param']['alpha'], res1['vel'], res1['vel_err'])
-        if len(specdata)>len(setups):
-            for i in range(len(specdata)//len(setups)):
-                sl = slice(i*len(setups),(i+1)*len(setups))
-                make_plot(specdata[sl], 
-                  res1['yfit'][sl], title, fig_fname_mask%i)
+            res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
+            res1['param']['alpha'], res1['vel'], res1['vel_err'])
+        if len(specdata) > len(setups):
+            for i in range(len(specdata) // len(setups)):
+                sl = slice(i * len(setups), (i + 1) * len(setups))
+                make_plot(specdata[sl], res1['yfit'][sl], title,
+                          fig_fname_mask % i)
         else:
-            make_plot(specdata,
-                  res1['yfit'], title, fig_fname_mask)
+            make_plot(specdata, res1['yfit'], title, fig_fname_mask)
 
     return outdict, res1['yfit']
 
-def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, combine=False,
-              mwonly=True, doplot=True, minsn=-1e9):
+
+def proc_desi(fname,
+              tab_ofname,
+              mod_ofname,
+              fig_prefix,
+              config,
+              fit_targetid,
+              combine=False,
+              mwonly=True,
+              doplot=True,
+              minsn=-1e9):
     """
     Process One single file with desi spectra
 
@@ -181,16 +177,16 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
         return
     tab = pyfits.getdata(fname, 'FIBERMAP')
     if mwonly:
-        mws = tab['MWS_TARGET']!=0
+        mws = tab['MWS_TARGET'] != 0
     else:
         mws = np.ones(len(tab), dtype=bool)
     if not (mws.any()):
         return
     targetid = tab['TARGETID']
     brickid = tab['BRICKID']
-    columnsCopy = ['FIBER', 'REF_ID','TARGET_RA','TARGET_DEC']
+    columnsCopy = ['FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC']
     seqid = np.arange(len(targetid))
-    fiberSubset = np.zeros(len(tab),dtype=bool)
+    fiberSubset = np.zeros(len(tab), dtype=bool)
 
     setups = ('b', 'r', 'z')
     fluxes = {}
@@ -204,8 +200,8 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
         waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
 
     large_error = 1e9
-    
-    utargetid, uuid  = np.unique(targetid[mws],return_index=True)
+
+    utargetid, uuid = np.unique(targetid[mws], return_index=True)
     uuid = np.nonzero(mws)[0][uuid]
     if not combine:
         uuid = seqid
@@ -213,8 +209,8 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
     outdf = pandas.DataFrame()
     models = {}
     for curs in setups:
-        models['desi_%s'%curs]=[]
-    
+        models['desi_%s' % curs] = []
+
     for curseqid in uuid:
         curtargetid = targetid[curseqid]
 
@@ -223,17 +219,17 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
         if fit_targetid is not None and curtargetid != fit_targetid:
             continue
         if combine:
-            xids = np.nonzero(targetid==curtargetid)[0]
+            xids = np.nonzero(targetid == curtargetid)[0]
         else:
             xids = [curseqid]
 
         specdatas = []
-        sns = [] # sns of all the datasets collected
-        
+        sns = []  # sns of all the datasets collected
+
         # collect data (if combining that means multiple spectra)
         for curid in xids:
             curbrick = brickid[curid]
-            curCols = dict([(_,tab[_][curid]) for _ in columnsCopy])
+            curCols = dict([(_, tab[_][curid]) for _ in columnsCopy])
             specdata = []
             cursn = {}
             for s in setups:
@@ -244,71 +240,92 @@ def proc_desi(fname, tab_ofname, mod_ofname, fig_prefix, config, fit_targetid, c
                 espec = 1. / curivars**.5
                 cursn[s] = np.nanmedian(spec / espec)
                 specdata.append(
-                    spec_fit.SpecData(
-                    'desi_%s' % s, waves[s], spec, espec, badmask=badmask))
+                    spec_fit.SpecData('desi_%s' % s,
+                                      waves[s],
+                                      spec,
+                                      espec,
+                                      badmask=badmask))
             sns.append(cursn)
             specdatas.append(specdata)
-        fig_fname_mask = fig_prefix + '_%d_%d_%%d.png' % (curbrick, curtargetid)
+        fig_fname_mask = fig_prefix + '_%d_%d_%%d.png' % (curbrick,
+                                                          curtargetid)
 
         curmaxsn = -1
 
-        for i,specdata in enumerate(specdatas):
+        for i, specdata in enumerate(specdatas):
             for f in setups:
-                curmaxsn = max(sns[i][f],curmaxsn)
+                curmaxsn = max(sns[i][f], curmaxsn)
         if curmaxsn < minsn:
             continue
         if combine:
 
-            specdata = sum(specdatas,[])
+            specdata = sum(specdatas, [])
             curmask = fig_fname_mask
-            if len(specdata)==len(setups):
-                curmask=curmask%0
-            outdict,curmodel = proc_onespec(specdata, setups, config, options, curmask, doplot=doplot)
-            outdict['BRICKID']=curbrick
-            outdict['TARGETID']=curtargetid
+            if len(specdata) == len(setups):
+                curmask = curmask % 0
+            outdict, curmodel = proc_onespec(specdata,
+                                             setups,
+                                             config,
+                                             options,
+                                             curmask,
+                                             doplot=doplot)
+            outdict['BRICKID'] = curbrick
+            outdict['TARGETID'] = curtargetid
             for col in curCols.keys():
                 outdict[col] = curCols[col]
             for f in setups:
-                outdict['sn_%s'%f] = np.nanmedian([_[f] for _ in sns])
-            outdf =  outdf.append(pandas.DataFrame([outdict]), True)
+                outdict['sn_%s' % f] = np.nanmedian([_[f] for _ in sns])
+            outdf = outdf.append(pandas.DataFrame([outdict]), True)
         else:
-            assert(len(specdatas)==1)
-            outdict,curmodel = proc_onespec(specdata, setups, config, options, fig_fname_mask%i, doplot=doplot)
-            outdict['BRICKID']=curbrick
-            outdict['TARGETID']=curtargetid
+            assert (len(specdatas) == 1)
+            outdict, curmodel = proc_onespec(specdata,
+                                             setups,
+                                             config,
+                                             options,
+                                             fig_fname_mask % i,
+                                             doplot=doplot)
+            outdict['BRICKID'] = curbrick
+            outdict['TARGETID'] = curtargetid
             for col in curCols.keys():
                 outdict[col] = curCols[col]
-                
-            for f in setups:
-                outdict['sn_%s'%f] = sns[0][f]
 
-            outdf =  outdf.append(pandas.DataFrame([outdict]), True)
+            for f in setups:
+                outdict['sn_%s' % f] = sns[0][f]
+
+            outdf = outdf.append(pandas.DataFrame([outdict]), True)
             for ii, curd in enumerate(specdata):
                 models[curd.name].append(curmodel[ii])
-            
+
         fiberSubset[curseqid] = True
-    if len(outdf)==0:
+    if len(outdf) == 0:
         return
-    fibermap_copy = pyfits.BinTableHDU(atpy.Table(tab)[fiberSubset],name='FIBERMAP')
+    fibermap_copy = pyfits.BinTableHDU(atpy.Table(tab)[fiberSubset],
+                                       name='FIBERMAP')
     outputmod = [pyfits.PrimaryHDU()]
 
-    # TODO 
+    # TODO
     # in the combine mode I don't know how to write the model
     #
 
     for curs in setups:
-        outputmod.append(pyfits.ImageHDU(pyfits.getdata(fname, '%s_WAVELENGTH' % curs.upper()),
-                        name ='%s_WAVELENGTH'%curs.upper()))
-        outputmod.append(pyfits.ImageHDU(np.vstack(models['desi_%s'%curs]),
-                                         name='%s_MODEL'%curs.upper()))
-    pyfits.HDUList(outputmod+[fibermap_copy]).writeto(mod_ofname, overwrite=True)
+        outputmod.append(
+            pyfits.ImageHDU(pyfits.getdata(fname,
+                                           '%s_WAVELENGTH' % curs.upper()),
+                            name='%s_WAVELENGTH' % curs.upper()))
+        outputmod.append(
+            pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
+                            name='%s_MODEL' % curs.upper()))
+    pyfits.HDUList(outputmod + [fibermap_copy]).writeto(mod_ofname,
+                                                        overwrite=True)
 
     outtab = atpy.Table.from_pandas(outdf)
-    hdulist = pyfits.HDUList([pyfits.PrimaryHDU(),pyfits.BinTableHDU(outtab,
-                                                                     name='RVTAB'),
-                              fibermap_copy])
+    hdulist = pyfits.HDUList([
+        pyfits.PrimaryHDU(),
+        pyfits.BinTableHDU(outtab, name='RVTAB'), fibermap_copy
+    ])
     hdulist.writeto(tab_ofname, overwrite=True)
-    return 1;
+    return 1
+
 
 def proc_desi_wrapper(*args, **kwargs):
     try:
@@ -369,13 +386,13 @@ def proc_many(files,
     res = []
     for f in files:
         fname = f.split('/')[-1]
-        assert(len(f.split('/'))>2)
+        assert (len(f.split('/')) > 2)
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
-        suffix =  ('-'.join(fname.split('-')[1:]))
+        suffix = ('-'.join(fname.split('-')[1:]))
         os.makedirs(folder_path, exist_ok=True)
-        tab_ofname = folder_path + output_tab_prefix + '-'+suffix
-        mod_ofname = folder_path + output_mod_prefix + '-'+suffix
+        tab_ofname = folder_path + output_tab_prefix + '-' + suffix
+        mod_ofname = folder_path + output_mod_prefix + '-' + suffix
 
         if (not overwrite) and os.path.exists(tab_ofname):
             print('skipping, products already exist', f)
@@ -386,13 +403,10 @@ def proc_many(files,
                       doplot=doplot,
                       minsn=minsn)
         if parallel:
-            res.append(
-                poolEx.submit(proc_desi_wrapper, 
-                            *args, **kwargs)
-            )
+            res.append(poolEx.submit(proc_desi_wrapper, *args, **kwargs))
         else:
             proc_desi_wrapper(*args, **kwargs)
-    
+
     if parallel:
         try:
             poolEx.shutdown(wait=True)
@@ -401,78 +415,67 @@ def proc_many(files,
                 r.cancel()
             poolEx.shutdown(wait=False)
             raise
-            
 
 
 def main(args):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        '--nthreads',
-        help='Number of threads for the fits',
-        type=int,
-        default=1)
+    parser.add_argument('--nthreads',
+                        help='Number of threads for the fits',
+                        type=int,
+                        default=1)
 
-    parser.add_argument(
-        '--config',
-        help='The filename of the configuration file',
-        type=str,
-        default=None)
+    parser.add_argument('--config',
+                        help='The filename of the configuration file',
+                        type=str,
+                        default=None)
 
-    parser.add_argument(
-        '--input_files',
-        help='Space separated list of files to process',
-        type=str,
-        default=None,
-        nargs='+')
+    parser.add_argument('--input_files',
+                        help='Space separated list of files to process',
+                        type=str,
+                        default=None,
+                        nargs='+')
     parser.add_argument(
         '--input_file_from',
         help='Read the list of spectral files from the text file',
         type=str,
         default=None)
 
-    parser.add_argument(
-        '--output_dir',
-        help='Output directory for the tables',
-        type=str,
-        default=None,
-        required=True)
-    parser.add_argument(
-        '--targetid',
-        help='Fit only a given targetid',
-        type=int,
-        default=None,
-        required=False)
-    parser.add_argument(
-        '--minsn',
-        help='Fit only S/N larger than this',
-        type=float,
-        default=-1e9,
-        required=False)
-    parser.add_argument(
-        '--output_tab_prefix',
-        help='Prefix of output table files',
-        type=str,
-        default='rvtab',
-        required=False)
-    parser.add_argument(
-        '--output_mod_prefix',
-        help='Prefix of output model files',
-        type=str,
-        default='rvmod',
-        required=False)
+    parser.add_argument('--output_dir',
+                        help='Output directory for the tables',
+                        type=str,
+                        default=None,
+                        required=True)
+    parser.add_argument('--targetid',
+                        help='Fit only a given targetid',
+                        type=int,
+                        default=None,
+                        required=False)
+    parser.add_argument('--minsn',
+                        help='Fit only S/N larger than this',
+                        type=float,
+                        default=-1e9,
+                        required=False)
+    parser.add_argument('--output_tab_prefix',
+                        help='Prefix of output table files',
+                        type=str,
+                        default='rvtab',
+                        required=False)
+    parser.add_argument('--output_mod_prefix',
+                        help='Prefix of output model files',
+                        type=str,
+                        default='rvmod',
+                        required=False)
 
-    parser.add_argument(
-        '--figure_dir',
-        help='Prefix for the fit figures, i.e. fig_folder/',
-        type=str,
-        default='./')
-    parser.add_argument(
-        '--figure_prefix',
-        help='Prefix for the fit figures, i.e. im',
-        type=str,
-        default='fig',
-        required=False)
+    parser.add_argument('--figure_dir',
+                        help='Prefix for the fit figures, i.e. fig_folder/',
+                        type=str,
+                        default='./')
+    parser.add_argument('--figure_prefix',
+                        help='Prefix for the fit figures, i.e. im',
+                        type=str,
+                        default='fig',
+                        required=False)
 
     parser.add_argument(
         '--overwrite',
@@ -495,18 +498,16 @@ def main(args):
         action='store_true',
         default=False)
 
-    parser.add_argument(
-        '--allobjects',
-        help=
-        'Fit all objects not only MW_TARGET',
-        action='store_true',
-        default=False)
+    parser.add_argument('--allobjects',
+                        help='Fit all objects not only MW_TARGET',
+                        action='store_true',
+                        default=False)
 
     args = parser.parse_args(args)
     input_files = args.input_files
     input_file_from = args.input_file_from
 
-    output_dir,output_tab_prefix,output_mod_prefix = args.output_dir, args.output_tab_prefix, args.output_mod_prefix
+    output_dir, output_tab_prefix, output_mod_prefix = args.output_dir, args.output_tab_prefix, args.output_mod_prefix
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config = args.config
@@ -530,20 +531,19 @@ def main(args):
     else:
         raise Exception('You need to specify the spectra you want to fit')
 
-    proc_many(
-        files,
-        output_dir,
-        output_tab_prefix,
-        output_mod_prefix,
-        fig_prefix,
-        nthreads=nthreads,
-        overwrite=args.overwrite,
-        config=config,
-        targetid=targetid,
-        combine=combine,
-        mwonly=mwonly,
-        doplot=doplot,
-        minsn=minsn)
+    proc_many(files,
+              output_dir,
+              output_tab_prefix,
+              output_mod_prefix,
+              fig_prefix,
+              nthreads=nthreads,
+              overwrite=args.overwrite,
+              config=config,
+              targetid=targetid,
+              combine=combine,
+              mwonly=mwonly,
+              doplot=doplot,
+              minsn=minsn)
 
 
 if __name__ == '__main__':
