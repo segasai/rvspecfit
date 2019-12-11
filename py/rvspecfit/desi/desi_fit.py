@@ -275,6 +275,7 @@ def proc_desi(fname,
                 outdict[col] = curCols[col]
             for f in setups:
                 outdict['sn_%s' % f] = np.nanmedian([_[f] for _ in sns])
+            outdict['SUCCESS'] = True
             outdf = outdf.append(pandas.DataFrame([outdict]), True)
         else:
             assert (len(specdatas) == 1)
@@ -291,7 +292,7 @@ def proc_desi(fname,
 
             for f in setups:
                 outdict['sn_%s' % f] = sns[0][f]
-
+            outdict['SUCCESS'] = True
             outdf = outdf.append(pandas.DataFrame([outdict]), True)
             for ii, curd in enumerate(specdata):
                 models[curd.name].append(curmodel[ii])
