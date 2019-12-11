@@ -48,7 +48,8 @@ def process(specdata,
             fixParam=None,
             options=None,
             config=None,
-            resolParams=None):
+            resolParams=None,
+            verbose=False):
     """
 process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam = ('feh','vsini'),
                 config =config, resolParam = None)
@@ -89,7 +90,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             fitVsini = False
         else:
             fitVsini = True
-
+    t0= time.time()
     res = spec_fit.find_best(
         specdata,
         vels_grid, [curparam],
@@ -160,10 +161,12 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             'fatol': 1e-3,
             'xatol': 1e-2
         })
+    t2 = time.time()
     if second_minimizer:
         res = scipy.optimize.minimize(
             func,
             res['x'], method='BFGS')
+    t3 = time.time()
     best_param = paramMapper(res['x'])
     ret = {}
     ret['param'] = dict(zip(specParams, best_param['params']))
@@ -171,8 +174,6 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         ret['vsini'] = best_param['vsini']
     ret['vel'] = best_param['vel']
     best_vel = best_param['vel']
-
-    t2 = time.time()
 
     # For a given template measure the chi-square as a function of velocity to get the uncertaint
 
@@ -210,7 +211,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             new_width = max(res1['vel_err'], vel_step) * 10
             min_vel = max(best_vel - new_width, min_vel)
             max_vel = min(best_vel + new_width, max_vel)
-    t3 = time.time()
+    t4 = time.time()
     ret['vel'] =best_vel
     ret['vel_err'] = res1['vel_err']
     ret['skewness'] = res1['skewness']
@@ -223,7 +224,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         options=options,
         config=config,
         full_output=True)
-
+    t5 = time.time()
     # compute the uncertainty of stellar params
     def hess_func(p):
         outp = spec_fit.get_chisq(
@@ -256,4 +257,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     ret['yfit'] = outp['models']
     ret['chisq'] = outp['chisq']
     ret['chisq_array'] = outp['chisq_array']
+    t6 = time.time()
+    if verbose:
+        print ('Timings2: ', t1-t0, t2-t1, t3-t2, t4-t3, t5-t4,t6-t5)
     return ret

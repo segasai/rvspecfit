@@ -83,7 +83,7 @@ def proc_onespec(specdata,
                  config,
                  options,
                  fig_fname_mask,
-                 doplot=True):
+                 doplot=True, verbose=False):
     chisqs = {}
     chisqs_c = {}
     t1 = time.time()
@@ -97,7 +97,8 @@ def proc_onespec(specdata,
                            paramDict0,
                            fixParam=fixParam,
                            config=config,
-                           options=options)
+                           options=options,
+                           verbose=verbose)
     t3 = time.time()
     chisq_cont_array = spec_fit.get_chisq_continuum(specdata, options=options)
     t4 = time.time()
@@ -135,7 +136,8 @@ def proc_onespec(specdata,
                           fig_fname_mask % i)
         else:
             make_plot(specdata, res1['yfit'], title, fig_fname_mask)
-
+    if verbose:
+        print ('Timing1: ',t2-t1,t3-t2,t4-t3)
     return outdict, res1['yfit']
 
 
@@ -148,7 +150,8 @@ def proc_desi(fname,
               combine=False,
               mwonly=True,
               doplot=True,
-              minsn=-1e9):
+              minsn=-1e9,
+              verbose=False):
     """
     Process One single file with desi spectra
 
@@ -268,7 +271,8 @@ def proc_desi(fname,
                                              config,
                                              options,
                                              curmask,
-                                             doplot=doplot)
+                                             doplot=doplot,
+                                             verbose=verbose)
             outdict['BRICKID'] = curbrick
             outdict['TARGETID'] = curtargetid
             for col in curCols.keys():
@@ -284,7 +288,8 @@ def proc_desi(fname,
                                              config,
                                              options,
                                              fig_fname_mask % i,
-                                             doplot=doplot)
+                                             doplot=doplot,
+                                             verbose=verbose)
             outdict['BRICKID'] = curbrick
             outdict['TARGETID'] = curtargetid
             for col in curCols.keys():
@@ -352,7 +357,8 @@ def proc_many(files,
               targetid=None,
               mwonly=True,
               minsn=-1e9,
-              doplot=True):
+              doplot=True,
+              verbose=False):
     """
     Process many spectral files
 
@@ -402,7 +408,8 @@ def proc_many(files,
         kwargs = dict(combine=combine,
                       mwonly=mwonly,
                       doplot=doplot,
-                      minsn=minsn)
+                      minsn=minsn,
+                      verbose=verbose)
         if parallel:
             res.append(poolEx.submit(proc_desi_wrapper, *args, **kwargs))
         else:
@@ -499,6 +506,13 @@ def main(args):
         action='store_true',
         default=False)
 
+    parser.add_argument(
+        '--verbose',
+        help=
+        'Verbose output',
+        action='store_true',
+        default=False)
+
     parser.add_argument('--allobjects',
                         help='Fit all objects not only MW_TARGET',
                         action='store_true',
@@ -507,7 +521,7 @@ def main(args):
     args = parser.parse_args(args)
     input_files = args.input_files
     input_file_from = args.input_file_from
-
+    verbose = args.verbose
     output_dir, output_tab_prefix, output_mod_prefix = args.output_dir, args.output_tab_prefix, args.output_mod_prefix
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
@@ -544,7 +558,8 @@ def main(args):
               combine=combine,
               mwonly=mwonly,
               doplot=doplot,
-              minsn=minsn)
+              minsn=minsn,
+              verbose=verbose)
 
 
 if __name__ == '__main__':
