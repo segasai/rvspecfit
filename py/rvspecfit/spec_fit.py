@@ -119,7 +119,7 @@ class SpecData:
 
 
 @functools.lru_cache(100)
-def get_polys(specdata, npoly):
+def get_basis(specdata, npoly, rbf=True):
     '''
     Get the precomputed polynomials for the continuum for a given specdata
 
@@ -129,6 +129,8 @@ def get_polys(specdata, npoly):
         The spectroscopic dataset objects
     npoly: integer
         The degree of polynomial to use
+    rbf: bool
+        Use the RBF basis instead of monomial basis
 
     Returns:
     --------
@@ -138,22 +140,26 @@ def get_polys(specdata, npoly):
     lam = specdata.lam
     # get polynomials for continuum
     polys = np.zeros((npoly, len(lam)))
-    coeffs = {}
-#    for i in range(npoly):
-#        coeffs[i] = np.zeros(npoly)
-#        coeffs[i][i] = 1
     normlam = (lam - lam[0]) / (lam[-1] - lam[0]) * 2 - 1
     # -1..1
-    npoly0 = 3
-    for i in range(npoly0):
-        polys[i, : ] = normlam**i
-    nrbf = npoly - npoly0
-
-    if nrbf>0:
-        sig = 2./nrbf
-        rbfcens = np.linspace(-1,1,nrbf,True)
-        for i in range(nrbf):
-            polys[npoly0 + i, :] = scipy.stats.norm(rbfcens[i],sig).pdf(normlam)
+    if not rbf:
+        coeffs = {}
+        for i in range(npoly):
+            coeffs[i] = np.zeros(npoly)
+            coeffs[i][i] = 1
+        for i in range(npoly):
+            polys[i, :] = np.polynomial.Chebyshev(coeffs[i])(normlam)
+    else:
+        npoly0 = 3
+        for i in range(npoly0):
+            polys[i, : ] = normlam**i
+        nrbf = npoly - npoly0
+        assert (npoly>=npoly0)
+        if nrbf>0:
+            sig = 2./nrbf
+            rbfcens = np.linspace(-1,1,nrbf,True)
+            for i in range(nrbf):
+                polys[npoly0 + i, :] = scipy.stats.norm(rbfcens[i],sig).pdf(normlam)
     return polys
 
 
@@ -440,7 +446,7 @@ def get_chisq_continuum(specdata, options=None):
     ret = []
     for curdata in specdata:
         name = curdata.name
-        polys = get_polys(curdata, npoly)
+        polys = get_basis(curdata, npoly)
         templ = np.ones(len(curdata.spec))
         curchisq, coeffs = get_chisq0(
             curdata.spec, templ, polys, get_coeffs=True, espec=curdata.espec)
@@ -546,7 +552,7 @@ def get_chisq(specdata,
         if resol_params is not None:
             evalTempl = convolve_resol(evalTempl, resol_params[name])
 
-        polys = get_polys(curdata, npoly)
+        polys = get_basis(curdata, npoly)
 
         curchisq = get_chisq0(
             curdata.spec,
