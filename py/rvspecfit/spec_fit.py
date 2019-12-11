@@ -187,22 +187,19 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
         normtempl = templ
 
     npoly = polys.shape[0]
-    matrix1 = np.matrix(np.zeros((npoly, npoly)), copy=False)
-    #vector1 = np.matrix(np.zeros((npoly, 1)), copy=False)
-    polys1 = np.zeros((npoly, len(spec)))
 
-    polys1[:, :] = normtempl[None, :] * polys
+    polys1 = normtempl[None, :] * polys
     # M
-    vector1 = np.matrix(np.dot(polys1, normspec)).T
+    vector1 = polys1 @ normspec
     # M^T S
     u, s, v = scipy.linalg.svd(polys1, full_matrices=False, check_finite=False)
-    u = np.matrix(u, copy=False)
-    matrix1 = u * np.matrix(np.diag(s**2)) * u.T
+    #u = np.matrix(u, copy=False)
+    matrix1 = u @ np.diag(s**2) @ u.T
     det = np.prod(s)**2
     # matrix1 is the M^T M matrix
     v2 = scipy.linalg.solve(matrix1, vector1, check_finite=False)
 
-    chisq = -vector1.getT() * v2 + \
+    chisq = -vector1.T @ v2 + \
         0.5 * np.log(det)
     if get_coeffs:
         coeffs = v2.flatten()
