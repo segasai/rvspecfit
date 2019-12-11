@@ -61,7 +61,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     max_vsini = config.get('max_vsini') or 500
     min_vsini = config.get('min_vsini') or 1e-2
     min_vel_step = config.get('min_vel_step') or 0.2
-
+    second_minimizer = bool(config.get('second_minimizer')) or True
     if config is None:
         raise Exception('Config must be provided')
 
@@ -160,9 +160,10 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             'fatol': 1e-3,
             'xatol': 1e-2
         })
-    res = scipy.optimize.minimize(
-        func,
-        res['x'], method='BFGS')
+    if second_minimizer:
+        res = scipy.optimize.minimize(
+            func,
+            res['x'], method='BFGS')
     best_param = paramMapper(res['x'])
     ret = {}
     ret['param'] = dict(zip(specParams, best_param['params']))

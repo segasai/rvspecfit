@@ -1,7 +1,8 @@
 template_lib: 'PATH_TO_DIR_WITH_TEMPLATES/'
-min_vel: -1000
-max_vel: 1000
-min_vel_step: 0.2
-vel_step0: 5
-min_vsini: 0.1
-max_vsini: 500
+min_vel: -1000 # minimum velocity to consider
+max_vel: 1000 # maximum velocity to consider
+min_vel_step: 0.2 # The smallest step for the final P(v|D) evaluation
+vel_step0: 5 # The initial velocity grid resolution
+min_vsini: 0.1  # min vsini to fit
+max_vsini: 500 # max vsini to fit
+second_minimizer: 1 # to use a second optimizer (gradient based after nelder mead)
