@@ -232,7 +232,11 @@ def proc_desi(fname,
         # collect data (if combining that means multiple spectra)
         for curid in xids:
             curbrick = brickid[curid]
-            curCols = dict([(_, tab[_][curid]) for _ in columnsCopy])
+            curCols = []
+            for curc in columnsCopy:
+                if curc in tab:
+                    curCols.append((curc, tab[cuc][curid]))
+            curCols = dict(curCols)
             specdata = []
             cursn = {}
             for s in setups:
@@ -252,7 +256,6 @@ def proc_desi(fname,
             specdatas.append(specdata)
         fig_fname_mask = fig_prefix + '_%d_%d_%%d.png' % (curbrick,
                                                           curtargetid)
-
         curmaxsn = -1
 
         for i, specdata in enumerate(specdatas):
