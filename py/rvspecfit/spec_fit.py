@@ -139,13 +139,21 @@ def get_polys(specdata, npoly):
     # get polynomials for continuum
     polys = np.zeros((npoly, len(lam)))
     coeffs = {}
-    for i in range(npoly):
-        coeffs[i] = np.zeros(npoly)
-        coeffs[i][i] = 1
+#    for i in range(npoly):
+#        coeffs[i] = np.zeros(npoly)
+#        coeffs[i][i] = 1
     normlam = (lam - lam[0]) / (lam[-1] - lam[0]) * 2 - 1
     # -1..1
-    for i in range(npoly):
-        polys[i, :] = np.polynomial.Chebyshev(coeffs[i])(normlam)
+    npoly0 = 3
+    for i in range(npoly0):
+        polys[i, : ] = normlam**i
+    nrbf = npoly - npoly0
+
+    if nrbf>0:
+        sig = 2./nrbf
+        rbfcens = np.linspace(-1,1,nrbf,True)
+        for i in range(nrbf):
+            polys[npoly0 + i, :] = scipy.stats.norm(rbfcens[i],sig).pdf(normlam)
     return polys
 
 
