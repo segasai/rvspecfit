@@ -64,9 +64,9 @@ def fit(specdata, config):
     """
     # configuration parameters
 
-    maxvel = 1000
+    maxvel = config.get('max_vel') or 1000
     # only search for CCF peaks from -maxvel to maxvel
-    nvelgrid = 2000
+    nvelgrid = 2 * maxvel / (config.get('vel_step0') or 2)
     # number of points on the ccf in the specified velocity range
 
     loglam = {}
