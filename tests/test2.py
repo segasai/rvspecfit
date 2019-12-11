@@ -1,3 +1,5 @@
+import os
+os.environ['OMP_NUM_THREADS']='1'
 import sys
 from rvspecfit import spec_fit
 from rvspecfit import spec_inter
