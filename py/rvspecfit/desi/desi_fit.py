@@ -250,7 +250,8 @@ def proc_desi(fname,
               doplot=True,
               minsn=-1e9,
               verbose=False,
-              expid_range=None):
+              expid_range=None,
+              overwrite=False):
     """
     Process One single file with desi spectra
 
@@ -297,7 +298,7 @@ def proc_desi(fname,
     # if we are combining 
     
     # columns to include in the RVTAB
-    columnsCopy = ['FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID']
+    columnsCopy = ['FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID', 'EXPID']
 
     setups = ('b', 'r', 'z')
         
@@ -347,34 +348,98 @@ def proc_desi(fname,
     if len(outdf) == 0:
         return
 
-    fibermap_copy = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
+    fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                        name='FIBERMAP')
-    outputmod = [pyfits.PrimaryHDU()]
+    outmod_hdus = [pyfits.PrimaryHDU()]
 
     # TODO
     # in the combine mode I don't know how to write the model
     #
-
-
     for curs in setups:
-        outputmod.append(
+        outmod_hdus.append(
             pyfits.ImageHDU(waves[curs],
                             name='%s_WAVELENGTH' % curs.upper()))
-        outputmod.append(
+        outmod_hdus.append(
             pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
                             name='%s_MODEL' % curs.upper()))
-    pyfits.HDUList(outputmod + [fibermap_copy]).writeto(mod_ofname,
-                                                        overwrite=True)
-
+    outmod_hdus += [fibermap_subset_hdu]
     outtab = atpy.Table.from_pandas(outdf)
-    hdulist = pyfits.HDUList([
+    outtab_hdus=[
         pyfits.PrimaryHDU(),
-        pyfits.BinTableHDU(outtab, name='RVTAB'), fibermap_copy
-    ])
-    hdulist.writeto(tab_ofname, overwrite=True)
+        pyfits.BinTableHDU(outtab, name='RVTAB'), fibermap_subset_hdu
+    ]
+
+    if os.path.exists(tab_ofname):
+        old_rvtab = None
+        try:
+            old_rvtab = atpy.Table().read(mod_ofname,hdu='FIBERTAB')
+            old_rvtab = atpy.Table().read(tab_ofname,hdu='FIBERTAB')
+        except:
+            pass
+
+    if overwrite or not os.path.exists(tab_ofname) or not os.path.exists(mod_ofname) or old_rvtab is None:
+        # if output files do not exist or I cant read fibertab
+        pyfits.HDUList(outmod_hdus).writeto(mod_ofname,
+                                                        overwrite=True)
+        pyfits.HDUList(outtab_hdus).writeto(tab_ofname, overwrite=True)
+
+    else:
+        refit_tab=atpy.Table(fibermap)[subset]
+        # find a replacement subset
+        refit_tab_pd = refit_tab.to_pandas()
+        old_rvtab_pd = old_rvtab.to_pandas()
+        refit_tab_pd['rowid'] = np.arange(len(refit_tab))
+        old_rvtab_pd['rowid'] = np.arange(len(old_rvtab))
+        
+        merge = refit_tab_pd.merge(old_rvtab_pd,left_on=['EXPID','TARGETID'],right_on=['EXPID','TARGETID'],suffixes=('_x','_y'),indicator=True,how='outer')
+        #newids = np.array(merge['rowid_x'])[np.array(merge['_merge']=='left_only')]
+        repset = np.array(merge['_merge']=='both_only')
+        repid_old = np.array(merge['rowid_y'])[repset]
+        #repid_new = np.array(merge['rowid_x'])[repset]
+
+        delmask = np.zeros(len(old_rvtab),dtype=bool)
+        delmask[repid_old]=True
+        # this is the subset of the old data that must
+        # be deleted
+        merge_hdus( outtab_hdus, tab_ofname, delmask)
+        merge_hdus( outmod_hdus, mod_ofname, delmask)
     return 1
 
+#def combine_outputs(outtab_hdus, outmod_hdus, tab_ofname, mod_ofname, delmask):
 
+def merge_hdus(hdus, ofile, delmask):
+    allowed= ['FIBERMAP','RVTAB'] + ['%s_MODEL'%_ for _ in 'BRZ']+[
+        '%s_WAVELENGTH'%_ for _ in 'BRZ']
+
+    for i in range(len(hdus)):
+        if i==0:
+            continue
+        curhdu = hdus[i]
+        curhduname = curhdu.name
+        
+        if curhduname not in allowed:
+            raise Exception('Weird exception' ,curhduname)
+        if curhduname in ['FIBERMAP', 'RVTAB']:
+            newdat = atpy.Table(curhdu.data)
+            olddat = atpy.Table().read(ofile,hdu=curhduname)
+            tab = atpy.vstack((olddat[~delmask],newdat))
+            curouthdu=pyfits.BinTableHDU(tab, name=curhduname)
+            hdus[i] = curouthdu
+            continue
+        if curhduname[-10:] == 'WAVELENGTH':
+            continue
+        if curhduname[-5:] == 'MODEL':
+            newdat = curhdu.data
+            olddat = pyfits.getdata(ofile, curhduname)
+            hdus[i]= pyfits.ImageHDU(np.concatenate((olddat[~delmask], newdat),axis=0),
+                            name=curhduname)
+            continue
+        raise Exception('I should not be here')
+    # TODO protection against crash
+    # write into temp file then rename
+    pyfits.HDUList(hdus).writeto(ofile,overwrite=True)
+    
+    
 def proc_desi_wrapper(*args, **kwargs):
     try:
         ret = proc_desi(*args, **kwargs)
@@ -394,14 +459,14 @@ def proc_many(files,
               fig_prefix,
               config=None,
               nthreads=1,
-              overwrite=True,
               combine=False,
               targetid=None,
               mwonly=True,
               minsn=-1e9,
               doplot=True,
               verbose=False,
-              expid_range=None):
+              expid_range=None,
+              overwrite=False):
     """
     Process many spectral files
 
@@ -445,16 +510,18 @@ def proc_many(files,
         tab_ofname = folder_path + output_tab_prefix + '-' + suffix
         mod_ofname = folder_path + output_mod_prefix + '-' + suffix
 
-        if (not overwrite) and os.path.exists(tab_ofname):
-            print('skipping, products already exist', f)
-            continue
+#        if (not overwrite) and os.path.exists(tab_ofname):
+#            print('skipping, products already exist', f)
+#            continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config, targetid)
         kwargs = dict(combine=combine,
                       mwonly=mwonly,
                       doplot=doplot,
                       minsn=minsn,
                       verbose=verbose,
-                      expid_range=expid_range)
+                      expid_range=expid_range,
+                      overwrite=overwrite
+                      )
         if parallel:
             res.append(poolEx.submit(proc_desi_wrapper, *args, **kwargs))
         else:
@@ -542,7 +609,7 @@ def main(args):
                         required=False)
 
     parser.add_argument(
-        '--overwrite',
+       '--overwrite',
         help=
         'If enabled the code will overwrite the existing products, otherwise it will skip them',
         action='store_true',
@@ -551,7 +618,7 @@ def main(args):
     parser.add_argument(
         '--doplot',
         help=
-        'If enabled the code will overwrite the existing products, otherwise it will skip them',
+        'Make plots',
         action='store_true',
         default=False)
 
@@ -611,7 +678,6 @@ def main(args):
               output_mod_prefix,
               fig_prefix,
               nthreads=nthreads,
-              overwrite=args.overwrite,
               config=config,
               targetid=targetid,
               combine=combine,
