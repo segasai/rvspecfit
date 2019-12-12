@@ -355,10 +355,10 @@ def proc_desi(fname,
     # in the combine mode I don't know how to write the model
     #
 
+
     for curs in setups:
         outputmod.append(
-            pyfits.ImageHDU(pyfits.getdata(fname,
-                                           '%s_WAVELENGTH' % curs.upper()),
+            pyfits.ImageHDU(waves[curs],
                             name='%s_WAVELENGTH' % curs.upper()))
         outputmod.append(
             pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
