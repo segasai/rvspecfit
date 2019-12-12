@@ -165,7 +165,7 @@ def read_data(fname):
         waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
     return fluxes, ivars, masks, waves
 
-def select_fibers_to_fit(fibermap, sns, minsn=None, mwonly=True):
+def select_fibers_to_fit(fibermap, sns, minsn=None, mwonly=True, expid_range=None):
     """
     Identify fibers to fit 
     Currently that either uses MWS_TARGET or S/N cut
@@ -189,6 +189,13 @@ def select_fibers_to_fit(fibermap, sns, minsn=None, mwonly=True):
         subset = fibermap['MWS_TARGET'] != 0
     else:
         subset = np.ones(len(fibermap), dtype=bool)
+    if expid_range is not None:
+        mine, maxe = expid_range
+        if mine is None:
+            mine = -1
+        if maxe is None:
+            maxe = np.inf
+    subset = subset & (fibermap["EXPID"]>mine)&(fibermap['EXPID']<=maxe)
     if minsn is not None:
         maxsn = np.max(np.array([sns[_] for _ in 'brz']),axis=0)
         subset = subset & (maxsn > minsn)
@@ -242,7 +249,8 @@ def proc_desi(fname,
               mwonly=True,
               doplot=True,
               minsn=-1e9,
-              verbose=False):
+              verbose=False,
+              expid_range=None):
     """
     Process One single file with desi spectra
 
@@ -262,6 +270,8 @@ def proc_desi(fname,
         Produce plots
     minsn: real
         The slallest S/N for processing
+    expid_range: tuple of ints
+        The range of expids to fit
     """
 
     options = {'npoly': 10}
@@ -277,7 +287,7 @@ def proc_desi(fname,
     targetid = fibermap['TARGETID']
 
     subset = select_fibers_to_fit(fibermap, sns, minsn=minsn,
-                                  mwonly=mwonly)
+                                  mwonly=mwonly, expid_range=expid_range)
 
     # skip if no need to fit anything
     if not (subset.any()):
@@ -390,7 +400,8 @@ def proc_many(files,
               mwonly=True,
               minsn=-1e9,
               doplot=True,
-              verbose=False):
+              verbose=False,
+              expid_range=None):
     """
     Process many spectral files
 
@@ -442,7 +453,8 @@ def proc_many(files,
                       mwonly=mwonly,
                       doplot=doplot,
                       minsn=minsn,
-                      verbose=verbose)
+                      verbose=verbose,
+                      expid_range=expid_range)
         if parallel:
             res.append(poolEx.submit(proc_desi_wrapper, *args, **kwargs))
         else:
@@ -497,6 +509,17 @@ def main(args):
                         type=float,
                         default=-1e9,
                         required=False)
+    parser.add_argument('--minexpid',
+                        help='Min expid',
+                        type=int,
+                        default=None,
+                        required=False)
+    parser.add_argument('--maxexpid',
+                        help='Max expid',
+                        type=int,
+                        default=None,
+                        required=False)
+
     parser.add_argument('--output_tab_prefix',
                         help='Prefix of output table files',
                         type=str,
@@ -564,6 +587,9 @@ def main(args):
     mwonly = not args.allobjects
     doplot = args.doplot
     minsn = args.minsn
+    minexpid = args.minexpid
+    maxexpid = args.maxexpid
+    
     if input_files is not None and input_file_from is not None:
         raise Exception(
             'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
@@ -592,7 +618,8 @@ def main(args):
               mwonly=mwonly,
               doplot=doplot,
               minsn=minsn,
-              verbose=verbose)
+              verbose=verbose,
+              expid_range=(minexpid,maxexpid))
 
 
 if __name__ == '__main__':
