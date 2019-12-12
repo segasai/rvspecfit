@@ -82,7 +82,7 @@ def proc_onespec(specdata,
                  setups,
                  config,
                  options,
-                 fig_fname_mask,
+                 fig_fname='fig.png',
                  doplot=True, verbose=False):
     chisqs = {}
     chisqs_c = {}
@@ -124,7 +124,7 @@ def proc_onespec(specdata,
         outdict['chisq_tot'] = sum(chisqs.values())
         outdict['chisq_%s' % s.replace('desi_', '')] = chisqs[s]
         outdict['chisq_c_%s' % s.replace('desi_', '')] = float(chisqs_c[s])
-
+            
     if doplot:
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
             res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
@@ -133,13 +133,104 @@ def proc_onespec(specdata,
             for i in range(len(specdata) // len(setups)):
                 sl = slice(i * len(setups), (i + 1) * len(setups))
                 make_plot(specdata[sl], res1['yfit'][sl], title,
-                          fig_fname_mask % i)
+                          fig_fname.replace('.png','_%d.png'%i))
         else:
-            make_plot(specdata, res1['yfit'], title, fig_fname_mask)
+            make_plot(specdata, res1['yfit'], title, fig_fname)
     if verbose:
         print ('Timing1: ',t2-t1,t3-t2,t4-t3)
     return outdict, res1['yfit']
 
+
+def get_sns(data, ivars, masks):
+    """
+    Return the vector of S/Ns
+    """
+    
+    xind = (ivars<=0) | (masks>0)
+    xsn = data * np.sqrt(ivars)
+    xsn[xind] = np.nan
+    xsn[xind] = np.nan
+    sns = np.nanmedian(xsn,axis=1)
+    return sns
+
+def read_data(fname):
+    fluxes = {}
+    ivars = {}
+    waves = {}
+    masks = {}
+    for s in 'brz':
+        fluxes[s] = pyfits.getdata(fname, '%s_FLUX' % s.upper())
+        ivars[s] = pyfits.getdata(fname, '%s_IVAR' % s.upper())
+        masks[s] = pyfits.getdata(fname, '%s_MASK' % s.upper())
+        waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
+    return fluxes, ivars, masks, waves
+
+def select_fibers_to_fit(fibermap, sns, minsn=None, mwonly=True):
+    """
+    Identify fibers to fit 
+    Currently that either uses MWS_TARGET or S/N cut
+    Parameters:
+    ----------
+    fibermap: Table
+        Fibermap table object
+    sns: dict of numpy arrays 
+        Array of S/Ns
+    minsn: float
+        Threshold S/N
+    mwonly: bool
+        Only fit MWS
+
+    Returns:
+    -------
+    ret: bool numpy array
+        Array with True for selected spectra
+    """
+    if mwonly:
+        subset = fibermap['MWS_TARGET'] != 0
+    else:
+        subset = np.ones(len(fibermap), dtype=bool)
+    if minsn is not None:
+        maxsn = np.max(np.array([sns[_] for _ in 'brz']),axis=0)
+        subset = subset & (maxsn > minsn)
+    return subset
+
+def get_unique_seqid_to_fit(targetid, subset, combine=False):
+    """ 
+    Return the row ids of that needs to be processed
+    The complexity here is dealing with the combine mode, in that 
+    case I return list of lists of integers
+
+    """
+    if not combine:
+        return np.nonzero(subset)[0]
+    
+    seqid = np.arange(len(targetid))
+    utargetid, inv = np.unique(targetid)
+    ret = []
+    for u in utargetid:
+        ret.append(seqid[targetid==u])
+    return ret
+
+
+def get_specdata(waves, fluxes, ivars, masks, seqid):
+    large_error = 1e9
+    sds = []
+    for s in 'brz':
+        spec = fluxes[s][seqid] * 1
+        curivars = ivars[s][seqid] * 1
+        medspec  = np.nanmedian(spec)
+        baddat = ~np.isfinite( spec+curivars)
+        badmask = (curivars <= 0) | (masks[s][seqid] > 0) | baddat
+        curivars[badmask] = medspec**2 / large_error**2
+        spec[baddat] = medspec
+        espec = 1. / curivars**.5
+        sd = spec_fit.SpecData('desi_%s' % s,
+                          waves[s],
+                          spec,
+                          espec,
+                          badmask=badmask)
+        sds.append(sd)
+    return sds
 
 def proc_desi(fname,
               tab_ofname,
@@ -177,138 +268,76 @@ def proc_desi(fname,
 
     print('Processing', fname)
     if not valid_file(fname):
+        print ('Not valid file:', fname)
         return
-    tab = pyfits.getdata(fname, 'FIBERMAP')
-    if mwonly:
-        mws = tab['MWS_TARGET'] != 0
-    else:
-        mws = np.ones(len(tab), dtype=bool)
-    if not (mws.any()):
+    
+    fibermap = pyfits.getdata(fname, 'FIBERMAP')
+    fluxes, ivars, masks, waves = read_data(fname)
+    sns = dict([(_,get_sns(fluxes[_], ivars[_], masks[_])) for _ in 'brz'])
+    targetid = fibermap['TARGETID']
+
+    subset = select_fibers_to_fit(fibermap, sns, minsn=minsn,
+                                  mwonly=mwonly)
+
+    # skip if no need to fit anything
+    if not (subset.any()):
+        print ('No fibers selected in file', fname)
         return
-    targetid = tab['TARGETID']
-    brickid = tab['BRICKID']
-    columnsCopy = ['FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC']
-    seqid = np.arange(len(targetid))
-    fiberSubset = np.zeros(len(tab), dtype=bool)
+
+    # if we are combining 
+    
+    # columns to include in the RVTAB
+    columnsCopy = ['FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID']
 
     setups = ('b', 'r', 'z')
-    fluxes = {}
-    ivars = {}
-    waves = {}
-    masks = {}
-    for s in setups:
-        fluxes[s] = pyfits.getdata(fname, '%s_FLUX' % s.upper())
-        ivars[s] = pyfits.getdata(fname, '%s_IVAR' % s.upper())
-        masks[s] = pyfits.getdata(fname, '%s_MASK' % s.upper())
-        waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
-
-    large_error = 1e9
-
-    utargetid, uuid = np.unique(targetid[mws], return_index=True)
-    uuid = np.nonzero(mws)[0][uuid]
-    if not combine:
-        uuid = seqid
-
+        
     outdf = pandas.DataFrame()
+
+    # This will store best-fit model data
     models = {}
     for curs in setups:
         models['desi_%s' % curs] = []
 
-    for curseqid in uuid:
-        curtargetid = targetid[curseqid]
+    seqid_to_fit = get_unique_seqid_to_fit(targetid, subset, combine=combine)
 
-        specdata = []
-
-        if fit_targetid is not None and curtargetid != fit_targetid:
-            continue
-        if combine:
-            xids = np.nonzero(targetid == curtargetid)[0]
-        else:
-            xids = [curseqid]
-
-        specdatas = []
-        sns = []  # sns of all the datasets collected
-
+    for curseqid in seqid_to_fit:
         # collect data (if combining that means multiple spectra)
-        for curid in xids:
-            curbrick = brickid[curid]
-            curCols = []
-            for curc in columnsCopy:
-                if curc in [_.name for _ in tab.columns]:
-                    curCols.append((curc, tab[curc][curid]))
-            curCols = dict(curCols)
-            specdata = []
-            cursn = {}
-            for s in setups:
-                spec = fluxes[s][curid]
-                curivars = ivars[s][curid]
-                badmask = (curivars <= 0) | (masks[s][curid] > 0)
-                curivars[badmask] = 1. / large_error**2
-                espec = 1. / curivars**.5
-                cursn[s] = np.nanmedian(spec / espec)
-                specdata.append(
-                    spec_fit.SpecData('desi_%s' % s,
-                                      waves[s],
-                                      spec,
-                                      espec,
-                                      badmask=badmask))
-            sns.append(cursn)
-            specdatas.append(specdata)
-        fig_fname_mask = fig_prefix + '_%d_%d_%%d.png' % (curbrick,
-                                                          curtargetid)
-        curmaxsn = -1
-
-        for i, specdata in enumerate(specdatas):
-            for f in setups:
-                curmaxsn = max(sns[i][f], curmaxsn)
-        if curmaxsn < minsn:
-            continue
-        if combine:
-
-            specdata = sum(specdatas, [])
-            curmask = fig_fname_mask
-            if len(specdata) == len(setups):
-                curmask = curmask % 0
-            outdict, curmodel = proc_onespec(specdata,
-                                             setups,
-                                             config,
-                                             options,
-                                             curmask,
-                                             doplot=doplot,
-                                             verbose=verbose)
-            outdict['BRICKID'] = curbrick
-            outdict['TARGETID'] = curtargetid
-            for col in curCols.keys():
-                outdict[col] = curCols[col]
-            for f in setups:
-                outdict['sn_%s' % f] = np.nanmedian([_[f] for _ in sns])
-            outdict['SUCCESS'] = True
-            outdf = outdf.append(pandas.DataFrame([outdict]), True)
+        if not combine:
+            specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid)
+            curFiberRow = fibermap[curseqid] 
         else:
-            assert (len(specdatas) == 1)
-            outdict, curmodel = proc_onespec(specdata,
+            specdatas = sum([get_specdata(waves, fluxes, ivars, masks, _) for _ in curseqid],[])
+            curFiberRow = fibermap[curseqid[0]]
+        
+        curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
+        fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick,
+                                                    curtargetid,
+                                                    curseqid)
+        
+        outdict, curmodel = proc_onespec(specdatas,
                                              setups,
                                              config,
                                              options,
-                                             fig_fname_mask % i,
+                                             fig_fname=fig_fname,
                                              doplot=doplot,
                                              verbose=verbose)
-            outdict['BRICKID'] = curbrick
-            outdict['TARGETID'] = curtargetid
-            for col in curCols.keys():
-                outdict[col] = curCols[col]
+        
+        for col in columnsCopy:
+            outdict[col] = curFiberRow[col]
+        for curs in setups:
+            outdict['SN_%s'%curs] = sns[curs][curseqid]
+        
+        outdict['SUCCESS'] = True
+        
+        outdf = outdf.append(pandas.DataFrame([outdict]), True)
 
-            for f in setups:
-                outdict['sn_%s' % f] = sns[0][f]
-            outdict['SUCCESS'] = True
-            outdf = outdf.append(pandas.DataFrame([outdict]), True)
-            for ii, curd in enumerate(specdata):
-                models[curd.name].append(curmodel[ii])
+        for ii, curd in enumerate(specdatas):
+            models[curd.name].append(curmodel[ii])
 
-        fiberSubset[curseqid] = True
     if len(outdf) == 0:
         return
-    fibermap_copy = pyfits.BinTableHDU(atpy.Table(tab)[fiberSubset],
+
+    fibermap_copy = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                        name='FIBERMAP')
     outputmod = [pyfits.PrimaryHDU()]
 
@@ -385,7 +414,8 @@ def proc_many(files,
         THe min S/N to fit
     """
     config = utils.read_config(config)
-
+    assert(config is not None)
+    assert('template_lib' in config)
     if nthreads > 1:
         parallel = True
     else:
