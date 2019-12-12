@@ -5,7 +5,6 @@ import time
 import numpy as np
 import scipy.optimize
 import scipy.interpolate
-import matplotlib.pyplot as plt
 from rvspecfit import make_ccf
 
 
