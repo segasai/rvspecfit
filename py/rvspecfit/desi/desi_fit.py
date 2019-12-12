@@ -234,8 +234,8 @@ def proc_desi(fname,
             curbrick = brickid[curid]
             curCols = []
             for curc in columnsCopy:
-                if curc in tab:
-                    curCols.append((curc, tab[cuc][curid]))
+                if curc in [_.name for _ in tab.columns]:
+                    curCols.append((curc, tab[curc][curid]))
             curCols = dict(curCols)
             specdata = []
             cursn = {}
