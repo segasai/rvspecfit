@@ -269,7 +269,8 @@ def proc_desi(fname,
               minsn=-1e9,
               verbose=False,
               expid_range=None,
-              overwrite=False):
+              overwrite=False,
+              poolex=None):
     """
     Process One single file with desi spectra
 
@@ -335,7 +336,7 @@ def proc_desi(fname,
         models['desi_%s' % curs] = []
 
     seqid_to_fit = get_unique_seqid_to_fit(targetid, subset, combine=combine)
-
+    rets = []
     for curseqid in seqid_to_fit:
         # collect data (if combining that means multiple spectra)
         if not combine:
@@ -351,14 +352,20 @@ def proc_desi(fname,
         fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
                                                     curseqid)
 
-        outdict, curmodel = proc_onespec(specdatas,
+        rets.append((poolex.submit(proc_onespec,
+                                  *(specdatas,
                                          setups,
                                          config,
-                                         options,
-                                         fig_fname=fig_fname,
-                                         doplot=doplot,
-                                         verbose=verbose)
+                                         options),
+                                  **dict(fig_fname=fig_fname,
+                                       doplot=doplot,
+                                       verbose=verbose)),
+                                  curFiberRow, curseqid))
 
+    for r in rets:
+        outdict, curmodel = r[0].result()
+        curFiberRow, curseqid = r[1], r[2]
+        
         for col in columnsCopy:
             outdict[col] = curFiberRow[col]
         for curs in setups:
@@ -479,6 +486,17 @@ def proc_desi_wrapper(*args, **kwargs):
 
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
 
+class FakeFuture:
+    def __init__(self,x):
+        self.x = x
+    def result(self):
+        return self.x
+    
+class FakeExecutor:
+    def __init__(self):
+        pass
+    def submit(self, f, *args, **kw):
+        return FakeFuture(f(*args, **kw))
 
 def proc_many(files,
               output_dir,
@@ -527,6 +545,8 @@ def proc_many(files,
 
     if parallel:
         poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
+    else:
+        poolEx = FakeExecutor()
     res = []
     for f in files:
         fname = f.split('/')[-1]
@@ -548,12 +568,10 @@ def proc_many(files,
                       minsn=minsn,
                       verbose=verbose,
                       expid_range=expid_range,
-                      overwrite=overwrite)
-        if parallel:
-            res.append(poolEx.submit(proc_desi_wrapper, *args, **kwargs))
-        else:
-            proc_desi_wrapper(*args, **kwargs)
-
+                      overwrite=overwrite,
+                      poolex=poolEx)
+        proc_desi(*args, **kwargs)
+ 
     if parallel:
         try:
             poolEx.shutdown(wait=True)
