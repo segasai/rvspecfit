@@ -1,6 +1,7 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 import glob
+import warnings
 import sys
 import argparse
 import time
@@ -145,12 +146,14 @@ def get_sns(data, ivars, masks):
     """
     Return the vector of S/Ns
     """
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        xind = (ivars<=0) | (masks>0)
+        xsn = data * np.sqrt(ivars)
+        xsn[xind] = np.nan
+        xsn[xind] = np.nan
+        sns = np.nanmedian(xsn,axis=1)
     
-    xind = (ivars<=0) | (masks>0)
-    xsn = data * np.sqrt(ivars)
-    xsn[xind] = np.nan
-    xsn[xind] = np.nan
-    sns = np.nanmedian(xsn,axis=1)
     return sns
 
 def read_data(fname):
@@ -388,26 +391,26 @@ def proc_desi(fname,
         # find a replacement subset
         refit_tab_pd = refit_tab.to_pandas()
         old_rvtab_pd = old_rvtab.to_pandas()
-        refit_tab_pd['rowid'] = np.arange(len(refit_tab))
-        old_rvtab_pd['rowid'] = np.arange(len(old_rvtab))
+        refit_tab_pd['rowid'] = np.arange(len(refit_tab),dtype=int)
+        old_rvtab_pd['rowid'] = np.arange(len(old_rvtab),dtype=int)
         
         merge = refit_tab_pd.merge(old_rvtab_pd,left_on=['EXPID','TARGETID'],right_on=['EXPID','TARGETID'],suffixes=('_x','_y'),indicator=True,how='outer')
         #newids = np.array(merge['rowid_x'])[np.array(merge['_merge']=='left_only')]
         repset = np.array(merge['_merge']=='both_only')
-        repid_old = np.array(merge['rowid_y'])[repset]
+        repid_old = np.array(merge['rowid_y'],dtype=int)[repset]
         #repid_new = np.array(merge['rowid_x'])[repset]
 
-        delmask = np.zeros(len(old_rvtab),dtype=bool)
-        delmask[repid_old]=True
+        keepmask = np.ones(len(old_rvtab),dtype=bool)
+        keepmask[repid_old]=False
+        print (keepmask)
         # this is the subset of the old data that must
-        # be deleted
-        merge_hdus( outtab_hdus, tab_ofname, delmask)
-        merge_hdus( outmod_hdus, mod_ofname, delmask)
+        # be kept
+        merge_hdus( outtab_hdus, tab_ofname, keepmask)
+        merge_hdus( outmod_hdus, mod_ofname, keepmask)
     return 1
 
-#def combine_outputs(outtab_hdus, outmod_hdus, tab_ofname, mod_ofname, delmask):
 
-def merge_hdus(hdus, ofile, delmask):
+def merge_hdus(hdus, ofile, keepmask):
     allowed= ['FIBERMAP','RVTAB'] + ['%s_MODEL'%_ for _ in 'BRZ']+[
         '%s_WAVELENGTH'%_ for _ in 'BRZ']
 
@@ -422,8 +425,9 @@ def merge_hdus(hdus, ofile, delmask):
         if curhduname in ['FIBERMAP', 'RVTAB']:
             newdat = atpy.Table(curhdu.data)
             olddat = atpy.Table().read(ofile,hdu=curhduname)
-            tab = atpy.vstack((olddat[~delmask],newdat))
-            curouthdu=pyfits.BinTableHDU(tab, name=curhduname)
+            tab = atpy.vstack((olddat[keepmask],newdat))
+            print (tab)
+            curouthdu = pyfits.BinTableHDU(tab, name=curhduname)
             hdus[i] = curouthdu
             continue
         if curhduname[-10:] == 'WAVELENGTH':
@@ -431,7 +435,7 @@ def merge_hdus(hdus, ofile, delmask):
         if curhduname[-5:] == 'MODEL':
             newdat = curhdu.data
             olddat = pyfits.getdata(ofile, curhduname)
-            hdus[i]= pyfits.ImageHDU(np.concatenate((olddat[~delmask], newdat),axis=0),
+            hdus[i]= pyfits.ImageHDU(np.concatenate((olddat[keepmask], newdat),axis=0),
                             name=curhduname)
             continue
         raise Exception('I should not be here')
