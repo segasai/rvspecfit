@@ -12,6 +12,7 @@ import concurrent.futures
 from collections import OrderedDict
 import astropy.table as atpy
 import astropy.io.fits as pyfits
+import astropy.units as auni
 import numpy as np
 
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
@@ -105,14 +106,14 @@ def proc_onespec(specdata,
     chisq_cont_array = spec_fit.get_chisq_continuum(specdata, options=options)
     t4 = time.time()
     outdict = dict(
-        vrad=res1['vel'],
-        vrad_err=res1['vel_err'],
-        logg=res1['param']['logg'],
-        teff=res1['param']['teff'],
-        alphafe=res1['param']['alpha'],
-        feh=res1['param']['feh'],
-        vsini=res1['vsini'],
-        nexp=len(specdata) / len(setups),
+        VRAD=res1['vel']*auni.km/auni.s,
+        VRAD_ERR=res1['vel_err']*auni.km/auni.s,
+        LOGG=res1['param']['logg'],
+        TEFF=res1['param']['teff']*auni.K,
+        ALPHAFE=res1['param']['alpha'],
+        FEH=res1['param']['feh'],
+        VSINI=res1['vsini']*auni.km/auni.s,
+        NEXP=len(specdata) / len(setups),
     )
 
     for i, curd in enumerate(specdata):
@@ -123,9 +124,9 @@ def proc_onespec(specdata,
         chisqs_c[curd.name] += chisq_cont_array[i]
 
     for s in chisqs.keys():
-        outdict['chisq_tot'] = sum(chisqs.values())
-        outdict['chisq_%s' % s.replace('desi_', '')] = chisqs[s]
-        outdict['chisq_c_%s' % s.replace('desi_', '')] = float(chisqs_c[s])
+        outdict['CHISQ_TOT'] = sum(chisqs.values())
+        outdict['CHISQ_%s' % s.replace('desi_', '').upper()] = chisqs[s]
+        outdict['CHISQ_C_%s' % s.replace('desi_', '').upper()] = float(chisqs_c[s])
 
     if doplot:
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
@@ -252,6 +253,13 @@ def get_specdata(waves, fluxes, ivars, masks, seqid):
         sds.append(sd)
     return sds
 
+def comment_filler(tab, desc):
+    for i,k in enumerate(tab.data.columns):
+        tab.header['TCOMM%d'%(i+1)]=desc.get(k.name) or ''
+    print (tab)
+    print (tab.data)
+    print (tab.header)
+    return tab
 
 def put_empty_file(fname):
     pyfits.PrimaryHDU().writeto(fname, overwrite=True)
@@ -328,7 +336,8 @@ def proc_desi(fname,
 
     setups = ('b', 'r', 'z')
 
-    outdf = pandas.DataFrame()
+    #outdf = pandas.DataFrame()
+    outdf = []
 
     # This will store best-fit model data
     models = {}
@@ -369,19 +378,38 @@ def proc_desi(fname,
         for col in columnsCopy:
             outdict[col] = curFiberRow[col]
         for curs in setups:
-            outdict['SN_%s' % curs] = sns[curs][curseqid]
+            outdict['SN_%s' % curs.upper()] = sns[curs][curseqid]
 
         outdict['SUCCESS'] = True
 
-        outdf = outdf.append(pandas.DataFrame([outdict]), True)
+        #outdf = outdf.append(pandas.DataFrame([outdict]), True)
+        outdf.append(outdict)
 
         for ii, curd in enumerate(specdatas):
             models[curd.name].append(curmodel[ii])
 
+    outdf1 = {}
+    for k in outdf[0].keys():
+        outdf1[k] = auni.Quantity([_[k] for _ in outdf])
+    outtab = atpy.Table(outdf1)
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                              name='FIBERMAP')
     outmod_hdus = [pyfits.PrimaryHDU()]
-
+    columnDesc = dict ([
+        ('VRAD', 'Radial velocity'),
+        ('VRAD_ERR', 'Radial velocity error'),
+        ('VSINI', 'Stellar rotation velocity'),
+        ('LOGG', 'Log of surface gravity'),
+        ('TEFF', 'Effective temperature'),
+        ('CHISQ_TOT', 'Total chi-square for all arms'),
+        ('TARGETID', 'DESI targetid'),
+        ('SUCCESS', "Did we succeed or failed"]
+        )
+    for curs in 'BRZ':
+        columnDesc['SN_%s'%curs]=('Median S/N %s arm'%curs)
+        columnDesc['CHISQ_%s'%curs]=('Chi-square in the %s arm'%curs)
+        columnDesc['CHISQ_C_%s'%curs]=('Chi-square in the %s arm after fitting continuum only'%curs)
+                                      
     # TODO
     # in the combine mode I don't know how to write the model
     #
@@ -392,10 +420,12 @@ def proc_desi(fname,
             pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
                             name='%s_MODEL' % curs.upper()))
     outmod_hdus += [fibermap_subset_hdu]
-    outtab = atpy.Table.from_pandas(outdf)
+    #outtab = atpy.Table.from_pandas(outdf)
     outtab_hdus = [
         pyfits.PrimaryHDU(),
-        pyfits.BinTableHDU(outtab, name='RVTAB'), fibermap_subset_hdu
+        comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'),
+                      columnDesc),
+        fibermap_subset_hdu
     ]
 
     if os.path.exists(tab_ofname):
@@ -435,12 +465,12 @@ def proc_desi(fname,
         keepmask[repid_old] = False
         # this is the subset of the old data that must
         # be kept
-        merge_hdus(outtab_hdus, tab_ofname, keepmask)
-        merge_hdus(outmod_hdus, mod_ofname, keepmask)
+        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc)
+        merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc)
     return len(seqid_to_fit)
 
 
-def merge_hdus(hdus, ofile, keepmask):
+def merge_hdus(hdus, ofile, keepmask, columnDesc):
     allowed = ['FIBERMAP', 'RVTAB'
                ] + ['%s_MODEL' % _
                     for _ in 'BRZ'] + ['%s_WAVELENGTH' % _ for _ in 'BRZ']
@@ -457,7 +487,8 @@ def merge_hdus(hdus, ofile, keepmask):
             newdat = atpy.Table(curhdu.data)
             olddat = atpy.Table().read(ofile, hdu=curhduname)
             tab = atpy.vstack((olddat[keepmask], newdat))
-            curouthdu = pyfits.BinTableHDU(tab, name=curhduname)
+            curouthdu = comment_filler(pyfits.BinTableHDU(tab, name=curhduname),
+                                       columnDesc)
             hdus[i] = curouthdu
             continue
         if curhduname[-10:] == 'WAVELENGTH':
