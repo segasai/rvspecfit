@@ -84,7 +84,8 @@ def proc_onespec(specdata,
                  config,
                  options,
                  fig_fname='fig.png',
-                 doplot=True, verbose=False):
+                 doplot=True,
+                 verbose=False):
     chisqs = {}
     chisqs_c = {}
     t1 = time.time()
@@ -125,7 +126,7 @@ def proc_onespec(specdata,
         outdict['chisq_tot'] = sum(chisqs.values())
         outdict['chisq_%s' % s.replace('desi_', '')] = chisqs[s]
         outdict['chisq_c_%s' % s.replace('desi_', '')] = float(chisqs_c[s])
-            
+
     if doplot:
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
             res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
@@ -134,11 +135,11 @@ def proc_onespec(specdata,
             for i in range(len(specdata) // len(setups)):
                 sl = slice(i * len(setups), (i + 1) * len(setups))
                 make_plot(specdata[sl], res1['yfit'][sl], title,
-                          fig_fname.replace('.png','_%d.png'%i))
+                          fig_fname.replace('.png', '_%d.png' % i))
         else:
             make_plot(specdata, res1['yfit'], title, fig_fname)
     if verbose:
-        print ('Timing1: ',t2-t1,t3-t2,t4-t3)
+        print('Timing1: ', t2 - t1, t3 - t2, t4 - t3)
     return outdict, res1['yfit']
 
 
@@ -148,13 +149,14 @@ def get_sns(data, ivars, masks):
     """
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        xind = (ivars<=0) | (masks>0)
+        xind = (ivars <= 0) | (masks > 0)
         xsn = data * np.sqrt(ivars)
         xsn[xind] = np.nan
         xsn[xind] = np.nan
-        sns = np.nanmedian(xsn,axis=1)
-    
+        sns = np.nanmedian(xsn, axis=1)
+
     return sns
+
 
 def read_data(fname):
     fluxes = {}
@@ -168,7 +170,12 @@ def read_data(fname):
         waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
     return fluxes, ivars, masks, waves
 
-def select_fibers_to_fit(fibermap, sns, minsn=None, mwonly=True, expid_range=None):
+
+def select_fibers_to_fit(fibermap,
+                         sns,
+                         minsn=None,
+                         mwonly=True,
+                         expid_range=None):
     """
     Identify fibers to fit 
     Currently that either uses MWS_TARGET or S/N cut
@@ -198,11 +205,12 @@ def select_fibers_to_fit(fibermap, sns, minsn=None, mwonly=True, expid_range=Non
             mine = -1
         if maxe is None:
             maxe = np.inf
-    subset = subset & (fibermap["EXPID"]>mine)&(fibermap['EXPID']<=maxe)
+    subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <= maxe)
     if minsn is not None:
-        maxsn = np.max(np.array([sns[_] for _ in 'brz']),axis=0)
+        maxsn = np.max(np.array([sns[_] for _ in 'brz']), axis=0)
         subset = subset & (maxsn > minsn)
     return subset
+
 
 def get_unique_seqid_to_fit(targetid, subset, combine=False):
     """ 
@@ -213,12 +221,12 @@ def get_unique_seqid_to_fit(targetid, subset, combine=False):
     """
     if not combine:
         return np.nonzero(subset)[0]
-    
+
     seqid = np.arange(len(targetid))
     utargetid, inv = np.unique(targetid)
     ret = []
     for u in utargetid:
-        ret.append(seqid[targetid==u])
+        ret.append(seqid[targetid == u])
     return ret
 
 
@@ -228,22 +236,24 @@ def get_specdata(waves, fluxes, ivars, masks, seqid):
     for s in 'brz':
         spec = fluxes[s][seqid] * 1
         curivars = ivars[s][seqid] * 1
-        medspec  = np.nanmedian(spec)
-        baddat = ~np.isfinite( spec+curivars)
+        medspec = np.nanmedian(spec)
+        baddat = ~np.isfinite(spec + curivars)
         badmask = (curivars <= 0) | (masks[s][seqid] > 0) | baddat
         curivars[badmask] = medspec**2 / large_error**2
         spec[baddat] = medspec
         espec = 1. / curivars**.5
         sd = spec_fit.SpecData('desi_%s' % s,
-                          waves[s],
-                          spec,
-                          espec,
-                          badmask=badmask)
+                               waves[s],
+                               spec,
+                               espec,
+                               badmask=badmask)
         sds.append(sd)
     return sds
 
+
 def put_empty_file(fname):
-    pyfits.PrimaryHDU().writeto(fname,overwrite=True)
+    pyfits.PrimaryHDU().writeto(fname, overwrite=True)
+
 
 def proc_desi(fname,
               tab_ofname,
@@ -285,31 +295,36 @@ def proc_desi(fname,
 
     print('Processing', fname)
     if not valid_file(fname):
-        print ('Not valid file:', fname)
+        print('Not valid file:', fname)
         return 0
-    
+
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
     fluxes, ivars, masks, waves = read_data(fname)
-    sns = dict([(_,get_sns(fluxes[_], ivars[_], masks[_])) for _ in 'brz'])
+    sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_])) for _ in 'brz'])
     targetid = fibermap['TARGETID']
 
-    subset = select_fibers_to_fit(fibermap, sns, minsn=minsn,
-                                  mwonly=mwonly, expid_range=expid_range)
+    subset = select_fibers_to_fit(fibermap,
+                                  sns,
+                                  minsn=minsn,
+                                  mwonly=mwonly,
+                                  expid_range=expid_range)
 
     # skip if no need to fit anything
     if not (subset.any()):
-        print ('No fibers selected in file', fname)
+        print('No fibers selected in file', fname)
         put_empty_file(tab_ofname)
         put_empty_file(mod_ofname)
         return 0
 
-    # if we are combining 
-    
+    # if we are combining
+
     # columns to include in the RVTAB
-    columnsCopy = ['FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID', 'EXPID']
+    columnsCopy = [
+        'FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID', 'EXPID'
+    ]
 
     setups = ('b', 'r', 'z')
-        
+
     outdf = pandas.DataFrame()
 
     # This will store best-fit model data
@@ -323,38 +338,39 @@ def proc_desi(fname,
         # collect data (if combining that means multiple spectra)
         if not combine:
             specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid)
-            curFiberRow = fibermap[curseqid] 
+            curFiberRow = fibermap[curseqid]
         else:
-            specdatas = sum([get_specdata(waves, fluxes, ivars, masks, _) for _ in curseqid],[])
+            specdatas = sum([
+                get_specdata(waves, fluxes, ivars, masks, _) for _ in curseqid
+            ], [])
             curFiberRow = fibermap[curseqid[0]]
-        
+
         curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
-        fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick,
-                                                    curtargetid,
+        fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
                                                     curseqid)
-        
+
         outdict, curmodel = proc_onespec(specdatas,
-                                             setups,
-                                             config,
-                                             options,
-                                             fig_fname=fig_fname,
-                                             doplot=doplot,
-                                             verbose=verbose)
-        
+                                         setups,
+                                         config,
+                                         options,
+                                         fig_fname=fig_fname,
+                                         doplot=doplot,
+                                         verbose=verbose)
+
         for col in columnsCopy:
             outdict[col] = curFiberRow[col]
         for curs in setups:
-            outdict['SN_%s'%curs] = sns[curs][curseqid]
-        
+            outdict['SN_%s' % curs] = sns[curs][curseqid]
+
         outdict['SUCCESS'] = True
-        
+
         outdf = outdf.append(pandas.DataFrame([outdict]), True)
 
         for ii, curd in enumerate(specdatas):
             models[curd.name].append(curmodel[ii])
 
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
-                                       name='FIBERMAP')
+                                             name='FIBERMAP')
     outmod_hdus = [pyfits.PrimaryHDU()]
 
     # TODO
@@ -362,14 +378,13 @@ def proc_desi(fname,
     #
     for curs in setups:
         outmod_hdus.append(
-            pyfits.ImageHDU(waves[curs],
-                            name='%s_WAVELENGTH' % curs.upper()))
+            pyfits.ImageHDU(waves[curs], name='%s_WAVELENGTH' % curs.upper()))
         outmod_hdus.append(
             pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
                             name='%s_MODEL' % curs.upper()))
     outmod_hdus += [fibermap_subset_hdu]
     outtab = atpy.Table.from_pandas(outdf)
-    outtab_hdus=[
+    outtab_hdus = [
         pyfits.PrimaryHDU(),
         pyfits.BinTableHDU(outtab, name='RVTAB'), fibermap_subset_hdu
     ]
@@ -377,56 +392,62 @@ def proc_desi(fname,
     if os.path.exists(tab_ofname):
         old_rvtab = None
         try:
-            old_rvtab = atpy.Table().read(mod_ofname,hdu='FIBERTAB')
-            old_rvtab = atpy.Table().read(tab_ofname,hdu='FIBERTAB')
+            old_rvtab = atpy.Table().read(mod_ofname, hdu='FIBERTAB')
+            old_rvtab = atpy.Table().read(tab_ofname, hdu='FIBERTAB')
         except:
             pass
 
-    if overwrite or not os.path.exists(tab_ofname) or not os.path.exists(mod_ofname) or old_rvtab is None:
+    if overwrite or not os.path.exists(tab_ofname) or not os.path.exists(
+            mod_ofname) or old_rvtab is None:
         # if output files do not exist or I cant read fibertab
-        pyfits.HDUList(outmod_hdus).writeto(mod_ofname,
-                                                        overwrite=True)
+        pyfits.HDUList(outmod_hdus).writeto(mod_ofname, overwrite=True)
         pyfits.HDUList(outtab_hdus).writeto(tab_ofname, overwrite=True)
 
     else:
-        refit_tab=atpy.Table(fibermap)[subset]
+        refit_tab = atpy.Table(fibermap)[subset]
         # find a replacement subset
         refit_tab_pd = refit_tab.to_pandas()
         old_rvtab_pd = old_rvtab.to_pandas()
-        refit_tab_pd['rowid'] = np.arange(len(refit_tab),dtype=int)
-        old_rvtab_pd['rowid'] = np.arange(len(old_rvtab),dtype=int)
-        
-        merge = refit_tab_pd.merge(old_rvtab_pd,left_on=['EXPID','TARGETID'],right_on=['EXPID','TARGETID'],suffixes=('_x','_y'),indicator=True,how='outer')
+        refit_tab_pd['rowid'] = np.arange(len(refit_tab), dtype=int)
+        old_rvtab_pd['rowid'] = np.arange(len(old_rvtab), dtype=int)
+
+        merge = refit_tab_pd.merge(old_rvtab_pd,
+                                   left_on=['EXPID', 'TARGETID'],
+                                   right_on=['EXPID', 'TARGETID'],
+                                   suffixes=('_x', '_y'),
+                                   indicator=True,
+                                   how='outer')
         #newids = np.array(merge['rowid_x'])[np.array(merge['_merge']=='left_only')]
-        repset = np.array(merge['_merge']=='both_only')
-        repid_old = np.array(merge['rowid_y'],dtype=int)[repset]
+        repset = np.array(merge['_merge'] == 'both_only')
+        repid_old = np.array(merge['rowid_y'], dtype=int)[repset]
         #repid_new = np.array(merge['rowid_x'])[repset]
 
-        keepmask = np.ones(len(old_rvtab),dtype=bool)
-        keepmask[repid_old]=False
+        keepmask = np.ones(len(old_rvtab), dtype=bool)
+        keepmask[repid_old] = False
         # this is the subset of the old data that must
         # be kept
-        merge_hdus( outtab_hdus, tab_ofname, keepmask)
-        merge_hdus( outmod_hdus, mod_ofname, keepmask)
+        merge_hdus(outtab_hdus, tab_ofname, keepmask)
+        merge_hdus(outmod_hdus, mod_ofname, keepmask)
     return len(seqid_to_fit)
 
 
 def merge_hdus(hdus, ofile, keepmask):
-    allowed= ['FIBERMAP','RVTAB'] + ['%s_MODEL'%_ for _ in 'BRZ']+[
-        '%s_WAVELENGTH'%_ for _ in 'BRZ']
+    allowed = ['FIBERMAP', 'RVTAB'
+               ] + ['%s_MODEL' % _
+                    for _ in 'BRZ'] + ['%s_WAVELENGTH' % _ for _ in 'BRZ']
 
     for i in range(len(hdus)):
-        if i==0:
+        if i == 0:
             continue
         curhdu = hdus[i]
         curhduname = curhdu.name
-        
+
         if curhduname not in allowed:
-            raise Exception('Weird exception' ,curhduname)
+            raise Exception('Weird exception', curhduname)
         if curhduname in ['FIBERMAP', 'RVTAB']:
             newdat = atpy.Table(curhdu.data)
-            olddat = atpy.Table().read(ofile,hdu=curhduname)
-            tab = atpy.vstack((olddat[keepmask],newdat))
+            olddat = atpy.Table().read(ofile, hdu=curhduname)
+            tab = atpy.vstack((olddat[keepmask], newdat))
             curouthdu = pyfits.BinTableHDU(tab, name=curhduname)
             hdus[i] = curouthdu
             continue
@@ -435,14 +456,16 @@ def merge_hdus(hdus, ofile, keepmask):
         if curhduname[-5:] == 'MODEL':
             newdat = curhdu.data
             olddat = pyfits.getdata(ofile, curhduname)
-            hdus[i]= pyfits.ImageHDU(np.concatenate((olddat[keepmask], newdat),axis=0),
-                            name=curhduname)
+            hdus[i] = pyfits.ImageHDU(np.concatenate(
+                (olddat[keepmask], newdat), axis=0),
+                                      name=curhduname)
             continue
         raise Exception('I should not be here')
     # TODO protection against crash
     # write into temp file then rename
-    pyfits.HDUList(hdus).writeto(ofile,overwrite=True)
-    
+    pyfits.HDUList(hdus).writeto(ofile, overwrite=True)
+
+
 def proc_desi_wrapper(*args, **kwargs):
     try:
         ret = proc_desi(*args, **kwargs)
@@ -493,8 +516,8 @@ def proc_many(files,
         THe min S/N to fit
     """
     config = utils.read_config(config)
-    assert(config is not None)
-    assert('template_lib' in config)
+    assert (config is not None)
+    assert ('template_lib' in config)
     if nthreads > 1:
         parallel = True
     else:
@@ -513,9 +536,9 @@ def proc_many(files,
         tab_ofname = folder_path + output_tab_prefix + '-' + suffix
         mod_ofname = folder_path + output_mod_prefix + '-' + suffix
 
-#        if (not overwrite) and os.path.exists(tab_ofname):
-#            print('skipping, products already exist', f)
-#            continue
+        #        if (not overwrite) and os.path.exists(tab_ofname):
+        #            print('skipping, products already exist', f)
+        #            continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config, targetid)
         kwargs = dict(combine=combine,
                       mwonly=mwonly,
@@ -523,8 +546,7 @@ def proc_many(files,
                       minsn=minsn,
                       verbose=verbose,
                       expid_range=expid_range,
-                      overwrite=overwrite
-                      )
+                      overwrite=overwrite)
         if parallel:
             res.append(poolEx.submit(proc_desi_wrapper, *args, **kwargs))
         else:
@@ -612,18 +634,16 @@ def main(args):
                         required=False)
 
     parser.add_argument(
-       '--overwrite',
+        '--overwrite',
         help=
         'If enabled the code will overwrite the existing products, otherwise it will skip them',
         action='store_true',
         default=False)
 
-    parser.add_argument(
-        '--doplot',
-        help=
-        'Make plots',
-        action='store_true',
-        default=False)
+    parser.add_argument('--doplot',
+                        help='Make plots',
+                        action='store_true',
+                        default=False)
 
     parser.add_argument(
         '--combine',
@@ -632,12 +652,10 @@ def main(args):
         action='store_true',
         default=False)
 
-    parser.add_argument(
-        '--verbose',
-        help=
-        'Verbose output',
-        action='store_true',
-        default=False)
+    parser.add_argument('--verbose',
+                        help='Verbose output',
+                        action='store_true',
+                        default=False)
 
     parser.add_argument('--allobjects',
                         help='Fit all objects not only MW_TARGET',
@@ -659,7 +677,7 @@ def main(args):
     minsn = args.minsn
     minexpid = args.minexpid
     maxexpid = args.maxexpid
-    
+
     if input_files is not None and input_file_from is not None:
         raise Exception(
             'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
@@ -688,7 +706,7 @@ def main(args):
               doplot=doplot,
               minsn=minsn,
               verbose=verbose,
-              expid_range=(minexpid,maxexpid))
+              expid_range=(minexpid, maxexpid))
 
 
 if __name__ == '__main__':
