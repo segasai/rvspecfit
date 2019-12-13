@@ -242,6 +242,9 @@ def get_specdata(waves, fluxes, ivars, masks, seqid):
         sds.append(sd)
     return sds
 
+def put_empty_file(fname):
+    pyfits.PrimaryHDU().writeto(fname,overwrite=True)
+
 def proc_desi(fname,
               tab_ofname,
               mod_ofname,
@@ -283,7 +286,7 @@ def proc_desi(fname,
     print('Processing', fname)
     if not valid_file(fname):
         print ('Not valid file:', fname)
-        return
+        return 0
     
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
     fluxes, ivars, masks, waves = read_data(fname)
@@ -296,7 +299,9 @@ def proc_desi(fname,
     # skip if no need to fit anything
     if not (subset.any()):
         print ('No fibers selected in file', fname)
-        return
+        put_empty_file(tab_ofname)
+        put_empty_file(mod_ofname)
+        return 0
 
     # if we are combining 
     
@@ -347,9 +352,6 @@ def proc_desi(fname,
 
         for ii, curd in enumerate(specdatas):
             models[curd.name].append(curmodel[ii])
-
-    if len(outdf) == 0:
-        return
 
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                        name='FIBERMAP')
@@ -402,12 +404,11 @@ def proc_desi(fname,
 
         keepmask = np.ones(len(old_rvtab),dtype=bool)
         keepmask[repid_old]=False
-        print (keepmask)
         # this is the subset of the old data that must
         # be kept
         merge_hdus( outtab_hdus, tab_ofname, keepmask)
         merge_hdus( outmod_hdus, mod_ofname, keepmask)
-    return 1
+    return len(seqid_to_fit)
 
 
 def merge_hdus(hdus, ofile, keepmask):
@@ -426,7 +427,6 @@ def merge_hdus(hdus, ofile, keepmask):
             newdat = atpy.Table(curhdu.data)
             olddat = atpy.Table().read(ofile,hdu=curhduname)
             tab = atpy.vstack((olddat[keepmask],newdat))
-            print (tab)
             curouthdu = pyfits.BinTableHDU(tab, name=curhduname)
             hdus[i] = curouthdu
             continue
@@ -442,7 +442,6 @@ def merge_hdus(hdus, ofile, keepmask):
     # TODO protection against crash
     # write into temp file then rename
     pyfits.HDUList(hdus).writeto(ofile,overwrite=True)
-    
     
 def proc_desi_wrapper(*args, **kwargs):
     try:
