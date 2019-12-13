@@ -208,7 +208,9 @@ def select_fibers_to_fit(fibermap,
     subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <= maxe)
     if minsn is not None:
         maxsn = np.max(np.array([sns[_] for _ in 'brz']), axis=0)
-        subset = subset & (maxsn > minsn)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            subset = subset & (maxsn > minsn)
     return subset
 
 
