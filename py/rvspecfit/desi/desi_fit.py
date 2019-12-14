@@ -113,7 +113,7 @@ def proc_onespec(specdata,
         ALPHAFE=res1['param']['alpha'],
         FEH=res1['param']['feh'],
         VSINI=res1['vsini']*auni.km/auni.s,
-        NEXP=len(specdata) / len(setups),
+        NEXP=len(specdata) // len(setups),
     )
 
     for i, curd in enumerate(specdata):
@@ -387,7 +387,10 @@ def proc_desi(fname,
 
     outdf1 = {}
     for k in outdf[0].keys():
-        outdf1[k] = auni.Quantity([_[k] for _ in outdf])
+        if isinstance(outdf[0][k],auni.Quantity):
+            outdf1[k] = auni.Quantity([_[k] for _ in outdf])
+        else:
+            outdf1[k] = np.array([_[k] for _ in outdf])
     outtab = atpy.Table(outdf1)
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                              name='FIBERMAP')
@@ -401,7 +404,7 @@ def proc_desi(fname,
         ('CHISQ_TOT', 'Total chi-square for all arms'),
         ('TARGETID', 'DESI targetid'),
         ('SUCCESS', "Did we succeed or fail")
-]
+        ]
         )
     for curs in 'BRZ':
         columnDesc['SN_%s'%curs]=('Median S/N %s arm'%curs)
@@ -418,7 +421,6 @@ def proc_desi(fname,
             pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
                             name='%s_MODEL' % curs.upper()))
     outmod_hdus += [fibermap_subset_hdu]
-    #outtab = atpy.Table.from_pandas(outdf)
     outtab_hdus = [
         pyfits.PrimaryHDU(),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'),
