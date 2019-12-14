@@ -401,8 +401,11 @@ def proc_desi(fname,
         ('VSINI', 'Stellar rotation velocity'),
         ('LOGG', 'Log of surface gravity'),
         ('TEFF', 'Effective temperature'),
+        ('FEH', '[Fe/H] from template fitting'),
+        ('ALPHAFE', '[alpha/Fe] from template fitting'),
         ('CHISQ_TOT', 'Total chi-square for all arms'),
         ('TARGETID', 'DESI targetid'),
+        ('EXPID', 'DESI exposure id'),
         ('SUCCESS', "Did we succeed or fail")
         ]
         )
