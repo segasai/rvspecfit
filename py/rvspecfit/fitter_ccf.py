@@ -127,8 +127,6 @@ def fit(specdata, config):
                 vels[spec_setup][subind[spec_setup]][::-1],
                 curccf[spec_setup][::-1],
                 s=0)(vel_grid)
-            # plot(vel_grid, curccf[spec_setup],xr=[-1000,1000])#np.roll(np.fft.ifft(curf*curf.conj()),off[spec_setup]))
-            #plt.draw(); plt.pause(0.1)
 
         allccf = np.array([curccf[_] for _ in setups]).prod(axis=0)
         if allccf.max() > maxv:
