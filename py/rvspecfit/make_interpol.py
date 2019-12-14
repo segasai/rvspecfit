@@ -40,8 +40,11 @@ def get_line_continuum(lam, spec):
     lam1, lam2 = [np.median(_) for _ in [lam[:npix2], lam[npix2:]]]
     sp1, sp2 = [np.median(_) for _ in [spec[:npix2], spec[npix2:]]]
     cont = np.exp(
-        scipy.interpolate.UnivariateSpline(
-            [lam1, lam2], np.log(np.r_[sp1, sp2]), s=0, k=1, ext=0)(lam))
+        scipy.interpolate.UnivariateSpline([lam1, lam2],
+                                           np.log(np.r_[sp1, sp2]),
+                                           s=0,
+                                           k=1,
+                                           ext=0)(lam))
     return cont
 
 
@@ -50,7 +53,13 @@ class si:
     lamgrid = None
 
 
-def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile,
+def extract_spectrum(logg,
+                     teff,
+                     feh,
+                     alpha,
+                     dbfile,
+                     prefix,
+                     wavefile,
                      normalize=True):
     """
     Exctract a spectrum of a given parameters then apply the resolution smearing
@@ -77,14 +86,13 @@ def extract_spectrum(logg, teff, feh, alpha, dbfile, prefix, wavefile,
         Normalize the spectrum by a linear continuum
     """
 
-    lam, spec = read_grid.get_spec(
-        logg,
-        teff,
-        feh,
-        alpha,
-        dbfile=dbfile,
-        prefix=prefix,
-        wavefile=wavefile)
+    lam, spec = read_grid.get_spec(logg,
+                                   teff,
+                                   feh,
+                                   alpha,
+                                   dbfile=dbfile,
+                                   prefix=prefix,
+                                   wavefile=wavefile)
     spec = read_grid.apply_rebinner(si.mat, spec)
     if normalize:
         spec1 = spec / get_line_continuum(si.lamgrid, spec)
@@ -119,8 +127,13 @@ def process_all(setupInfo,
     parnames = ('teff', 'logg', 'feh', 'alpha')
     i = 0
 
-    templ_lam, spec = read_grid.get_spec(
-        4.5, 12000, 0, 0, dbfile=dbfile, prefix=prefix, wavefile=wavefile)
+    templ_lam, spec = read_grid.get_spec(4.5,
+                                         12000,
+                                         0,
+                                         0,
+                                         dbfile=dbfile,
+                                         prefix=prefix,
+                                         wavefile=wavefile)
     mapper = read_grid.ParamMapper()
     HR, lamleft, lamright, resol, step, log = setupInfo
 
@@ -130,17 +143,15 @@ def process_all(setupInfo,
         lamgrid = np.arange(lamleft / fac1, (lamright + step) * fac1, step)
     else:
         lamgrid = np.exp(
-            np.arange(
-                np.log(lamleft / fac1), np.log(lamright * fac1),
-                np.log(1 + step / lamleft)))
+            np.arange(np.log(lamleft / fac1), np.log(lamright * fac1),
+                      np.log(1 + step / lamleft)))
 
-    mat = read_grid.make_rebinner(
-        templ_lam,
-        lamgrid,
-        resol,
-        toair=air,
-        resolution0=resolution0,
-        fixed_fwhm=fixed_fwhm)
+    mat = read_grid.make_rebinner(templ_lam,
+                                  lamgrid,
+                                  resol,
+                                  toair=air,
+                                  resolution0=resolution0,
+                                  fixed_fwhm=fixed_fwhm)
 
     specs = []
     si.mat = mat
@@ -168,53 +179,71 @@ def process_all(setupInfo,
         try:
             os.mkdir(oprefix)
         except:
-            raise Exception('Failed to create output directory: %s'%(oprefix,))
+            raise Exception('Failed to create output directory: %s' %
+                            (oprefix, ))
     with open(('%s/' + SPEC_PKL_NAME) % (oprefix, HR), 'wb') as fp:
         pickle.dump(
-            dict(
-                specs=specs,
-                vec=vec,
-                lam=lam,
-                parnames=parnames,
-                git_rev=git_rev,
-                mapper=mapper), fp)
+            dict(specs=specs,
+                 vec=vec,
+                 lam=lam,
+                 parnames=parnames,
+                 git_rev=git_rev,
+                 mapper=mapper), fp)
+
 
 def add_bool_arg(parser, name, default=False, help=None):
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--' + name, dest=name, action='store_true',
-                       help=help)
-    group.add_argument('--no-' + name, dest=name, action='store_false',
-                       help='Invert the '+name+' option')
-    parser.set_defaults(**{name:default})
+    group.add_argument('--' + name, dest=name, action='store_true', help=help)
+    group.add_argument('--no-' + name,
+                       dest=name,
+                       action='store_false',
+                       help='Invert the ' + name + ' option')
+    parser.set_defaults(**{name: default})
     # https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse/19233287
-    
+
 
 def main(args):
     parser = argparse.ArgumentParser(
         description=
         'Create interpolated and convolved spectra from the input grid.')
-    parser.add_argument(
-        '--setup', type=str, help='Name of the spectral configuration',
-        required=True)
-    parser.add_argument('--lambda0', type=float, help='Start wavelength of the new grid',
+    parser.add_argument('--setup',
+                        type=str,
+                        help='Name of the spectral configuration',
                         required=True)
-    parser.add_argument('--lambda1', type=float, help='End wavelength of the new grid',
+    parser.add_argument('--lambda0',
+                        type=float,
+                        help='Start wavelength of the new grid',
                         required=True)
-    parser.add_argument('--resol', type=float, help='Spectral resolution of the new grid',
+    parser.add_argument('--lambda1',
+                        type=float,
+                        help='End wavelength of the new grid',
                         required=True)
-    parser.add_argument('--step', type=float, help='Pixel size in angstrom of the new grid',
+    parser.add_argument('--resol',
+                        type=float,
+                        help='Spectral resolution of the new grid',
                         required=True)
-    add_bool_arg(parser, 'log', default=True, help='Generate the spectr in log-wavelength scale')
-    add_bool_arg(parser, 'normalize', default=True, help='Normalize the spectra')
+    parser.add_argument('--step',
+                        type=float,
+                        help='Pixel size in angstrom of the new grid',
+                        required=True)
+    add_bool_arg(parser,
+                 'log',
+                 default=True,
+                 help='Generate the spectra in log-wavelength scale')
+    add_bool_arg(parser,
+                 'normalize',
+                 default=True,
+                 help='Normalize the spectra')
 
     parser.add_argument(
         '--templdb',
         type=str,
         default='files.db',
         help='The path to the SQLiteDB with the info about the templates')
-    parser.add_argument(
-    '--templprefix', type=str, help='The path to the templates'
-        ,required=True)
+    parser.add_argument('--templprefix',
+                        type=str,
+                        help='The path to the templates',
+                        required=True)
     parser.add_argument(
         '--air',
         action='store_true',
@@ -230,11 +259,10 @@ def main(args):
         type=str,
         help=
         'The path to the fits file with the wavelength grid of the templates')
-    parser.add_argument(
-        '--resolution0',
-        type=float,
-        default=100000,
-        help='The resolution of the input grid')
+    parser.add_argument('--resolution0',
+                        type=float,
+                        default=100000,
+                        help='The resolution of the input grid')
     parser.add_argument(
         '--fixed_fwhm',
         action='store_true',
@@ -245,16 +273,16 @@ def main(args):
 
     args = parser.parse_args(args)
 
-    process_all(
-        (args.setup, args.lambda0, args.lambda1, args.resol, args.step,
-         args.log),
-        dbfile=args.templdb,
-        oprefix=args.oprefix,
-        prefix=args.templprefix,
-        wavefile=args.wavefile,
-        air=args.air,
-        resolution0=args.resolution0,
-        fixed_fwhm=args.fixed_fwhm)
+    process_all((args.setup, args.lambda0, args.lambda1, args.resol, args.step,
+                 args.log),
+                dbfile=args.templdb,
+                oprefix=args.oprefix,
+                prefix=args.templprefix,
+                wavefile=args.wavefile,
+                air=args.air,
+                resolution0=args.resolution0,
+                fixed_fwhm=args.fixed_fwhm,
+                normalize=args.normalize)
 
 
 if __name__ == '__main__':
