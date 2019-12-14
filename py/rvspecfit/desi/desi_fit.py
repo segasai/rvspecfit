@@ -256,9 +256,6 @@ def get_specdata(waves, fluxes, ivars, masks, seqid):
 def comment_filler(tab, desc):
     for i,k in enumerate(tab.data.columns):
         tab.header['TCOMM%d'%(i+1)]=desc.get(k.name) or ''
-    print (tab)
-    print (tab.data)
-    print (tab.header)
     return tab
 
 def put_empty_file(fname):
@@ -403,7 +400,8 @@ def proc_desi(fname,
         ('TEFF', 'Effective temperature'),
         ('CHISQ_TOT', 'Total chi-square for all arms'),
         ('TARGETID', 'DESI targetid'),
-        ('SUCCESS', "Did we succeed or failed"]
+        ('SUCCESS', "Did we succeed or fail")
+]
         )
     for curs in 'BRZ':
         columnDesc['SN_%s'%curs]=('Median S/N %s arm'%curs)
