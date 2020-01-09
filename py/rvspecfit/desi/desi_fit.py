@@ -546,7 +546,8 @@ def proc_many(files,
               doplot=True,
               verbose=False,
               expid_range=None,
-              overwrite=False):
+              overwrite=False,
+              skipexisting=False):
     """
     Process many spectral files
 
@@ -568,6 +569,8 @@ def proc_many(files,
         Plotting
     minsn: real
         THe min S/N to fit
+    skipexisting: bool
+        if True do not process anything if output files exist
     """
     config = utils.read_config(config)
     assert (config is not None)
@@ -592,9 +595,9 @@ def proc_many(files,
         tab_ofname = folder_path + output_tab_prefix + '-' + suffix
         mod_ofname = folder_path + output_mod_prefix + '-' + suffix
 
-        #        if (not overwrite) and os.path.exists(tab_ofname):
-        #            print('skipping, products already exist', f)
-        #            continue
+        if (skipexisting) and os.path.exists(tab_ofname):
+            print('skipping, products already exist', f)
+            continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config, targetid)
         kwargs = dict(combine=combine,
                       mwonly=mwonly,
@@ -690,7 +693,14 @@ def main(args):
     parser.add_argument(
         '--overwrite',
         help=
-        'If enabled the code will overwrite the existing products, otherwise it will skip them',
+        'If enabled the code will overwrite the existing products, otherwise it will attempt to update/append',
+        action='store_true',
+        default=False)
+
+    parser.add_argument(
+        '--skipexisting',
+        help=
+        'If enabled the code will completely skip if there are existing products',
         action='store_true',
         default=False)
 
@@ -760,7 +770,8 @@ def main(args):
               doplot=doplot,
               minsn=minsn,
               verbose=verbose,
-              expid_range=(minexpid, maxexpid))
+              expid_range=(minexpid, maxexpid),
+              skipexisting=args.skipexisting)
 
 
 if __name__ == '__main__':
