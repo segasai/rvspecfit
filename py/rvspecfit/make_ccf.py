@@ -379,8 +379,11 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     if medv > 0:
         cont = np.maximum(1e-2 * medv, cont)
     else:
-        medv1 = np.median(curspec[curspec > 0])
-        cont = np.maximum(1e-2 * medv1, cont)
+#        medv1 = np.median(curspec[curspec > 0])
+#        if not np.isfinite(medv1):
+#            medv1=1
+#        cont = np.maximum(1e-2 * medv1, cont)
+        cont = 1
 
     c_spec = spec0 / cont
     c_spec = c_spec - np.median(c_spec)
@@ -488,7 +491,7 @@ def main(args):
 
     args = parser.parse_args(args)
 
-    npoints = (args.lambda1 - args.lambda0) / args.step
+    npoints = int((args.lambda1 - args.lambda0) / args.step)
     ccfconf = CCFConfig(
         logl0=np.log(args.lambda0),
         logl1=np.log(args.lambda1),
