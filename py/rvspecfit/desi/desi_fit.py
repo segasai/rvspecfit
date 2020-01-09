@@ -309,6 +309,10 @@ def proc_desi(fname,
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
     fluxes, ivars, masks, waves = read_data(fname)
     sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_])) for _ in 'brz'])
+    for _ in 'brz':
+        if len(sns[_])!=len(fibermap):
+            print('WARNING the size of the data in arm %s does not match the size of the fibermap; file %s; skipping...'%(_, fname))
+            return 0
     targetid = fibermap['TARGETID']
 
     subset = select_fibers_to_fit(fibermap,
