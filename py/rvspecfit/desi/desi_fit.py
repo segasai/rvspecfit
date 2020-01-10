@@ -383,7 +383,6 @@ def proc_desi(fname,
 
         outdict['SUCCESS'] = True
 
-        #outdf = outdf.append(pandas.DataFrame([outdict]), True)
         outdf.append(outdict)
 
         for ii, curd in enumerate(specdatas):
@@ -391,6 +390,7 @@ def proc_desi(fname,
 
     outdf1 = {}
     for k in outdf[0].keys():
+        # we can't just concatenate quantities easily
         if isinstance(outdf[0][k],auni.Quantity):
             outdf1[k] = auni.Quantity([_[k] for _ in outdf])
         else:
@@ -399,6 +399,8 @@ def proc_desi(fname,
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                              name='FIBERMAP')
     outmod_hdus = [pyfits.PrimaryHDU()]
+
+    # Column descriptions
     columnDesc = dict ([
         ('VRAD', 'Radial velocity'),
         ('VRAD_ERR', 'Radial velocity error'),
@@ -421,6 +423,7 @@ def proc_desi(fname,
     # TODO
     # in the combine mode I don't know how to write the model
     #
+
     for curs in setups:
         outmod_hdus.append(
             pyfits.ImageHDU(waves[curs], name='%s_WAVELENGTH' % curs.upper()))
@@ -428,6 +431,7 @@ def proc_desi(fname,
             pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
                             name='%s_MODEL' % curs.upper()))
     outmod_hdus += [fibermap_subset_hdu]
+
     outtab_hdus = [
         pyfits.PrimaryHDU(),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'),
@@ -438,9 +442,9 @@ def proc_desi(fname,
     if os.path.exists(tab_ofname):
         old_rvtab = None
         try:
-            old_rvtab = atpy.Table().read(mod_ofname, hdu='FIBERTAB')
-            old_rvtab = atpy.Table().read(tab_ofname, hdu='FIBERTAB')
-        except:
+            old_rvtab = atpy.Table().read(tab_ofname, format='fits',
+                                          hdu='FIBERMAP')
+        except (FileNotFoundError, OSError) as e:
             pass
 
     if overwrite or not os.path.exists(tab_ofname) or not os.path.exists(
