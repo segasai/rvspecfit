@@ -439,16 +439,15 @@ def proc_desi(fname,
         fibermap_subset_hdu
     ]
 
+    old_rvtab = None
     if os.path.exists(tab_ofname):
-        old_rvtab = None
         try:
             old_rvtab = atpy.Table().read(tab_ofname, format='fits',
                                           hdu='FIBERMAP')
         except (FileNotFoundError, OSError) as e:
             pass
 
-    if overwrite or not os.path.exists(tab_ofname) or not os.path.exists(
-            mod_ofname) or old_rvtab is None:
+    if overwrite or old_rvtab is None:
         # if output files do not exist or I cant read fibertab
         pyfits.HDUList(outmod_hdus).writeto(mod_ofname, overwrite=True)
         pyfits.HDUList(outtab_hdus).writeto(tab_ofname, overwrite=True)
@@ -476,8 +475,8 @@ def proc_desi(fname,
         keepmask[repid_old] = False
         # this is the subset of the old data that must
         # be kept
-        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc)
         merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc)
+        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc)
     return len(seqid_to_fit)
 
 
