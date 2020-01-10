@@ -778,7 +778,8 @@ def main(args):
               minsn=minsn,
               verbose=verbose,
               expid_range=(minexpid, maxexpid),
-              skipexisting=args.skipexisting)
+              skipexisting=args.skipexisting,
+              overwrite=args.overwrite)
 
 
 if __name__ == '__main__':
