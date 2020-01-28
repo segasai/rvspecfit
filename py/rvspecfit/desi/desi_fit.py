@@ -103,7 +103,7 @@ def proc_onespec(specdata,
                            options=options,
                            verbose=verbose)
     t3 = time.time()
-    chisq_cont_array = spec_fit.get_chisq_continuum(specdata, options=options)
+    chisq_cont_array = spec_fit.get_chisq_continuum(specdata, options=options)['chisq_array']
     t4 = time.time()
     outdict = dict(
         VRAD=res1['vel']*auni.km/auni.s,

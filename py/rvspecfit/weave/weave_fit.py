@@ -226,7 +226,7 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
             options=options)
         t3 = time.time()
         chisq_cont_array = spec_fit.get_chisq_continuum(
-            specdata, options=options)
+            specdata, options=options)['chisq_array']
         t4 = time.time()
         curD = {}
         curD['brickname'] = curbrick

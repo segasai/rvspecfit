@@ -444,6 +444,7 @@ def get_chisq_continuum(specdata, options=None):
     '''
     npoly = options.get('npoly') or 5
     ret = []
+    ret1 = []
     for curdata in specdata:
         name = curdata.name
         polys = get_basis(curdata, npoly)
@@ -451,9 +452,13 @@ def get_chisq_continuum(specdata, options=None):
         curchisq, coeffs = get_chisq0(
             curdata.spec, templ, polys, get_coeffs=True, espec=curdata.espec)
         model = np.dot(coeffs, polys * templ)
-        curchisq = (((model - curdata.spec) / curdata.espec)**2).mean()
+        curchisq = (((model - curdata.spec) / curdata.espec)**2).sum()
+        redchisq = curchisq / len(curdata.espec)
         ret.append(curchisq)
-    return ret
+        ret1.append(redchisq)
+    ret = np.array(ret)
+    ret1 = np.array(ret1)
+    return dict(chisq_array=ret, redchisq_array=ret1)
 
 
 def get_chisq(specdata,
