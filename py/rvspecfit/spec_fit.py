@@ -510,7 +510,6 @@ def get_chisq(specdata,
     npoly = options.get('npoly') or 5
     chisq = 0
     outsides = 0
-    models = []
     badchi = 1e6
     if rot_params is not None:
         rot_params = tuple(rot_params)
@@ -518,6 +517,7 @@ def get_chisq(specdata,
         resol_params = frozendict.frozendict(resol_params)
     atm_params = tuple(atm_params)
 
+    models = []
     chisq_array = []
     red_chisq_array = []
     # iterate over multiple datasets
@@ -533,6 +533,8 @@ def get_chisq(specdata,
         if not np.isfinite(outside):
             chisq += badchi
             chisq_array.append(np.nan)
+            red_chisq_array.append(np.nan)
+            models.append(np.zeros(len(curdata.lam))+np.nan)
             continue
         else:
             chisq += outside
