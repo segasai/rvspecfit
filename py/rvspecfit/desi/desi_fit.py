@@ -41,18 +41,16 @@ def make_plot(specdata, yfit, title, fig_fname):
     line_width = 0.8
     dpi = 100
     plt.clf()
-    plt.figure(1, figsize=(6, 6), dpi=300)
-    plt.subplot(3, 1, 1)
-    plt.plot(specdata[0].lam, specdata[0].spec, 'k-', linewidth=line_width)
-    plt.plot(specdata[0].lam, yfit[0], 'r-', alpha=alpha, linewidth=line_width)
-    plt.title(title)
-    plt.subplot(3, 1, 2)
-    plt.plot(specdata[1].lam, specdata[1].spec, 'k-', linewidth=line_width)
-    plt.plot(specdata[1].lam, yfit[1], 'r-', alpha=alpha, linewidth=line_width)
-    plt.subplot(3, 1, 3)
-    plt.plot(specdata[2].lam, specdata[2].spec, 'k-', linewidth=line_width)
-    plt.plot(specdata[2].lam, yfit[2], 'r-', alpha=alpha, linewidth=line_width)
-    plt.xlabel(r'$\lambda$ [$\AA$]')
+    ndat = len(specdata)
+    plt.figure(1, figsize=(6, 2*ndat), dpi=300)
+    for i in range(ndat):
+        plt.subplot(ndat, 1, i)
+        plt.plot(specdata[i].lam, specdata[i].spec, 'k-', linewidth=line_width)
+        plt.plot(specdata[i].lam, yfit[i], 'r-', alpha=alpha, linewidth=line_width)
+        if i==0:
+            plt.title(title)
+        if i==ndat-1:
+            plt.xlabel(r'$\lambda$ [$\AA$]')
     plt.tight_layout()
     plt.savefig(fig_fname, dpi=dpi)
 
@@ -64,20 +62,27 @@ def valid_file(fname):
     exts = pyfits.open(fname)
     extnames = [_.name for _ in exts]
 
-    arms = 'B', 'R', 'Z'
-    prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
     names0 = ['PRIMARY']
+    arms = 'B', 'R', 'Z'
+    arm_glued = 'BRZ'
+    prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
     reqnames = names0 + [
-        '%s_%s' % (_, __) for _, __ in itertools.product(arms, prefs)
-    ]
+        '%s_%s' % (_, __) for _, __ in itertools.product(arms, prefs)]
+    reqnames_glued = names0 + [ '%s_%s' %(arm_glued,_) for  _ in prefs]
     missing = []
     for curn in reqnames:
         if curn not in extnames:
             missing.append(curn)
     if len(missing) != 0:
-        print('WARNING Extensions %s are missing' % (','.join(missing)))
-        return False
-    return True
+        missing_glued = []
+        for curn in reqnames_glued:
+            if curn not in extnames:
+                missing_glued.append(curn)
+        if len(missing_glued)>0:
+            print('WARNING Extensions %s are missing' % (','.join(missing)))
+            return (False,True)
+        return (True,True)
+    return (True,False)
 
 
 def proc_onespec(specdata,
@@ -159,12 +164,16 @@ def get_sns(data, ivars, masks):
     return sns
 
 
-def read_data(fname):
+def read_data(fname, glued):
     fluxes = {}
     ivars = {}
     waves = {}
     masks = {}
-    for s in 'brz':
+    if glued:
+        setups =['b','r','z']
+    else:
+        setups = ['brz']
+    for s in setups:
         fluxes[s] = pyfits.getdata(fname, '%s_FLUX' % s.upper())
         ivars[s] = pyfits.getdata(fname, '%s_IVAR' % s.upper())
         masks[s] = pyfits.getdata(fname, '%s_MASK' % s.upper())
@@ -208,7 +217,7 @@ def select_fibers_to_fit(fibermap,
             maxe = np.inf
     subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <= maxe)
     if minsn is not None:
-        maxsn = np.max(np.array([sns[_] for _ in 'brz']), axis=0)
+        maxsn = np.max(np.array(sns.values()), axis=0)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             subset = subset & (maxsn > minsn)
@@ -233,10 +242,14 @@ def get_unique_seqid_to_fit(targetid, subset, combine=False):
     return ret
 
 
-def get_specdata(waves, fluxes, ivars, masks, seqid):
+def get_specdata(waves, fluxes, ivars, masks, seqid, glued):
     large_error = 1e9
     sds = []
-    for s in 'brz':
+    if glued:
+        setups = ['brz']
+    else:
+        setups = ['b','r','z']
+    for s in setups:
         spec = fluxes[s][seqid] * 1
         curivars = ivars[s][seqid] * 1
         medspec = np.nanmedian(spec)
@@ -302,14 +315,19 @@ def proc_desi(fname,
     options = {'npoly': 10}
 
     print('Processing', fname)
-    if not valid_file(fname):
+    valid,glued = valid_file(fname)
+    if not valid:
         print('Not valid file:', fname)
         return 0
-
+    if glued:
+        setups = ['brz']
+    else:
+        setups = ['b','r','z']
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
-    fluxes, ivars, masks, waves = read_data(fname)
-    sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_])) for _ in 'brz'])
-    for _ in 'brz':
+    fluxes, ivars, masks, waves = read_data(fname, glued)
+    sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_])) for _ in setups])
+
+    for _ in setups:
         if len(sns[_])!=len(fibermap):
             print('WARNING the size of the data in arm %s does not match the size of the fibermap; file %s; skipping...'%(_, fname))
             return 0
@@ -350,11 +368,11 @@ def proc_desi(fname,
     for curseqid in seqid_to_fit:
         # collect data (if combining that means multiple spectra)
         if not combine:
-            specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid)
+            specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid, glued)
             curFiberRow = fibermap[curseqid]
         else:
             specdatas = sum([
-                get_specdata(waves, fluxes, ivars, masks, _) for _ in curseqid
+                get_specdata(waves, fluxes, ivars, masks, _, glued) for _ in curseqid
             ], [])
             curFiberRow = fibermap[curseqid[0]]
 
@@ -415,7 +433,9 @@ def proc_desi(fname,
         ('SUCCESS', "Did we succeed or fail")
         ]
         )
-    for curs in 'BRZ':
+
+    for curs in setups:
+        curs = curs.upper()
         columnDesc['SN_%s'%curs]=('Median S/N %s arm'%curs)
         columnDesc['CHISQ_%s'%curs]=('Chi-square in the %s arm'%curs)
         columnDesc['CHISQ_C_%s'%curs]=('Chi-square in the %s arm after fitting continuum only'%curs)
@@ -475,15 +495,19 @@ def proc_desi(fname,
         keepmask[repid_old] = False
         # this is the subset of the old data that must
         # be kept
-        merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc)
-        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc)
+        merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc, glued)
+        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc, glued)
     return len(seqid_to_fit)
 
 
-def merge_hdus(hdus, ofile, keepmask, columnDesc):
+def merge_hdus(hdus, ofile, keepmask, columnDesc, glued):
+    if glued:
+        setups = ['BRZ']
+    else:
+        setups = ['B','R','Z']
     allowed = ['FIBERMAP', 'RVTAB'
                ] + ['%s_MODEL' % _
-                    for _ in 'BRZ'] + ['%s_WAVELENGTH' % _ for _ in 'BRZ']
+                    for _ in setups] + ['%s_WAVELENGTH' % _ for _ in setups]
 
     for i in range(len(hdus)):
         if i == 0:
