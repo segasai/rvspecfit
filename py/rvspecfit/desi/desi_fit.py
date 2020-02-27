@@ -170,9 +170,9 @@ def read_data(fname, glued):
     waves = {}
     masks = {}
     if glued:
-        setups =['b','r','z']
+        setups =['brz']
     else:
-        setups = ['brz']
+        setups = ['b','r','z']
     for s in setups:
         fluxes[s] = pyfits.getdata(fname, '%s_FLUX' % s.upper())
         ivars[s] = pyfits.getdata(fname, '%s_IVAR' % s.upper())
@@ -185,7 +185,8 @@ def select_fibers_to_fit(fibermap,
                          sns,
                          minsn=None,
                          mwonly=True,
-                         expid_range=None):
+                         expid_range=None,
+                         glued=False):
     """
     Identify fibers to fit 
     Currently that either uses MWS_TARGET or S/N cut
@@ -215,9 +216,10 @@ def select_fibers_to_fit(fibermap,
             mine = -1
         if maxe is None:
             maxe = np.inf
-    subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <= maxe)
+    if not glued:
+        subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <= maxe)
     if minsn is not None:
-        maxsn = np.max(np.array(sns.values()), axis=0)
+        maxsn = np.max(np.array(list(sns.values())), axis=0)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             subset = subset & (maxsn > minsn)
@@ -337,7 +339,8 @@ def proc_desi(fname,
                                   sns,
                                   minsn=minsn,
                                   mwonly=mwonly,
-                                  expid_range=expid_range)
+                                  expid_range=expid_range,
+                                  glued=glued)
 
     # skip if no need to fit anything
     if not (subset.any()):
@@ -350,11 +353,14 @@ def proc_desi(fname,
 
     # columns to include in the RVTAB
     columnsCopy = [
-        'FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID', 'EXPID'
+        'FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID'
     ]
-
-    setups = ('b', 'r', 'z')
-
+    if not glued:
+        columnsCopy.append('EXPID')
+        setups = ('b', 'r', 'z')
+    else:
+        setups = ['brz']
+        
     #outdf = pandas.DataFrame()
     outdf = []
 
@@ -480,10 +486,14 @@ def proc_desi(fname,
         refit_tab_pd['rowid'] = np.arange(len(refit_tab), dtype=int)
         old_rvtab_pd['rowid'] = np.arange(len(old_rvtab), dtype=int)
 
+        if glued:
+            pkey = ['TARGETID']
+        else:
+            pkey =['EXPID', 'TARGETID']
         merge = refit_tab_pd.merge(old_rvtab_pd,
-                                   left_on=['EXPID', 'TARGETID'],
-                                   right_on=['EXPID', 'TARGETID'],
-                                   suffixes=('_x', '_y'),
+                                   left_on=pkey,
+                                   right_on=pkey,
+                                   suffixes=['_x','_y'],
                                    indicator=True,
                                    how='outer')
         #newids = np.array(merge['rowid_x'])[np.array(merge['_merge']=='left_only')]

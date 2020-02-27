@@ -1,4 +1,4 @@
-template_lib : '../../templ_data/'
+template_lib : '../../templ_data/desi_200227/'
 min_vel: -1000
 max_vel: 1000
 min_vel_step: 0.2
