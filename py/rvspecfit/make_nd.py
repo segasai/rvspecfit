@@ -147,7 +147,7 @@ def main(args):
         required=False)
 
     args = parser.parse_args(args)
-    execute(args.setup, args.prefix)
+    execute(args.setup, prefix=args.prefix, revision=args.revision)
 
 
 if __name__ == '__main__':

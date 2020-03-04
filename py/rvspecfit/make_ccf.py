@@ -507,7 +507,7 @@ def main(args):
     else:
         vsinis = None
     ccf_executor(args.setup, ccfconf, args.prefix, args.oprefix, args.every,
-                 vsinis, revision=revision)
+                 vsinis, revision=args.revision)
 
 
 if __name__ == '__main__':
