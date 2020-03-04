@@ -107,6 +107,19 @@ def extract_spectrum(logg,
     return spec1
 
 
+class Resolution:
+    # resolution object returning an array
+    def __init__(self, resol=None, resol_func=None):
+        self.resol = resol
+        self.resol_func = resol_func
+        assert (self.resol is not None or self.resol_func is not None)
+    def __call__(self, x):
+        if self.resol is None:
+            return eval(self.resol_func, dict(x=x, np=np))
+        else:
+            return self.resol
+
+
 def process_all(setupInfo,
                 postf='',
                 dbfile='/tmp/files.db',
@@ -115,7 +128,6 @@ def process_all(setupInfo,
                 wavefile=None,
                 air=False,
                 resolution0=None,
-                fixed_fwhm=False,
                 normalize=True):
     nthreads = 8
     conn = sqlite3.connect(dbfile)
@@ -135,7 +147,7 @@ def process_all(setupInfo,
                                          prefix=prefix,
                                          wavefile=wavefile)
     mapper = read_grid.ParamMapper()
-    HR, lamleft, lamright, resol, step, log = setupInfo
+    HR, lamleft, lamright, resol_function, step, log = setupInfo
 
     deltav = 1000.  # extra padding
     fac1 = (1 + deltav / (scipy.constants.speed_of_light / 1e3))
@@ -148,10 +160,9 @@ def process_all(setupInfo,
 
     mat = read_grid.make_rebinner(templ_lam,
                                   lamgrid,
-                                  resol,
+                                  resol_function,
                                   toair=air,
-                                  resolution0=resolution0,
-                                  fixed_fwhm=fixed_fwhm)
+                                  resolution0=resolution0)
 
     specs = []
     si.mat = mat
@@ -220,8 +231,13 @@ def main(args):
                         required=True)
     parser.add_argument('--resol',
                         type=float,
-                        help='Spectral resolution of the new grid',
-                        required=True)
+                        help='Spectral resolution of the new grid')
+    parser.add_argument(
+        '--resol_func',
+        type=str,
+        help=
+        'Spectral resolution function of the new grid. It is a string that should be a function of wavelength in angstrom, i.e. 1000+2*x ',
+    )
     parser.add_argument('--step',
                         type=float,
                         help='Pixel size in angstrom of the new grid',
@@ -273,7 +289,24 @@ def main(args):
 
     args = parser.parse_args(args)
 
-    process_all((args.setup, args.lambda0, args.lambda1, args.resol, args.step,
+    if not (args.resol is not None or args.resol_func is not None):
+        parser.error('Either --resol or --resol_func is required')
+    if (args.resol is not None and args.resol_func is not None):
+        parser.error('Either --resol or --resol_func is required, not both')
+    if (args.resol_func is not None and args.fixed_fwhm):
+        parser.error('Either --resol_func is incompatible with --fixed_fwhm')
+
+    if args.resol is not None:
+        if args.fixed_fwhm:
+            lam_mid = (args.lambda0 + args.lambda1) * .5
+            resol_func = Resolution(resol_func='x/%f*%f' %
+                                    (lam_mid, args.resol))
+        else:
+            resol_func = Resolution(resol=args.resol)
+    else:
+        resol_func = Resolution(resol_func=args.resol_func)
+
+    process_all((args.setup, args.lambda0, args.lambda1, resol_func, args.step,
                  args.log),
                 dbfile=args.templdb,
                 oprefix=args.oprefix,
@@ -281,7 +314,6 @@ def main(args):
                 wavefile=args.wavefile,
                 air=args.air,
                 resolution0=args.resolution0,
-                fixed_fwhm=args.fixed_fwhm,
                 normalize=args.normalize)
 
 

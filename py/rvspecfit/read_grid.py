@@ -196,10 +196,9 @@ def get_spec(
 
 def make_rebinner(lam00,
                   lam,
-                  resolution,
+                  resolution_function,
                   resolution0=None,
-                  toair=True,
-                  fixed_fwhm=False):
+                  toair=True):
     """ 
     Make the sparse matrix that convolves a given spectrum to
     a given resolution and new wavelength grid
@@ -209,16 +208,15 @@ def make_rebinner(lam00,
     lam00: array
         The input wavelength grid of the templates
     lam: array
-        The desired wavelegnth grid of the output
-    resolution: float
-        The resolution of the desired spectra (R=l/dl)
+        The desired wavelength grid of the output
+    resolution_function: function
+        The function that when called with the wavelength as an argument 
+        will return the resolution of the desired spectra (R=l/dl)
+        I.e. it could be just lambda x: 5000 
     toair: bool
         Convert the input spectra into the air frame 
     resolution0: float
         The resolution of input templates
-    fixed_fwhm: bool
-        if True then the fwhm of the output spectrum is constant 
-        throughout rather than the lambda/delta Lambda
 
     Returns:
     --------
@@ -230,11 +228,9 @@ def make_rebinner(lam00,
     else:
         lam0 = lam00
 
-    assert (resolution < resolution0)
-    if fixed_fwhm:
-        fwhms = lam[len(lam) // 2] / resolution
-    else:
-        fwhms = lam / resolution
+    resolution_array = resolution_function(lam)
+    assert (resolution_array.max() < resolution0)
+    fwhms = lam / resolution_array
     fwhms0 = lam / resolution0
 
     sigs = (fwhms**2 - fwhms0**2)**.5 / 2.35
