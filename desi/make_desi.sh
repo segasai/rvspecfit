@@ -26,7 +26,7 @@ REVISION=v200304
 rvs_make_interpol --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1 \
     --resol_func $BRESOL --step $BSTEP --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --revision=$REVISION
+    --revision=$REVISION --no-normalize
 
 rvs_make_nd --prefix ${PREFIX}/ --setup desi_b --revision=$REVISION
 
@@ -39,7 +39,7 @@ rvs_make_ccf --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1  --every 30 \
 rvs_make_interpol --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 \
     --resol_func $RRESOL --step $RSTEP --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --revision=$REVISION
+    --revision=$REVISION --no-normalize
 
 rvs_make_nd --prefix ${PREFIX}/ --setup desi_r --revision=$REVISION
 
@@ -52,7 +52,7 @@ rvs_make_ccf --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 --every 30 \
 rvs_make_interpol --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1 \
     --resol_func $ZRESOL --step $ZSTEP --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --revision=$REVISION
+    --revision=$REVISION --no-normalize
 
 rvs_make_nd --prefix ${PREFIX}/ --setup desi_z --revision=$REVISION
 
@@ -66,7 +66,7 @@ rvs_make_ccf --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1  --every 30 \
 rvs_make_interpol --setup desi_brz --lambda0 $BRZLAM0 --lambda1 $BRZLAM1 \
     --resol_func $BRZRESOL --step $BRZSTEP --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --revision=$REVISION
+    --revision=$REVISION --no-normalize
 
 rvs_make_nd --prefix ${PREFIX}/ --setup desi_brz --revision=$REVISION
 
