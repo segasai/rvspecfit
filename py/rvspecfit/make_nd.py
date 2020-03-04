@@ -144,7 +144,7 @@ def main(args):
         required=True)
     parser.add_argument(
         '--revision', type=str, help='Revision of the data files/run',
-        required=True)
+        required=False)
 
     args = parser.parse_args(args)
     execute(args.setup, args.prefix)
