@@ -97,7 +97,7 @@ def extract_spectrum(logg,
     if normalize:
         spec1 = spec / get_line_continuum(si.lamgrid, spec)
     else:
-        spec1 = spec
+        spec1 = spec / np.median(spec)
     spec1 = np.log(spec1)  # log the spectrum
     if not np.isfinite(spec1).all():
         raise Exception(
