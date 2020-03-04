@@ -49,7 +49,7 @@ def getedgevertices(vec):
     return positions
 
 
-def execute(spec_setup, prefix=None, perturb=True):
+def execute(spec_setup, prefix=None, perturb=True, revision=''):
     """
     Prepare the triangulation objects for the set of spectral data for a given
     spec_setup.
@@ -123,6 +123,7 @@ def execute(spec_setup, prefix=None, perturb=True):
     ret_dict['vec'] = vec
     ret_dict['parnames'] = parnames
     ret_dict['mapper'] = mapper
+    ret_dict['revision'] = revision
 
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)
@@ -141,6 +142,10 @@ def main(args):
     parser.add_argument(
         '--setup', type=str, help='Name of the spectral configuration',
         required=True)
+    parser.add_argument(
+        '--revision', type=str, help='Revision of the data files/run',
+        required=True)
+
     args = parser.parse_args(args)
     execute(args.setup, args.prefix)
 

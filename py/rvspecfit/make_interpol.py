@@ -128,7 +128,8 @@ def process_all(setupInfo,
                 wavefile=None,
                 air=False,
                 resolution0=None,
-                normalize=True):
+                normalize=True,
+                revision=''):
     nthreads = 8
     conn = sqlite3.connect(dbfile)
     cur = conn.execute('select id, teff, logg, met, alpha from files')
@@ -199,7 +200,8 @@ def process_all(setupInfo,
                  lam=lam,
                  parnames=parnames,
                  git_rev=git_rev,
-                 mapper=mapper), fp)
+                 mapper=mapper,
+                 revision=revision), fp)
 
 
 def add_bool_arg(parser, name, default=False, help=None):
@@ -232,6 +234,12 @@ def main(args):
     parser.add_argument('--resol',
                         type=float,
                         help='Spectral resolution of the new grid')
+    parser.add_argument('--revision',
+                        type=str,
+                        help='The revision of the templates',
+                        default ='',
+                        required=False)
+    
     parser.add_argument(
         '--resol_func',
         type=str,
@@ -314,7 +322,8 @@ def main(args):
                 wavefile=args.wavefile,
                 air=args.air,
                 resolution0=args.resolution0,
-                normalize=args.normalize)
+                normalize=args.normalize,
+                revision=args.revision)
 
 
 if __name__ == '__main__':

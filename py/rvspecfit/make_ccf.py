@@ -402,7 +402,8 @@ def ccf_executor(spec_setup,
                  prefix=None,
                  oprefix=None,
                  every=10,
-                 vsinis=None):
+                 vsinis=None,
+                 revision=''):
     """
     Prepare the FFT transformations for the CCF
 
@@ -421,7 +422,8 @@ def ccf_executor(spec_setup,
     vsinis: list (optional)
         Produce FFTS of the templates  with Vsini from the list.
         Could be None (it means no rotation will be added)
-
+    revision: str (optional)
+        The revision of the files/run that will be tagged in the pickle file
     Returns:
     --------
     Nothing
@@ -452,6 +454,7 @@ def ccf_executor(spec_setup,
     dHash['loglambda'] = xlogl
     dHash['vsinis'] = vsinis
     dHash['parnames'] = parnames
+    dHash['revision'] = revision
 
     with open(savefile, 'wb') as fp:
         pickle.dump(dHash, fp)
@@ -478,6 +481,8 @@ def main(args):
                         required=True)
     parser.add_argument('--step', type=float, help='Pixel size in angstroms',
                         required=True)
+    parser.add_argument('--revision', type=str, help='Revision of the data files/run',
+                        required=False,default='')
     parser.add_argument(
         '--vsinis',
         type=str,
@@ -502,7 +507,7 @@ def main(args):
     else:
         vsinis = None
     ccf_executor(args.setup, ccfconf, args.prefix, args.oprefix, args.every,
-                 vsinis)
+                 vsinis, revision=revision)
 
 
 if __name__ == '__main__':

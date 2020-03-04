@@ -8,54 +8,69 @@ BLAM0=3300
 BLAM1=6100
 ZLAM0=7300
 ZLAM1=10000
-BRESOL=2800
-RRESOL=3800
-ZRESOL=5500
-BRZRESOL=3800
-BRZLAM0=3300
-BRZLAM1=10000
+BSTEP=0.5
+RSTEP=0.5
+ZSTEP=0.5
+BRZSTEP=0.5
+BRESOL='x/1.55'
+RRESOL='x/1.55'
+ZRESOL='x/1.8'
+BRZRESOL='(x<7560)*(x/1.55)+(x>=7560)*(x/1.8)'
+BRZLAM0=$BLAM0
+BRZLAM1=$ZLAM1
 VSINIS=0,300
+REVISION=v200304
+
+# B
 
 rvs_make_interpol --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1 \
-    --resol $BRESOL --step 0.4 --templdb ${PREFIX}/files.db \
+    --resol_func $BRESOL --step $BSTEP --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --fixed_fwhm
+    --revision=$REVISION
 
-
-rvs_make_nd --prefix ${PREFIX}/ --setup desi_b
+rvs_make_nd --prefix ${PREFIX}/ --setup desi_b --revision=$REVISION
 
 rvs_make_ccf --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1  --every 30 \
-    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step 0.4
+    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $BSTEP \
+    --revision=$REVISION
+
+# R
 
 rvs_make_interpol --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 \
-    --resol $RRESOL --step 0.5 --templdb ${PREFIX}/files.db \
+    --resol_func $RRESOL --step $RSTEP --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --fixed_fwhm
+    --revision=$REVISION
 
-rvs_make_nd --prefix ${PREFIX}/ --setup desi_r
+rvs_make_nd --prefix ${PREFIX}/ --setup desi_r --revision=$REVISION
 
 rvs_make_ccf --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 --every 30 \
-    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step 0.5
+    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $RSTEP \
+    --revision=$REVISION
 
+# Z
 
 rvs_make_interpol --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1 \
-    --resol $ZRESOL --step 0.5 --templdb ${PREFIX}/files.db \
+    --resol_func $ZRESOL --step $ZSTEP --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --fixed_fwhm
+    --revision=$REVISION
 
-rvs_make_nd --prefix ${PREFIX}/ --setup desi_z
+rvs_make_nd --prefix ${PREFIX}/ --setup desi_z --revision=$REVISION
 
 rvs_make_ccf --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1  --every 30 \
-    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step 0.5
+    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $ZSTEP \
+    --revision=$REVISION
 
+
+# BRZ
 
 rvs_make_interpol --setup desi_brz --lambda0 $BRZLAM0 --lambda1 $BRZLAM1 \
-    --resol $BRZRESOL --step 0.5 --templdb ${PREFIX}/files.db \
+    --resol_func $BRZRESOL --step $BRZSTEP --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --fixed_fwhm
+    --revision=$REVISION
 
-rvs_make_nd --prefix ${PREFIX}/ --setup desi_brz
+rvs_make_nd --prefix ${PREFIX}/ --setup desi_brz --revision=$REVISION
 
 rvs_make_ccf --setup desi_brz --lambda0 $BRZLAM0 --lambda1 $BRZLAM1 \
     --every 30 --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} \
-    --step 0.5
+    --step $BRZSTEP --revision=$REVISION
+
