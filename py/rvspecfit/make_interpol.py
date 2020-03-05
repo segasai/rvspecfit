@@ -49,6 +49,7 @@ def get_line_continuum(lam, spec):
 
 
 class si:
+    # cached sparse convolution matrix and the output wavelength grid
     mat = None
     lamgrid = None
 
@@ -98,7 +99,7 @@ def extract_spectrum(logg,
     # with the resolution vector
     spec0_phot = spec0 * lam
     spec1_phot = read_grid.apply_rebinner(si.mat, spec0_phot)
-    spec1 = spec1 / lam
+    spec1 = spec1_phot / si.lamgrid
 
     if normalize:
         spec2 = spec1 / get_line_continuum(si.lamgrid, spec1)

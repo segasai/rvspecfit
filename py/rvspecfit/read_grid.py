@@ -217,6 +217,7 @@ def make_rebinner(lam00,
         lam0 = lam00
 
     resolution_array = resolution_function(lam)
+    resolution_array = resolution_array + lam * 0 # ensure it is an array
     assert (resolution_array.max() < resolution0)
     fwhms = lam / resolution_array
     fwhms0 = lam / resolution0
