@@ -27,7 +27,7 @@ def doone(seed, sn=100, doplot=False):
     w0 = 0.3
     w = np.sqrt((lamcen / resol / 2.35)**2 + w0**2)
     lam = np.linspace(4600, 5400, 400)
-    spec0 = (1 - 0.1 * np.exp(-0.5 * ((lam - lamcen1) / w)**2))*lamcen**slope
+    spec0 = (1 - 0.1 * np.exp(-0.5 * ((lam - lamcen1) / w)**2))*lam**slope
     espec = spec0 /sn
     spec = np.random.normal(spec0, espec)
     # construct specdata object
@@ -56,5 +56,9 @@ if __name__ == '__main__':
         seed = (int(sys.argv[1]))
     else:
         seed = 1
-    ret = doone(seed, doplot=True)
+    if len(sys.argv) > 2:
+        sn = int(sys.argv[2])
+    else:
+        sn = 100
+    ret = doone(seed, sn, doplot=True)
     print (ret)
