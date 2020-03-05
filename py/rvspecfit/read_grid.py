@@ -10,6 +10,49 @@ import astropy.wcs as pywcs
 import argparse
 
 
+def myintegrator(A, B, x1, x2, l1, l2, s):
+    # this is the integral of (Ax+B)/sqrt(2pi)/s*exp(-1/2*(x-y)^2/s^2
+    # for x=x1..x2 y=l1..l2
+    # Here is the mathematica code
+    # FortranForm[
+    # Simplify[Integrate[(A*x + B)/Sqrt[2*Pi]/s*
+    # Exp[-1/2*(x - y)^2/s^2], {x, x1, x2}, {y, l1, l2}]]]
+    E = np.exp(1)
+    Sqrt = np.sqrt
+    Erf = scipy.special.erf
+    Pi = np.pi
+    return (-((Sqrt(2 / Pi) * s *
+               (2 * B + A * (l1 + x1))) / E**((l1 - x1)**2 / (2. * s**2))) +
+            (Sqrt(2 / Pi) * s * (2 * B + A * (l2 + x1))) / E**((l2 - x1)**2 /
+                                                               (2. * s**2)) +
+            (Sqrt(2 / Pi) * s * (2 * B + A * (l1 + x2))) / E**((l1 - x2)**2 /
+                                                               (2. * s**2)) -
+            (Sqrt(2 / Pi) * s *
+             (2 * B + A * (l2 + x2))) / E**((l2 - x2)**2 / (2. * s**2)) + x1 *
+            (2 * B + A * x1) * Erf(
+                (l1 - x1) / (Sqrt(2) * s)) - x1 * (2 * B + A * x1) * Erf(
+                    (l2 - x1) / (Sqrt(2) * s)) + 2 * B * l1 * Erf(
+                        (-l1 + x1) / (Sqrt(2) * s)) + A * l1**2 * Erf(
+                            (-l1 + x1) / (Sqrt(2) * s)) + A * s**2 * Erf(
+                                (-l1 + x1) / (Sqrt(2) * s)) - 2 * B * l2 * Erf(
+                                    (-l2 + x1) /
+                                    (Sqrt(2) * s)) - A * l2**2 * Erf(
+                                        (-l2 + x1) /
+                                        (Sqrt(2) * s)) - A * s**2 * Erf(
+                                            (-l2 + x1) / (Sqrt(2) * s)) - x2 *
+            (2 * B + A * x2) * Erf(
+                (l1 - x2) / (Sqrt(2) * s)) + x2 * (2 * B + A * x2) * Erf(
+                    (l2 - x2) / (Sqrt(2) * s)) - 2 * B * l1 * Erf(
+                        (-l1 + x2) / (Sqrt(2) * s)) - A * l1**2 * Erf(
+                            (-l1 + x2) / (Sqrt(2) * s)) - A * s**2 * Erf(
+                                (-l1 + x2) / (Sqrt(2) * s)) + 2 * B * l2 * Erf(
+                                    (-l2 + x2) /
+                                    (Sqrt(2) * s)) + A * l2**2 * Erf(
+                                        (-l2 + x2) /
+                                        (Sqrt(2) * s)) + A * s**2 * Erf(
+                                            (-l2 + x2) / (Sqrt(2) * s))) / 4.
+
+
 def integrator(x1, x2, l1, l2, s):
     """
     Integrate the flux within the pixel given the lsf.
@@ -20,62 +63,9 @@ def integrator(x1, x2, l1, l2, s):
     The function returns two values of weights for y1,y2 where y1,y2 are 
     the values of the non-convolved spectra at x1,x2
     """
-    E = np.exp(1)
-    Sqrt = np.sqrt
-    Erf = scipy.special.erf
-    Pi = np.pi
-    COEFF1 = (
-        (-((Sqrt(2) * s * (l1 + x1 - 2 * x2)) * E**
-           (-(l1 - x1)**2 / (2. * s**2))) + (Sqrt(2) * s *
-                                             (l2 + x1 - 2 * x2)) * E**
-         (-(l2 - x1)**2 / (2. * s**2)) + (Sqrt(2) * s * (l1 - x2)) * E**
-         (-(l1 - x2)**2 / (2. * s**2)) - (Sqrt(2) * s * (l2 - x2)) * E**
-         (-(l2 - x2)**2 / (2. * s**2)) + Sqrt(Pi) * x1 * (x1 - 2 * x2) * Erf(
-             (l1 - x1) / (Sqrt(2) * s)) - Sqrt(Pi) * x1 * (x1 - 2 * x2) * Erf(
-                 (l2 - x1) / (Sqrt(2) * s)) + l1**2 * Sqrt(Pi) * Erf(
-                     (-l1 + x1) / (Sqrt(2) * s)) + Sqrt(Pi) * s**2 * Erf(
-                         (-l1 + x1) / (Sqrt(2) * s)) - 2 * l1 * Sqrt(Pi) * x2
-         * Erf((-l1 + x1) / (Sqrt(2) * s)) - l2**2 * Sqrt(Pi) * Erf(
-             (-l2 + x1) / (Sqrt(2) * s)) - Sqrt(Pi) * s**2 * Erf(
-                 (-l2 + x1) / (Sqrt(2) * s)) + 2 * l2 * Sqrt(Pi) * x2 * Erf(
-                     (-l2 + x1) / (Sqrt(2) * s)) + Sqrt(Pi) * x2**2 * Erf(
-                         (l1 - x2) / (Sqrt(2) * s)) - Sqrt(Pi) * x2**2 * Erf(
-                             (l2 - x2) / (Sqrt(2) * s)) -
-         l1**2 * Sqrt(Pi) * Erf(
-             (-l1 + x2) / (Sqrt(2) * s)) - Sqrt(Pi) * s**2 * Erf(
-                 (-l1 + x2) / (Sqrt(2) * s)) + 2 * l1 * Sqrt(Pi) * x2 * Erf(
-                     (-l1 + x2) / (Sqrt(2) * s)) + l2**2 * Sqrt(Pi) * Erf(
-                         (-l2 + x2) / (Sqrt(2) * s)) + Sqrt(Pi) * s**2 * Erf(
-                             (-l2 + x2) / (Sqrt(2) * s)) -
-         2 * l2 * Sqrt(Pi) * x2 * Erf(
-             (-l2 + x2) / (Sqrt(2) * s))) / (4. * Sqrt(Pi) * (x1 - x2)))
-
-    COEFF2 = ((
-        (Sqrt(2) * s * (l1 - x1)) * E**
-        (-(l1 - x1)**2 / (2. * s**2)) - (Sqrt(2) * s * (l2 - x1)) * E**
-        (-(l2 - x1)**2 / (2. * s**2)) -
-        (Sqrt(2) * s * (l1 - 2 * x1 + x2)) * E**(-(l1 - x2)**2 / (2. * s**2)) +
-        (Sqrt(2) * s * (l2 - 2 * x1 + x2)) * E**
-        (-(l2 - x2)**2 / (2. * s**2)) + Sqrt(Pi) * x1**2 * Erf(
-            (l1 - x1) / (Sqrt(2) * s)) - Sqrt(Pi) * x1**2 * Erf(
-                (l2 - x1) / (Sqrt(2) * s)) - l1**2 * Sqrt(Pi) * Erf(
-                    (-l1 + x1) / (Sqrt(2) * s)) - Sqrt(Pi) * s**2 * Erf(
-                        (-l1 + x1) / (Sqrt(2) * s)) +
-        2 * l1 * Sqrt(Pi) * x1 * Erf(
-            (-l1 + x1) / (Sqrt(2) * s)) + l2**2 * Sqrt(Pi) * Erf(
-                (-l2 + x1) / (Sqrt(2) * s)) + Sqrt(Pi) * s**2 * Erf(
-                    (-l2 + x1) / (Sqrt(2) * s)) - 2 * l2 * Sqrt(Pi) * x1 * Erf(
-                        (-l2 + x1) / (Sqrt(2) * s)) + Sqrt(Pi) * x2 *
-        (-2 * x1 + x2) * Erf(
-            (l1 - x2) / (Sqrt(2) * s)) - Sqrt(Pi) * x2 * (-2 * x1 + x2) * Erf(
-                (l2 - x2) / (Sqrt(2) * s)) + l1**2 * Sqrt(Pi) * Erf(
-                    (-l1 + x2) / (Sqrt(2) * s)) + Sqrt(Pi) * s**2 * Erf(
-                        (-l1 + x2) / (Sqrt(2) * s)) - 2 * l1 * Sqrt(Pi) * x1
-        * Erf((-l1 + x2) / (Sqrt(2) * s)) - l2**2 * Sqrt(Pi) * Erf(
-            (-l2 + x2) / (Sqrt(2) * s)) - Sqrt(Pi) * s**2 * Erf(
-                (-l2 + x2) / (Sqrt(2) * s)) + 2 * l2 * Sqrt(Pi) * x1 * Erf(
-                    (-l2 + x2) / (Sqrt(2) * s))) / (4. * Sqrt(Pi) * (x1 - x2)))
-    return COEFF1, COEFF2
+    ret1 = myintegrator(1 / (x1 - x2), -x2 / (x1 - x2), x1, x2, l1, l2, s)
+    ret2 = myintegrator(1 / (x2 - x1), -x1 / (x2 - x1), x1, x2, l1, l2, s)
+    return ret1, ret2
 
 
 class ParamMapper:
@@ -83,7 +73,6 @@ class ParamMapper:
     Class used to map stellar atmospheric parameters into more manageable grid
     used for interpolation
     """
-
     def __init__(self):
         pass
 
@@ -123,8 +112,8 @@ class ParamMapper:
 
 
 def makedb(
-        prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
-        dbfile='files.db'):
+    prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
+    dbfile='files.db'):
     """ Create an sqlite database of the templates """
     DB = sqlite3.connect(dbfile)
     id = 0
@@ -152,13 +141,13 @@ def makedb(
 
 
 def get_spec(
-        logg,
-        temp,
-        met,
-        alpha,
-        dbfile='/tmp/files.db',
-        prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
-        wavefile='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
+    logg,
+    temp,
+    met,
+    alpha,
+    dbfile='/tmp/files.db',
+    prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
+    wavefile='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
 ):
     """ returns individual spectra
     > lam,spec=read_grid.get_spec(1,5250,-1,0.4)
@@ -186,7 +175,6 @@ def get_spec(
         raise Exception('No spectra found')
 
     dat, hdr = pyfits.getdata(prefix + '/' + fnames[0][0], header=True)
-    wc = pywcs.WCS(hdr)
     speclen = len(dat)
     lams = np.arange(speclen) * 1.
     lams = pyfits.getdata(wavefile)
@@ -223,8 +211,8 @@ def make_rebinner(lam00,
     The sparse matrix to perform interpolation
     """
     if toair:
-        lam0 = lam00 / (
-            1.0 + 2.735182E-4 + 131.4182 / lam00**2 + 2.76249E8 / lam00**4)
+        lam0 = lam00 / (1.0 + 2.735182E-4 + 131.4182 / lam00**2 +
+                        2.76249E8 / lam00**4)
     else:
         lam0 = lam00
 
@@ -232,8 +220,8 @@ def make_rebinner(lam00,
     assert (resolution_array.max() < resolution0)
     fwhms = lam / resolution_array
     fwhms0 = lam / resolution0
-
-    sigs = (fwhms**2 - fwhms0**2)**.5 / 2.35
+    fwhm_to_sig = 2*np.sqrt(2*np.log(2))       
+    sigs = (fwhms**2 - fwhms0**2)**.5 / fwhm_to_sig
     thresh = 5  # 5 sigma
     l0 = len(lam0)
     l = len(lam)
@@ -241,7 +229,7 @@ def make_rebinner(lam00,
     ys = []
     vals = []
     for i in range(len(lam)):
-
+        # we iterate over the output pixels
         curlam = lam[i]
         if i > 0:
             leftstep = 0.5 * (lam[i] - lam[i - 1])
@@ -254,17 +242,24 @@ def make_rebinner(lam00,
         cursig = sigs[i]
         curl0 = curlam - thresh * cursig
         curl1 = curlam + thresh * cursig
+        # these are the boundaries in wavelength that will potentially
+        # contribute to the current pixel
 
         left = np.searchsorted(lam0, curl0) - 1
         right = np.searchsorted(lam0, curl1)
 
         curx = np.arange(left, right + 1)
+        # these are pixel positions in the input template that
+        # will be relevant
 
         x1 = lam0[curx]
         x2 = lam0[curx + 1]
+        # these are neighboring pixels in the input template 
+        # we'll assume linear interpolation inbetween values on those
 
         l1 = curlam - leftstep
         l2 = curlam + rightstep
+        # these are the edges of the pixel we will integrate over
         coeff1, coeff2 = integrator(x1, x2, l1, l2, cursig)
 
         ys.append(i + curx * 0)
@@ -306,12 +301,11 @@ def rebin(lam0, spec0, newlam, resolution):
 def main(args):
     parser = argparse.ArgumentParser(
         description='Create the database descrbing the templates')
-    parser.add_argument(
-        '--prefix',
-        type=str,
-        default='./',
-        dest='prefix',
-        help='The location of the input grid')
+    parser.add_argument('--prefix',
+                        type=str,
+                        default='./',
+                        dest='prefix',
+                        help='The location of the input grid')
     parser.add_argument(
         '--templdb',
         type=str,

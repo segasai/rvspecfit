@@ -86,25 +86,31 @@ def extract_spectrum(logg,
         Normalize the spectrum by a linear continuum
     """
 
-    lam, spec = read_grid.get_spec(logg,
-                                   teff,
-                                   feh,
-                                   alpha,
-                                   dbfile=dbfile,
-                                   prefix=prefix,
-                                   wavefile=wavefile)
-    spec = read_grid.apply_rebinner(si.mat, spec)
+    lam, spec0 = read_grid.get_spec(logg,
+                                    teff,
+                                    feh,
+                                    alpha,
+                                    dbfile=dbfile,
+                                    prefix=prefix,
+                                    wavefile=wavefile)
+    # Here I assume that the input spectrum is in erg/wavelength
+    # I will now convert into number of photons before convolving
+    # with the resolution vector
+    spec0_phot = spec0 * lam
+    spec1_phot = read_grid.apply_rebinner(si.mat, spec0_phot)
+    spec1 = spec1 / lam
+
     if normalize:
-        spec1 = spec / get_line_continuum(si.lamgrid, spec)
+        spec2 = spec1 / get_line_continuum(si.lamgrid, spec1)
     else:
-        spec1 = spec / np.median(spec)
-    spec1 = np.log(spec1)  # log the spectrum
-    if not np.isfinite(spec1).all():
+        spec2 = spec1 / np.median(spec1)
+    spec2 = np.log(spec2)  # log the spectrum
+    if not np.isfinite(spec2).all():
         raise Exception(
             'The spectrum is not finite (has nans or infs) at parameter values: %s'
             % str((teff, logg, feh, alpha)))
-    spec1 = spec1.astype(np.float32)
-    return spec1
+    spec2 = spec2.astype(np.float32)
+    return spec2
 
 
 class Resolution:
@@ -113,6 +119,7 @@ class Resolution:
         self.resol = resol
         self.resol_func = resol_func
         assert (self.resol is not None or self.resol_func is not None)
+
     def __call__(self, x):
         if self.resol is None:
             return eval(self.resol_func, dict(x=x, np=np))
@@ -237,9 +244,9 @@ def main(args):
     parser.add_argument('--revision',
                         type=str,
                         help='The revision of the templates',
-                        default ='',
+                        default='',
                         required=False)
-    
+
     parser.add_argument(
         '--resol_func',
         type=str,

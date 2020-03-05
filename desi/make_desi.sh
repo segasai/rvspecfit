@@ -1,4 +1,5 @@
-#!/bin/bash -e 
+#!/bin/bash
+set -e
 PREFIX=../../templ_data
 TEMPLPREF=/home/skoposov/science/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/
 WAVEFILE=/home/skoposov/science/PHOENIX/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
