@@ -2,14 +2,18 @@ import numpy as np
 import sys
 import astropy.io.fits as pyfits
 
-lamcen = 5000
+lamcens = [5000.77, 5050.11, 5060.66]
+lamamps = [1, 0.5, 0.2]
 
 
-def getspec(lam, teff, logg, alpha, met):
+def getspec(lam, teff, logg, alpha, met, wresol=0):
     w = 0.01 + (10 * logg / 5.)
-    return (teff**4 * 1. / lam *
-            (1 - min(1, np.exp(met)) * np.exp(-0.5 *
-                                              (lam - lamcen)**2 / w**2)))
+    cont = teff**4 * 1. / lam
+    curw = np.sqrt(w**2 + wresol**2)
+    lines = [(1 - min(1, np.exp(met)) * lamamps[i] * w / curw *
+              np.exp(-0.5 * (lam - lamcens[i])**2 / curw**2))
+             for i in range(len(lamcens))]
+    return np.prod(np.array(lines), axis=0) * cont
 
 
 def make_grid(prefix, wavefile, nspec):
