@@ -36,7 +36,7 @@ Now to actually use the code
 
 You need just a few commands
 
-    ```
+```python
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
 config=utils.read_config('config.yaml') # optional
 
