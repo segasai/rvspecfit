@@ -139,6 +139,8 @@ def process_all(setupInfo,
                 normalize=True,
                 revision=''):
     nthreads = 8
+    if not os.path.exists(dbfile):
+        raise Exception('The template database file %s does not exist'%dbfile)
     conn = sqlite3.connect(dbfile)
     cur = conn.execute('select id, teff, logg, met, alpha from files')
     tab = np.rec.fromrecords(cur.fetchall())
