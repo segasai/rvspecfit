@@ -2,15 +2,16 @@ import numpy as np
 import sys
 import astropy.io.fits as pyfits
 
-lamcens = [5000.77, 5050.11, 5060.66]
-lamamps = [1, 0.5, 0.2]
+lamcens = [5000.77, 5050.11, 5060.66]  # wavelength centers
+lamamps = [1, 0.5, 0.2]  # line amplitudes
+lammetamps = [1, 2, 0.4]  # the factor for the metallicity dependence
 
 
 def getspec(lam, teff, logg, alpha, met, wresol=0):
     w = 0.01 + (10 * logg / 5.)
     cont = teff**4 * 1. / lam
     curw = np.sqrt(w**2 + wresol**2)
-    lines = [(1 - min(1, np.exp(met)) * lamamps[i] * w / curw *
+    lines = [(1 - min(1, np.exp(lammetamps[i] * met)) * lamamps[i] * w / curw *
               np.exp(-0.5 * (lam - lamcens[i])**2 / curw**2))
              for i in range(len(lamcens))]
     return np.prod(np.array(lines), axis=0) * cont

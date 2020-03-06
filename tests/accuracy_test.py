@@ -23,14 +23,16 @@ def doone(seed, sn=100, doplot=False):
     #                       2.76249E8 / lamcen**4)
     v0 = np.random.normal(0, 300)
     slope = (np.random.uniform(-2, 2))
-    lamcen1 = lamcen * (1 + v0 / 299792.458)
     resol = 1000.
-    w0 = 0.1
-    w = np.sqrt((lamcen / resol / 2.35)**2 + w0**2)
     wresol = (lamcen / resol / 2.35)
     lam = np.linspace(4600, 5400, 400)
     #spec0 = (1 - 0.02 * np.exp(-0.5 * ((lam - lamcen1) / w)**2))*lam**slope
-    spec0 = mktemps.getspec(lam, 6000, 1, 0.2, -0.5,
+    teff = np.random.uniform(3000, 12000)
+    feh = np.random.uniform(-2, 0)
+    alpha = np.random.uniform(0, 1)
+    logg = np.random.uniform(0, 5)
+    lam1 = lam / (1 + v0 / 299792.458)
+    spec0 = mktemps.getspec(lam1, teff, logg, alpha, feh,
                             wresol=wresol) * lam**slope
 
     espec = spec0 / sn
