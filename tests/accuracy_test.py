@@ -34,7 +34,7 @@ def doone(seed, sn=100, doplot=False):
     lam1 = lam / (1 + v0 / 299792.458)
     spec0 = mktemps.getspec(lam1, teff, logg, alpha, feh,
                             wresol=wresol) * lam**slope
-
+    spec0 = spec0/np.median(spec0) * 10**np.random.uniform(-3,3)
     espec = spec0 / sn
     spec = np.random.normal(spec0, espec)
     # construct specdata object
