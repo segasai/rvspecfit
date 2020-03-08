@@ -23,7 +23,8 @@ def get_dep_versions():
     Get Packages versions
     """
     packages  = ['numpy', 'astropy', 'matplotlib','rvspecfit','pandas',
-                 'scipy','pyyaml', 'numdifftools']
+                 'scipy','yaml', 'numdifftools']
+    # Ideally you need to check that the list here matches the requirements.txt
     ret={}
     for curp in packages:
         ret[curp] = importlib.import_module(curp).__version__
