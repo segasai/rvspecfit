@@ -37,9 +37,9 @@ def get_prim_header(versions={}):
         header['DEPNAM%02d'%i] = k
         header['DEPVER%02d'%i] = v
     for i,(k,v) in enumerate(versions.items()):
-        ret['TMPLCON%d'%i]=k
-        ret['TMPLREV%d'%i]=v.revision
-        ret['TMPLSVR%d'%i]=v.creation_soft_version
+        header['TMPLCON%d'%i]=k
+        header['TMPLREV%d'%i]=v.revision
+        header['TMPLSVR%d'%i]=v.creation_soft_version
 
     return header
 
