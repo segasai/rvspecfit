@@ -29,7 +29,9 @@ def getInterp(triang, dats, exp=True):
 class SpecInterpolator:
     # Spectrum interpolator object
     def __init__(self, name, interper, extraper, lam, mapper, parnames,
-                 revision=''):
+                 revision='',
+                 filename='',
+                 creation_soft_version=''):
         """ Construct the interpolator object
         The arguments are the name of the instrument setup
         The interpolator object that returns the
@@ -42,6 +44,9 @@ class SpecInterpolator:
         self.extraper = extraper
         self.mapper = mapper
         self.parnames = parnames
+        self.revision=revision
+        self.filename=filename
+        self.creation_soft_version=creation_soft_version
 
     def outsideFlag(self, param0):
         """Check if the point is outside the interpolation grid"""
@@ -82,8 +87,11 @@ def getInterpolator(HR, config, warmup_cache=True):
                               scipy.interpolate.LinearNDInterpolator(
                                   triang, extraflags))
         revision = fd.get('revision') or ''
+        creation_soft_version = fd.get('git_rev') or ''
         interpObj = SpecInterpolator(HR, interper, extraper, templ_lam, mapper,
-                                     parnames, revision=revision)
+                                     parnames, revision=revision,
+                                     creation_soft_version=creation_soft_version,
+                                     filename=savefile)
         interp_cache.interps[HR] = interpObj
     else:
         interpObj = interp_cache.interps[HR]

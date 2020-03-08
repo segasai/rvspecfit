@@ -11,8 +11,8 @@ import numpy as np
 import sqlite3
 from rvspecfit import read_grid
 from rvspecfit import utils
-from rvspecfit import _version
-git_rev = _version.VERSION
+import rvspecfit
+git_rev = rvspecfit.__version__
 
 SPEC_PKL_NAME = 'specs_%s.pkl'
 

@@ -15,7 +15,7 @@ import astropy.io.fits as pyfits
 import astropy.units as auni
 import numpy as np
 
-from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
+from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, spec_inter
 
 def get_dep_versions():
     """
@@ -34,6 +34,11 @@ def get_prim_header():
     for i,(k,v) in enumerate(get_dep_versions()):
         header['DEPNAM%02d'%i] = k
         header['DEPVER%02d'%i] = v
+    for i,(k,v) in enumerate(spec_fit.interp_cache):
+        ret['TMPLCON%d'%i]=k
+        ret['TMPLREV%d'%i]=v.revision
+        ret['TMPLSVR%d'%i]=v.creation_soft_version
+
     return header
 
 def make_plot(specdata, yfit, title, fig_fname):
