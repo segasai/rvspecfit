@@ -6,8 +6,8 @@ import scipy.spatial
 
 from rvspecfit import utils
 from rvspecfit import make_interpol
-from rvspecfit import _version
-git_rev = _version.VERSION
+import rvspecfit
+git_rev = rvspecfit.__version__
 
 INTERPOL_PKL_NAME = 'interp_%s.pkl'
 INTERPOL_DAT_NAME = 'interpdat_%s.npy'
