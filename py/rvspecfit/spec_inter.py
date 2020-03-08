@@ -28,7 +28,8 @@ def getInterp(triang, dats, exp=True):
 
 class SpecInterpolator:
     # Spectrum interpolator object
-    def __init__(self, name, interper, extraper, lam, mapper, parnames):
+    def __init__(self, name, interper, extraper, lam, mapper, parnames,
+                 revision=''):
         """ Construct the interpolator object
         The arguments are the name of the instrument setup
         The interpolator object that returns the
@@ -80,8 +81,9 @@ def getInterpolator(HR, config, warmup_cache=True):
         interper, extraper = (getInterp(triang, dats, exp=expFlag),
                               scipy.interpolate.LinearNDInterpolator(
                                   triang, extraflags))
+        revision = fd.get('revision') or ''
         interpObj = SpecInterpolator(HR, interper, extraper, templ_lam, mapper,
-                                     parnames)
+                                     parnames, revision=revision)
         interp_cache.interps[HR] = interpObj
     else:
         interpObj = interp_cache.interps[HR]
