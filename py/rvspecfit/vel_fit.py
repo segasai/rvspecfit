@@ -243,15 +243,15 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         hess_func, step=hess_step)([ret['param'][_] for _ in specParams])
     try:
         hessian_inv = scipy.linalg.inv(hessian)
+        diag_hess = np.array(np.diag(hessian_inv))
+        bad_diag_hess = diag_hess<0
+        diag_hess[bad_diag_hess ] =0
+        diag_err = np.sqrt(diag_hess)
+        diag_err[bad_diag_hess]  = np.nan
     except np.linalg.LinAlgError:
         print ('WARNING the inversion of the Hessian failed', file=sys.stderr)
-        hessian_inv = np.zeros_like(hessian) + np.nan
+        diag_err = np.zeros(hessian.shape[0])+np.nan
         #
-    diag_hess = np.array(np.diag(hessian_inv))
-    bad_diag_hess = diag_hess<0
-    diag_hess[bad_diag_hess ] =0
-    diag_err = np.sqrt(diag_hess)
-    diag_err[bad_diag_hess]  = np.nan
     ret['param_err'] = dict(zip(specParams, diag_err))
 
     ret['yfit'] = outp['models']
