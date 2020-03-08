@@ -35,15 +35,17 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-VERSIONPIP = '0.0.1'
+#VERSIONPIP = '0.0.1'
+VERSIONPIP=read('version.txt').rstrip()
+print (get_revision())
 VERSION = VERSIONPIP + 'dev' + get_revision()
 
 with open('py/rvspecfit/_version.py', 'w') as fp:
-    print('VERSION="%s"' % (VERSION), file=fp)
+    print('version="%s"' % (VERSION), file=fp)
 
 setup(
     name="rvspecfit",
-    version=VERSIONPIP,
+    version=VERSION,
     author="Sergey Koposov",
     author_email="skoposov@cmu.edu",
     description=("Radial velocity code."),
