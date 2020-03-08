@@ -33,7 +33,7 @@ def get_dep_versions():
 
 def get_prim_header():
     header = pyfits.Header()
-    for i,(k,v) in enumerate(get_dep_versions()):
+    for i,(k,v) in enumerate(get_dep_versions().items()):
         header['DEPNAM%02d'%i] = k
         header['DEPVER%02d'%i] = v
     for i,(k,v) in enumerate(spec_fit.interp_cache):
