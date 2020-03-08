@@ -36,7 +36,7 @@ def get_prim_header():
     for i,(k,v) in enumerate(get_dep_versions().items()):
         header['DEPNAM%02d'%i] = k
         header['DEPVER%02d'%i] = v
-    for i,(k,v) in enumerate(spec_inter.interp_cache.items()):
+    for i,(k,v) in enumerate(spec_inter.interp_cache.interps.items()):
         ret['TMPLCON%d'%i]=k
         ret['TMPLREV%d'%i]=v.revision
         ret['TMPLSVR%d'%i]=v.creation_soft_version
