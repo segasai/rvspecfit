@@ -292,7 +292,8 @@ def comment_filler(tab, desc):
     return tab
 
 def put_empty_file(fname):
-    pyfits.PrimaryHDU(header=get_prim_header()).writeto(fname, overwrite=True)
+    pyfits.PrimaryHDU(header=get_prim_header()).writeto(fname, overwrite=True,
+                                                        checksum=True)
 
 
 def proc_desi(fname,
@@ -493,8 +494,10 @@ def proc_desi(fname,
 
     if overwrite or old_rvtab is None:
         # if output files do not exist or I cant read fibertab
-        pyfits.HDUList(outmod_hdus).writeto(mod_ofname, overwrite=True)
-        pyfits.HDUList(outtab_hdus).writeto(tab_ofname, overwrite=True)
+        pyfits.HDUList(outmod_hdus).writeto(mod_ofname, overwrite=True,
+                                            checksum=True)
+        pyfits.HDUList(outtab_hdus).writeto(tab_ofname, overwrite=True,
+                                            checksum=True)
 
     else:
         refit_tab = atpy.Table(fibermap)[subset]
@@ -565,7 +568,7 @@ def merge_hdus(hdus, ofile, keepmask, columnDesc, glued):
         raise Exception('I should not be here')
     # TODO protection against crash
     # write into temp file then rename
-    pyfits.HDUList(hdus).writeto(ofile, overwrite=True)
+    pyfits.HDUList(hdus).writeto(ofile, overwrite=True, checksum=True)
 
 
 def proc_desi_wrapper(*args, **kwargs):
