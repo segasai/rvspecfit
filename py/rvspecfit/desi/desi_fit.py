@@ -31,12 +31,12 @@ def get_dep_versions():
     ret['python'] = str.split(sys.version,' ')[0]
     return ret
 
-def get_prim_header():
+def get_prim_header(versions={}):
     header = pyfits.Header()
     for i,(k,v) in enumerate(get_dep_versions().items()):
         header['DEPNAM%02d'%i] = k
         header['DEPVER%02d'%i] = v
-    for i,(k,v) in enumerate(spec_inter.interp_cache.interps.items()):
+    for i,(k,v) in enumerate(versions):
         ret['TMPLCON%d'%i]=k
         ret['TMPLREV%d'%i]=v.revision
         ret['TMPLSVR%d'%i]=v.creation_soft_version
@@ -169,6 +169,10 @@ def proc_onespec(specdata,
                           fig_fname.replace('.png', '_%d.png' % i))
         else:
             make_plot(specdata, res1['yfit'], title, fig_fname)
+    versions = {}
+    for i,(k,v) in enumerate(spec_inter.interp_cache.interps.items()):
+        versions[k]=dict(revision = v.revision, creation_soft_version=v.creation_soft_version)
+    outdict['versions']= versions
     if verbose:
         print('Timing1: ', t2 - t1, t3 - t2, t4 - t3)
     return outdict, res1['yfit']
@@ -424,6 +428,8 @@ def proc_desi(fname,
 
     for r in rets:
         outdict, curmodel = r[0].result()
+        versions = outdict['versions']
+        del outdict['versions'] # I don't want to store it in the table
         curFiberRow, curseqid = r[1], r[2]
         
         for col in columnsCopy:
@@ -448,7 +454,7 @@ def proc_desi(fname,
     outtab = atpy.Table(outdf1)
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                              name='FIBERMAP')
-    outmod_hdus = [pyfits.PrimaryHDU(header=get_prim_header())]
+    outmod_hdus = [pyfits.PrimaryHDU(header=get_prim_header(versions=versions))]
 
     # Column descriptions
     columnDesc = dict ([
@@ -485,7 +491,7 @@ def proc_desi(fname,
     outmod_hdus += [fibermap_subset_hdu]
 
     outtab_hdus = [
-        pyfits.PrimaryHDU(header=get_prim_header()),
+        pyfits.PrimaryHDU(header=get_prim_header(versions=versions)),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'),
                       columnDesc),
         fibermap_subset_hdu
