@@ -17,6 +17,24 @@ import numpy as np
 
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils
 
+def get_dep_versions():
+    """
+    Get Packages versions
+    """
+    packages  = ['numpy', 'astropy', 'matplotlib','rvspecfit','pandas',
+                 'scipy','pyyaml', 'numdifftools']
+    ret={}
+    for curp in packages:
+        ret[curp] = importlib.import_module(curp).__version__
+    ret['python'] = str.split(sys.version,' ')[0]
+    return ret
+
+def get_prim_header():
+    header = pyfits.Header()
+    for i,(k,v) in enumerate(get_dep_versions()):
+        header['DEPNAM%02d'%i] = k
+        header['DEPVER%02d'%i] = v
+    return header
 
 def make_plot(specdata, yfit, title, fig_fname):
     """
@@ -274,7 +292,7 @@ def comment_filler(tab, desc):
     return tab
 
 def put_empty_file(fname):
-    pyfits.PrimaryHDU().writeto(fname, overwrite=True)
+    pyfits.PrimaryHDU(header=get_prim_header()).writeto(fname, overwrite=True)
 
 
 def proc_desi(fname,
@@ -422,7 +440,7 @@ def proc_desi(fname,
     outtab = atpy.Table(outdf1)
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                              name='FIBERMAP')
-    outmod_hdus = [pyfits.PrimaryHDU()]
+    outmod_hdus = [pyfits.PrimaryHDU(header=get_prim_header())]
 
     # Column descriptions
     columnDesc = dict ([
@@ -459,7 +477,7 @@ def proc_desi(fname,
     outmod_hdus += [fibermap_subset_hdu]
 
     outtab_hdus = [
-        pyfits.PrimaryHDU(),
+        pyfits.PrimaryHDU(header=get_prim_header()),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'),
                       columnDesc),
         fibermap_subset_hdu
