@@ -284,6 +284,8 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued):
         spec = fluxes[s][seqid] * 1
         curivars = ivars[s][seqid] * 1
         medspec = np.nanmedian(spec)
+        if medspec==0:
+            medspec=1
         baddat = ~np.isfinite(spec + curivars)
         badmask = (curivars <= 0) | (masks[s][seqid] > 0) | baddat
         curivars[badmask] = medspec**2 / large_error**2
