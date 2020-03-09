@@ -372,7 +372,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     curespec = espec.copy()
     curspec = spec0.copy()
     if badmask is not None:
-        curespec[badmask] = curespec[badmask] * 0 + 1e9
+        curespec[badmask] = np.zeros_like(curespec[badmask]) + 1e9
         curspec = interp_masker(lam, curspec, badmask)
     cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
     medv = np.median(curspec)
