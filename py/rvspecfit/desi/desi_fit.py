@@ -161,13 +161,13 @@ def proc_onespec(specdata,
         outdict['CHISQ_C_%s' % s.replace('desi_', '').upper()] = float(chisqs_c[s])
 
     chisq_thresh = 50
-    rv_thresh = 5
-    rverr_thresh = 100
+    rv_thresh = 5 * auni.km/auni.s
+    rverr_thresh = 100 * auni.km/auni.s
     rvs_warn = 0
     bitmasks = {'CHISQ_WARN':1, 'RV_WARN':2, 'RVERR_WARN':4}
     if ((outdict['CHISQ_TOT'] - outdict['CHISQ_C_TOT']) > chisq_thresh):
         rvs_warn |= bitmasks['CHISQ_WARN']
-    if (np.abs(outdict['VRAD']-config['max_vel']) < rv_thresh) or (np.abs(outdict['VRAD']-config['min_vel'])<rv_thresh):
+    if (np.abs(outdict['VRAD']-config['max_vel'] * auni.km/auni.s) < rv_thresh) or (np.abs(outdict['VRAD']-config['min_vel']*auni.km/auni.s)<rv_thresh):
         rvs_warn |= bitmasks['RV_WARN']
     if (outdict['VRAD_ERR']> rverr_thresh):
         rvs_warn |= bitmasks['RVERR_WARN']        
