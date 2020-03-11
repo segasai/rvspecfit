@@ -55,6 +55,14 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
                 config =config, resolParam = None)
     """
 
+    # Configuration parameters, should be moved to the yaml file
+    min_vel = config['min_vel']
+    max_vel = config['max_vel']
+    vel_step0 = config['vel_step0'] # the starting step in velocities
+    max_vsini = config['max_vsini']
+    min_vsini = config['min_vsini']
+    min_vel_step = config['min_vel_step']
+    second_minimizer =config['second_minimizer']
     if config is None:
         raise Exception('Config must be provided')
 
