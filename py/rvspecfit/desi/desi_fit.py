@@ -88,7 +88,7 @@ def valid_file(fname):
     extnames = [_.name for _ in exts]
 
     names0 = ['PRIMARY']
-    arms = 'B', 'R', 'Z'
+    arms = ['B', 'R', 'Z']
     arm_glued = 'BRZ'
     prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
     reqnames = names0 + [
@@ -153,10 +153,26 @@ def proc_onespec(specdata,
         chisqs[curd.name] += res1['chisq_array'][i]
         chisqs_c[curd.name] += chisq_cont_array[i]
 
+    outdict['CHISQ_TOT'] = sum(chisqs.values())
+    outdict['CHISQ_C_TOT'] = sum(chisqs_c.values())
+
     for s in chisqs.keys():
-        outdict['CHISQ_TOT'] = sum(chisqs.values())
         outdict['CHISQ_%s' % s.replace('desi_', '').upper()] = chisqs[s]
         outdict['CHISQ_C_%s' % s.replace('desi_', '').upper()] = float(chisqs_c[s])
+
+    chisq_thresh = 50
+    rv_thresh = 5
+    rverr_thresh = 100
+    rvs_warn = 0
+    bitmasks = {'CHISQ_WARN':1, 'RV_WARN':2, 'RVERR_WARN':4}
+    if ((outdict['CHISQ_TOT'] - outdict['CHISQ_C_TOT']) > chisq_thresh):
+        rvs_warn |= bitmasks['CHISQ_WARN']
+    if (np.abs(outdict['VRAD']-config['max_vel']) < rv_thresh) or (np.abs(outdict['VRAD']-config['min_vel'])<rv_thresh):
+        rvs_warn |= bitmasks['RV_WARN']
+    if (outdict['VRAD_ERR']> rverr_thresh):
+        rvs_warn |= bitmasks['RVERR_WARN']        
+
+    outdict['RVS_WARN'] = rvs_warn
 
     if doplot:
         title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
@@ -193,15 +209,11 @@ def get_sns(data, ivars, masks):
     return sns
 
 
-def read_data(fname, glued):
+def read_data(fname, glued, setups):
     fluxes = {}
     ivars = {}
     waves = {}
     masks = {}
-    if glued:
-        setups =['brz']
-    else:
-        setups = ['b','r','z']
     for s in setups:
         fluxes[s] = pyfits.getdata(fname, '%s_FLUX' % s.upper())
         ivars[s] = pyfits.getdata(fname, '%s_IVAR' % s.upper())
@@ -273,13 +285,10 @@ def get_unique_seqid_to_fit(targetid, subset, combine=False):
     return ret
 
 
-def get_specdata(waves, fluxes, ivars, masks, seqid, glued):
+def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
     large_error = 1e9
     sds = []
-    if glued:
-        setups = ['brz']
-    else:
-        setups = ['b','r','z']
+
     for s in setups:
         spec = fluxes[s][seqid] * 1
         curivars = ivars[s][seqid] * 1
@@ -324,7 +333,7 @@ def proc_desi(fname,
               verbose=False,
               expid_range=None,
               overwrite=False,
-              poolex=None):
+              poolex=None, fitarm=None):
     """
     Process One single file with desi spectra
 
@@ -355,12 +364,17 @@ def proc_desi(fname,
     if not valid:
         print('Not valid file:', fname)
         return 0
+
     if glued:
         setups = ['brz']
     else:
         setups = ['b','r','z']
+    if fitarm is not None:
+        setups = [_ for _ in setups if _ in fitarm]
+        assert(len(setups)>0)
+
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
-    fluxes, ivars, masks, waves = read_data(fname, glued)
+    fluxes, ivars, masks, waves = read_data(fname, glued, setups)
     sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_])) for _ in setups])
 
     for _ in setups:
@@ -391,9 +405,6 @@ def proc_desi(fname,
     ]
     if not glued:
         columnsCopy.append('EXPID')
-        setups = ('b', 'r', 'z')
-    else:
-        setups = ['brz']
         
     #outdf = pandas.DataFrame()
     outdf = []
@@ -408,11 +419,11 @@ def proc_desi(fname,
     for curseqid in seqid_to_fit:
         # collect data (if combining that means multiple spectra)
         if not combine:
-            specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid, glued)
+            specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid, glued, setups)
             curFiberRow = fibermap[curseqid]
         else:
             specdatas = sum([
-                get_specdata(waves, fluxes, ivars, masks, _, glued) for _ in curseqid
+                get_specdata(waves, fluxes, ivars, masks, _, glued, setups) for _ in curseqid
             ], [])
             curFiberRow = fibermap[curseqid[0]]
 
@@ -472,7 +483,8 @@ def proc_desi(fname,
         ('CHISQ_TOT', 'Total chi-square for all arms'),
         ('TARGETID', 'DESI targetid'),
         ('EXPID', 'DESI exposure id'),
-        ('SUCCESS', "Did we succeed or fail")
+        ('SUCCESS', "Did we succeed or fail"),
+        ('RVS_WARN',"RVSpecFit warning flag")
         ]
         )
 
@@ -543,16 +555,12 @@ def proc_desi(fname,
         keepmask[repid_old] = False
         # this is the subset of the old data that must
         # be kept
-        merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc, glued)
-        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc, glued)
+        merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc, glued, setups)
+        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc, glued, setups)
     return len(seqid_to_fit)
 
 
-def merge_hdus(hdus, ofile, keepmask, columnDesc, glued):
-    if glued:
-        setups = ['BRZ']
-    else:
-        setups = ['B','R','Z']
+def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
     allowed = ['FIBERMAP', 'RVTAB'
                ] + ['%s_MODEL' % _
                     for _ in setups] + ['%s_WAVELENGTH' % _ for _ in setups]
@@ -626,7 +634,8 @@ def proc_many(files,
               verbose=False,
               expid_range=None,
               overwrite=False,
-              skipexisting=False):
+              skipexisting=False,
+              fitarm=None):
     """
     Process many spectral files
 
@@ -685,7 +694,8 @@ def proc_many(files,
                       verbose=verbose,
                       expid_range=expid_range,
                       overwrite=overwrite,
-                      poolex=poolEx)
+                      poolex=poolEx,
+                      fitarm=fitarm)
         proc_desi(*args, **kwargs)
  
     if parallel:
@@ -758,7 +768,10 @@ def main(args):
                         type=str,
                         default='rvmod',
                         required=False)
-
+    parser.add_argument('--fitarm',
+                        help='Comma separated',
+                        type=str,
+                        required=False)
     parser.add_argument('--figure_dir',
                         help='Prefix for the fit figures, i.e. fig_folder/',
                         type=str,
@@ -820,7 +833,9 @@ def main(args):
     minsn = args.minsn
     minexpid = args.minexpid
     maxexpid = args.maxexpid
-
+    fitarm = args.fitarm
+    if fitarm is not None:
+        fitarm = fitarm.split(',')
     if input_files is not None and input_file_from is not None:
         raise Exception(
             'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
@@ -851,7 +866,8 @@ def main(args):
               verbose=verbose,
               expid_range=(minexpid, maxexpid),
               skipexisting=args.skipexisting,
-              overwrite=args.overwrite)
+              overwrite=args.overwrite,
+              fitarm=fitarm)
 
 
 if __name__ == '__main__':
