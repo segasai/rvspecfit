@@ -371,10 +371,21 @@ def proc_desi(fname,
         Fit only MWS_TARGET or every object
     doplot: bool
         Produce plots
+    verbose: bool
+        Produce a bit more debug output
     minsn: real
         The slallest S/N for processing
     expid_range: tuple of ints
         The range of expids to fit
+    overwrite: bool
+        If true, the output file will be always be overwritten, otherwise
+        the results may be appended instead
+    fitarm: list
+         List of strings corresponding to configurations that need to be fit,
+         it can be none
+    poolex: Executor
+         The executor that will run parallel processes
+    
     """
 
     options = {'npoly': 10}
@@ -426,7 +437,6 @@ def proc_desi(fname,
     if not glued:
         columnsCopy.append('EXPID')
 
-    #outdf = pandas.DataFrame()
     outdf = []
 
     # This will store best-fit model data
@@ -499,6 +509,7 @@ def proc_desi(fname,
                        ('FEH', '[Fe/H] from template fitting'),
                        ('ALPHAFE', '[alpha/Fe] from template fitting'),
                        ('CHISQ_TOT', 'Total chi-square for all arms'),
+                       ('CHISQ_C_TOT', 'Total chi-square for all arms for polynomial only fit'),
                        ('TARGETID', 'DESI targetid'),
                        ('EXPID', 'DESI exposure id'),
                        ('SUCCESS', "Did we succeed or fail"),
@@ -506,7 +517,7 @@ def proc_desi(fname,
 
     for curs in setups:
         curs = curs.upper()
-        columnDesc['SN_%s' % curs] = ('Median S/N %s arm' % curs)
+        columnDesc['SN_%s' % curs] = ('Median S/N in the %s arm' % curs)
         columnDesc['CHISQ_%s' % curs] = ('Chi-square in the %s arm' % curs)
         columnDesc['CHISQ_C_%s' % curs] = (
             'Chi-square in the %s arm after fitting continuum only' % curs)
@@ -612,9 +623,10 @@ def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
                                       name=curhduname)
             continue
         raise Exception('I should not be here')
-    # TODO protection against crash
-    # write into temp file then rename
-    pyfits.HDUList(hdus).writeto(ofile, overwrite=True, checksum=True)
+
+    ofile_tmp = ofile + '.tmp'
+    pyfits.HDUList(hdus).writeto(ofile_tmp, overwrite=True, checksum=True)
+    os.rename(ofile_tmp, ofile)
 
 
 def proc_desi_wrapper(*args, **kwargs):
