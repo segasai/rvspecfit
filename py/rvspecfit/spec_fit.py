@@ -509,7 +509,6 @@ def get_chisq(specdata,
     """
     npoly = options.get('npoly') or 5
     chisq = 0
-    outsides = 0
     badchi = 1e6
     if rot_params is not None:
         rot_params = tuple(rot_params)
@@ -537,7 +536,7 @@ def get_chisq(specdata,
             models.append(np.zeros(len(curdata.lam))+np.nan)
             continue
         else:
-            chisq += outside
+            chisq += outside * badchi
 
         if (curdata.lam[0] < templ_lam[0] or curdata.lam[0] > templ_lam[-1]
                 or curdata.lam[-1] < templ_lam[0]

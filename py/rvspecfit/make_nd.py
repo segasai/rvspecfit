@@ -97,12 +97,13 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
 
     # get the positions that are outside the existing grid
     edgepositions = getedgevertices(vec)
+    nearnei = scipy.spatial.cKDTree(vec).query(edgepositions)[1]
     vec = np.hstack((vec, edgepositions))
 
     nspec, lenspec = specs.shape
     fakespec = np.ones(lenspec)
     # add constant spectra to the grid at the edge locations
-    specs = np.append(specs, np.tile(fakespec, (2**ndim, 1)), axis=0)
+    specs = np.append(specs, np.array([specs[_] for _ in nearnei]), axis=0)
 
     # extra flags that allow us to detect out of the grid cases (i.e inside
     # our grid the flag should be 0)
