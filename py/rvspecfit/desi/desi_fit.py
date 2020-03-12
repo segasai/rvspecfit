@@ -149,6 +149,8 @@ def proc_onespec(specdata,
     outdict = dict(
         VRAD=res1['vel'] * auni.km / auni.s,
         VRAD_ERR=res1['vel_err'] * auni.km / auni.s,
+        VRAD_SKEW=res1['vel_skewness'],
+        VRAD_KURT=res1['vel_kurtosis'],
         LOGG=res1['param']['logg'],
         TEFF=res1['param']['teff'] * auni.K,
         ALPHAFE=res1['param']['alpha'],
@@ -338,7 +340,35 @@ def put_empty_file(fname):
                                                         overwrite=True,
                                                         checksum=True)
 
+def get_column_desc(setups):
+    """ return the list of column descriptions
+    when we fitting a given set of configurations
+    """
+    columnDesc = dict([('VRAD', 'Radial velocity'),
+                       ('VRAD_ERR', 'Radial velocity error'),
+                       ('VRAD_SKEW', 'Radial velocity posterior skewness'),
+                       ('VRAD_KURT', 'Radial velocity posterior kurtosis'),
+                       ('VSINI', 'Stellar rotation velocity'),
+                       ('LOGG', 'Log of surface gravity'),
+                       ('TEFF', 'Effective temperature'),
+                       ('FEH', '[Fe/H] from template fitting'),
+                       ('ALPHAFE', '[alpha/Fe] from template fitting'),
+                       ('CHISQ_TOT', 'Total chi-square for all arms'),
+                       ('CHISQ_C_TOT', 'Total chi-square for all arms for polynomial only fit'),
+                       ('TARGETID', 'DESI targetid'),
+                       ('EXPID', 'DESI exposure id'),
+                       ('SUCCESS', "Did we succeed or fail"),
+                       ('RVS_WARN', "RVSpecFit warning flag")])
 
+    for curs in setups:
+        curs = curs.upper()
+        columnDesc['SN_%s' % curs] = ('Median S/N in the %s arm' % curs)
+        columnDesc['CHISQ_%s' % curs] = ('Chi-square in the %s arm' % curs)
+        columnDesc['CHISQ_C_%s' % curs] = (
+            'Chi-square in the %s arm after fitting continuum only' % curs)
+    return columnDesc
+
+    
 def proc_desi(fname,
               tab_ofname,
               mod_ofname,
@@ -500,28 +530,6 @@ def proc_desi(fname,
         pyfits.PrimaryHDU(header=get_prim_header(versions=versions))
     ]
 
-    # Column descriptions
-    columnDesc = dict([('VRAD', 'Radial velocity'),
-                       ('VRAD_ERR', 'Radial velocity error'),
-                       ('VSINI', 'Stellar rotation velocity'),
-                       ('LOGG', 'Log of surface gravity'),
-                       ('TEFF', 'Effective temperature'),
-                       ('FEH', '[Fe/H] from template fitting'),
-                       ('ALPHAFE', '[alpha/Fe] from template fitting'),
-                       ('CHISQ_TOT', 'Total chi-square for all arms'),
-                       ('CHISQ_C_TOT', 'Total chi-square for all arms for polynomial only fit'),
-                       ('TARGETID', 'DESI targetid'),
-                       ('EXPID', 'DESI exposure id'),
-                       ('SUCCESS', "Did we succeed or fail"),
-                       ('RVS_WARN', "RVSpecFit warning flag")])
-
-    for curs in setups:
-        curs = curs.upper()
-        columnDesc['SN_%s' % curs] = ('Median S/N in the %s arm' % curs)
-        columnDesc['CHISQ_%s' % curs] = ('Chi-square in the %s arm' % curs)
-        columnDesc['CHISQ_C_%s' % curs] = (
-            'Chi-square in the %s arm after fitting continuum only' % curs)
-
     # TODO
     # in the combine mode I don't know how to write the model
     #
@@ -532,6 +540,9 @@ def proc_desi(fname,
         outmod_hdus.append(
             pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
                             name='%s_MODEL' % curs.upper()))
+
+    columnDesc = get_column_desc(setups)
+    
     outmod_hdus += [fibermap_subset_hdu]
 
     outtab_hdus = [
@@ -635,13 +646,19 @@ def proc_desi_wrapper(*args, **kwargs):
     except Exception as e:
         print('failed with these arguments', args, kwargs)
         traceback.print_exc()
-        raise
-
+        pid = os.getpid()
+        logfname = 'crash_%s.log'%(time.ctime().replace(' ',''))
+        with open(logfname,'w') as fd:
+            print ('failed with thes arguments', args, kwargs, file=fd)
+            traceback.print_exc(file=fd)
+        # I decided not to just fail, proceed instead after
+        # writing a bug report
 
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
 
-
 class FakeFuture:
+    # this is a fake Future object designed for easier switching
+    # to single thread operations when debugging
     def __init__(self, x):
         self.x = x
 
@@ -685,6 +702,8 @@ def proc_many(files,
         The prefix where the table with measurements will be stored
     fig_prefix: string
         The prfix where the figures will be stored
+    config: string
+        The name of the config file
     combine: bool
         Fit spectra of same targetid together
     targetid: integer
@@ -695,8 +714,12 @@ def proc_many(files,
         Plotting
     minsn: real
         THe min S/N to fit
+    expid_range: tuple
+        None or a tule of two numbers for the range of expids to fit
     skipexisting: bool
         if True do not process anything if output files exist
+    fitarm: list
+        the list of arms/spec configurations to fit (can be None)
     """
     config = utils.read_config(config)
     assert (config is not None)
@@ -734,7 +757,7 @@ def proc_many(files,
                       overwrite=overwrite,
                       poolex=poolEx,
                       fitarm=fitarm)
-        proc_desi(*args, **kwargs)
+        proc_desi_wrapper(*args, **kwargs)
 
     if parallel:
         try:

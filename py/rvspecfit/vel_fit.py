@@ -98,7 +98,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
                              config=config,
                              options=options)
     best_vel = res['best_vel']
-
+    
     def paramMapper(p0):
         # construct relevant objects for fitting from a numpy array vectors
         # taking into account which parameters are fixed
@@ -170,7 +170,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     ret['vel'] = best_param['vel']
     best_vel = best_param['vel']
 
-    # For a given template measure the chi-square as a function of velocity to get the uncertaint
+    # For a given template measure the chi-square as a function of velocity to get the uncertainty
 
     # if the velocity is outside the range considered, something
     # is likely wrong with the object , so to prevent future failure
@@ -209,8 +209,8 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     t4 = time.time()
     ret['vel'] = best_vel
     ret['vel_err'] = res1['vel_err']
-    ret['skewness'] = res1['skewness']
-    ret['kurtosis'] = res1['kurtosis']
+    ret['vel_skewness'] = res1['skewness']
+    ret['vel_kurtosis'] = res1['kurtosis']
     outp = spec_fit.get_chisq(specdata,
                               best_vel, [ret['param'][_] for _ in specParams],
                               best_param['rot_params'],

@@ -503,16 +503,17 @@ def get_chisq(specdata,
 
     Returns:
     --------
-    ret: float or tuple
-        If full_output is False, ret is the float = -2*log(L) of the whole data
+    ret: float or dictionary
+        If full_output is False, ret is float = -2*log(L) of the whole data
         If full_output is True ret is a dictionary with the following keys
         chisq -- this is the -2*log(L) of the whole dataset
         chisq_array -- this is the array of chi-squares (proper ones) 
                        for each of the fited spectra
         redchisq_array -- this is the array of reduced chi-squares
+        models -- array of best fit models
     """
     npoly = options.get('npoly') or 5
-    chisq = 0
+    logl = 0
     badchi = 1e6
     if rot_params is not None:
         rot_params = tuple(rot_params)
@@ -534,13 +535,13 @@ def get_chisq(specdata,
         # add bad value and bail out
 
         if not np.isfinite(outside):
-            chisq += badchi
+            logl += badchi
             chisq_array.append(np.nan)
             red_chisq_array.append(np.nan)
             models.append(np.zeros(len(curdata.lam)) + np.nan)
             continue
         else:
-            chisq += outside * badchi
+            logl += outside * badchi
 
         if (curdata.lam[0] < templ_lam[0] or curdata.lam[0] > templ_lam[-1]
                 or curdata.lam[-1] < templ_lam[0]
@@ -566,32 +567,32 @@ def get_chisq(specdata,
 
         polys = get_basis(curdata, npoly)
 
-        curchisq = get_chisq0(curdata.spec,
+        curlogl = get_chisq0(curdata.spec,
                               evalTempl,
                               polys,
                               get_coeffs=full_output,
                               espec=curdata.espec)
         if full_output:
-            curchisq, coeffs = curchisq
+            curlogl, coeffs = curlogl
             curmodel = np.dot(coeffs, polys * evalTempl)
             models.append(curmodel)
             XCHISQ = (((curmodel - curdata.spec) / curdata.espec)**2).sum()
             chisq_array.append(XCHISQ)
             red_chisq_array.append(XCHISQ / len(curdata.espec))
 
-        assert (np.isfinite(np.asscalar(curchisq)))
-        chisq += np.asscalar(curchisq)
+        assert (np.isfinite(np.asscalar(curlogl)))
+        logl += np.asscalar(curlogl)
 
-    # chisq here is the -2*log(L)
 
     if full_output:
         ret = {}
-        ret['chisq'] = chisq
+        ret['chisq'] = logl
+        # chisq here is the -2*log(L)
         ret['chisq_array'] = chisq_array
         ret['red_chisq_array'] = red_chisq_array
         ret['models'] = models
     else:
-        ret = chisq
+        ret = logl
     return ret
 
 
