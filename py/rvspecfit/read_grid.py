@@ -217,11 +217,11 @@ def make_rebinner(lam00,
         lam0 = lam00
 
     resolution_array = resolution_function(lam)
-    resolution_array = resolution_array + lam * 0 # ensure it is an array
+    resolution_array = resolution_array + lam * 0  # ensure it is an array
     assert (resolution_array.max() < resolution0)
     fwhms = lam / resolution_array
     fwhms0 = lam / resolution0
-    fwhm_to_sig = 2*np.sqrt(2*np.log(2))       
+    fwhm_to_sig = 2 * np.sqrt(2 * np.log(2))
     sigs = (fwhms**2 - fwhms0**2)**.5 / fwhm_to_sig
     thresh = 5  # 5 sigma
     l0 = len(lam0)
@@ -255,7 +255,7 @@ def make_rebinner(lam00,
 
         x1 = lam0[curx]
         x2 = lam0[curx + 1]
-        # these are neighboring pixels in the input template 
+        # these are neighboring pixels in the input template
         # we'll assume linear interpolation inbetween values on those
 
         l1 = curlam - leftstep

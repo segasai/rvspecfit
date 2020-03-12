@@ -6,15 +6,16 @@ from rvspecfit import frozendict
 
 def get_default_config():
     D = {}
-    # Configuration parameters, should be moved to the yaml file 
+    # Configuration parameters, should be moved to the yaml file
     D['min_vel'] = -1000
     D['max_vel'] = 1000
-    D['vel_step0'] = 5  # the starting step in velocities                                                                          
+    D['vel_step0'] = 5  # the starting step in velocities
     D['max_vsini'] = 500
     D['min_vsini'] = 1e-2
     D['min_vel_step'] = 0.2
     D['second_minimizer'] = True
     return D
+
 
 def read_config(fname=None):
     """

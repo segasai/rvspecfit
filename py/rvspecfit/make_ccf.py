@@ -20,7 +20,6 @@ CCF_MOD_NAME = 'ccfmod_%s.npy'
 
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
-
     def __init__(self,
                  logl0=None,
                  logl1=None,
@@ -241,11 +240,10 @@ def preprocess_model(logl,
         m = spec_fit.convolve_vsini(lammodel, model0, vsini)
     else:
         m = model0
-    cont = get_continuum(
-        lammodel,
-        m,
-        np.maximum(m * 1e-5, 1e-2 * np.median(m)),
-        ccfconf=ccfconf)
+    cont = get_continuum(lammodel,
+                         m,
+                         np.maximum(m * 1e-5, 1e-2 * np.median(m)),
+                         ccfconf=ccfconf)
 
     cont = np.maximum(cont, 1e-2 * np.median(cont))
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
@@ -379,10 +377,10 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     if medv > 0:
         cont = np.maximum(1e-2 * medv, cont)
     else:
-#        medv1 = np.median(curspec[curspec > 0])
-#        if not np.isfinite(medv1):
-#            medv1=1
-#        cont = np.maximum(1e-2 * medv1, cont)
+        #        medv1 = np.median(curspec[curspec > 0])
+        #        if not np.isfinite(medv1):
+        #            medv1=1
+        #        cont = np.maximum(1e-2 * medv1, cont)
         cont = 1
 
     c_spec = spec0 / cont
@@ -390,9 +388,11 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     ca_spec = apodize(c_spec)
     if badmask is not None:
         ca_spec[badmask] = 0
-    ca_spec = scipy.interpolate.interp1d(
-        np.log(lam), ca_spec, bounds_error=False, fill_value=0,
-        kind='linear')(logl)
+    ca_spec = scipy.interpolate.interp1d(np.log(lam),
+                                         ca_spec,
+                                         bounds_error=False,
+                                         fill_value=0,
+                                         kind='linear')(logl)
     lam1, cap_spec = pad(logl, ca_spec)
     return cap_spec
 
@@ -442,8 +442,11 @@ def ccf_executor(spec_setup,
     vec = vec.T[::every, :]
     nspec, lenspec = specs.shape
 
-    xlogl, models, params, vsinis = preprocess_model_list(
-        lam, np.exp(specs), vec, ccfconf, vsinis=vsinis)
+    xlogl, models, params, vsinis = preprocess_model_list(lam,
+                                                          np.exp(specs),
+                                                          vec,
+                                                          ccfconf,
+                                                          vsinis=vsinis)
     ffts = np.array([np.fft.fft(x) for x in models])
     savefile = ('%s/' + CCF_PKL_NAME) % (oprefix, spec_setup)
     datsavefile = ('%s/' + CCF_DAT_NAME) % (oprefix, spec_setup)
@@ -465,49 +468,62 @@ def ccf_executor(spec_setup,
 def main(args):
     parser = argparse.ArgumentParser(
         description='Create the Fourier transformed templates')
-    parser.add_argument(
-        '--prefix', type=str, help='Location of the input spectra')
+    parser.add_argument('--prefix',
+                        type=str,
+                        help='Location of the input spectra')
     parser.add_argument(
         '--oprefix',
         type=str,
         default='templ_data/',
         help='Location where the ouput products will be located')
-    parser.add_argument(
-        '--setup', type=str, help='Name of spectral configuration')
-    parser.add_argument(
-        '--lambda0', type=float, help='Starting wavelength in Angstroms',
-        required=True)
-    parser.add_argument('--lambda1', type=float, help='Wavelength endpoint',
+    parser.add_argument('--setup',
+                        type=str,
+                        help='Name of spectral configuration')
+    parser.add_argument('--lambda0',
+                        type=float,
+                        help='Starting wavelength in Angstroms',
                         required=True)
-    parser.add_argument('--step', type=float, help='Pixel size in angstroms',
+    parser.add_argument('--lambda1',
+                        type=float,
+                        help='Wavelength endpoint',
                         required=True)
-    parser.add_argument('--revision', type=str, help='Revision of the data files/run',
-                        required=False,default='')
+    parser.add_argument('--step',
+                        type=float,
+                        help='Pixel size in angstroms',
+                        required=True)
+    parser.add_argument('--revision',
+                        type=str,
+                        help='Revision of the data files/run',
+                        required=False,
+                        default='')
     parser.add_argument(
         '--vsinis',
         type=str,
         default=None,
         help='Comma separated list of vsini values to include in the ccf set')
-    parser.add_argument(
-        '--every',
-        type=int,
-        default=30,
-        help='Subsample the input grid by this amount')
+    parser.add_argument('--every',
+                        type=int,
+                        default=30,
+                        help='Subsample the input grid by this amount')
 
     args = parser.parse_args(args)
 
     npoints = int((args.lambda1 - args.lambda0) / args.step)
-    ccfconf = CCFConfig(
-        logl0=np.log(args.lambda0),
-        logl1=np.log(args.lambda1),
-        npoints=npoints)
+    ccfconf = CCFConfig(logl0=np.log(args.lambda0),
+                        logl1=np.log(args.lambda1),
+                        npoints=npoints)
 
     if args.vsinis is not None:
         vsinis = [float(_) for _ in args.vsinis.split(',')]
     else:
         vsinis = None
-    ccf_executor(args.setup, ccfconf, args.prefix, args.oprefix, args.every,
-                 vsinis, revision=args.revision)
+    ccf_executor(args.setup,
+                 ccfconf,
+                 args.prefix,
+                 args.oprefix,
+                 args.every,
+                 vsinis,
+                 revision=args.revision)
 
 
 if __name__ == '__main__':

@@ -91,8 +91,11 @@ def fit(specdata, config):
         logl0 = ccfconf.logl0
         logl1 = ccfconf.logl1
         npoints = ccfconf.npoints
-        proc_spec = make_ccf.preprocess_data(
-            lam, spec, espec, badmask=cursd.badmask, ccfconf=ccfconf)
+        proc_spec = make_ccf.preprocess_data(lam,
+                                             spec,
+                                             espec,
+                                             badmask=cursd.badmask,
+                                             ccfconf=ccfconf)
         proc_spec_std = proc_spec.std()
         if proc_spec_std == 0:
             proc_spec_std = 1

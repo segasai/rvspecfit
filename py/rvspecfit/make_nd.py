@@ -140,12 +140,14 @@ def main(args):
         type=str,
         help='Location of the interpolated and convolved input spectra',
         required=True)
-    parser.add_argument(
-        '--setup', type=str, help='Name of the spectral configuration',
-        required=True)
-    parser.add_argument(
-        '--revision', type=str, help='Revision of the data files/run',
-        required=False)
+    parser.add_argument('--setup',
+                        type=str,
+                        help='Name of the spectral configuration',
+                        required=True)
+    parser.add_argument('--revision',
+                        type=str,
+                        help='Revision of the data files/run',
+                        required=False)
 
     args = parser.parse_args(args)
     execute(args.setup, prefix=args.prefix, revision=args.revision)

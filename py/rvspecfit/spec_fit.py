@@ -1,6 +1,6 @@
 import sys
 if (sys.version_info < (3, 0)):
-    import functools32 as functools 
+    import functools32 as functools
 else:
     import functools
 import random
@@ -32,10 +32,10 @@ class LRUDict:
         if len(self.D) == self.N and not inside:
             del self.D[next(iter(self.D.keys()))]
         if inside:
-            self.D.move_to_end(x,last=True)
+            self.D.move_to_end(x, last=True)
         self.D[x] = y
 
-    def __getitem__(self,x):
+    def __getitem__(self, x):
         ret = self.D[x]
         self.D.move_to_end(x, last=True)
         return ret
@@ -64,7 +64,6 @@ class SpecData:
     '''
     Class describing a single spectrocopic dataset
     '''
-
     def __init__(self, name, lam, spec, espec, badmask=None):
         '''
         Construct the spectroscopic dataset
@@ -152,14 +151,15 @@ def get_basis(specdata, npoly, rbf=True):
     else:
         npoly0 = 3
         for i in range(npoly0):
-            polys[i, : ] = normlam**i
+            polys[i, :] = normlam**i
         nrbf = npoly - npoly0
-        assert (npoly>=npoly0)
-        if nrbf>0:
-            sig = 2./nrbf
-            rbfcens = np.linspace(-1,1,nrbf,True)
+        assert (npoly >= npoly0)
+        if nrbf > 0:
+            sig = 2. / nrbf
+            rbfcens = np.linspace(-1, 1, nrbf, True)
             for i in range(nrbf):
-                polys[npoly0 + i, :] = scipy.stats.norm(rbfcens[i],sig).pdf(normlam)
+                polys[npoly0 + i, :] = scipy.stats.norm(rbfcens[i],
+                                                        sig).pdf(normlam)
     return polys
 
 
@@ -276,13 +276,13 @@ def construct_resol_mat(lam, resol=None, width=None):
     mat: scipy.sparse matrix
         The matrix describing the resolution convolution operation
     '''
-    assert(resol is None or width is None)
-    assert(resol is not None or width is not None)
+    assert (resol is None or width is None)
+    assert (resol is not None or width is not None)
     if resol is not None:
         sigs = lam / resol / 2.35
     else:
         if np.isscalar(width):
-            sigs=np.zeros(len(lam))+width
+            sigs = np.zeros(len(lam)) + width
         else:
             sigs = width
     thresh = 5
@@ -297,13 +297,13 @@ def construct_resol_mat(lam, resol=None, width=None):
     ys = []
     vals = []
     lampix = np.arange(len(lam))
-    maxl = max(np.max(i2-lampix),np.max(lampix-i1))
-    xs2d = lampix[:,None] + np.arange(-maxl, maxl+1)[None,:]
+    maxl = max(np.max(i2 - lampix), np.max(lampix - i1))
+    xs2d = lampix[:, None] + np.arange(-maxl, maxl + 1)[None, :]
     mask = (xs2d >= 0) * (xs2d < len(lam))
     xs2d[~mask] = 0
-    XL = np.exp(-0.5* ((lam[xs2d] - lam[:,None]) / sigs[:,None])**2) * mask
-    XL = XL / XL.sum(axis=1)[:,None]
-    xs,ys = np.nonzero(XL)
+    XL = np.exp(-0.5 * ((lam[xs2d] - lam[:, None]) / sigs[:, None])**2) * mask
+    XL = XL / XL.sum(axis=1)[:, None]
+    xs, ys = np.nonzero(XL)
     vals = XL[xs, ys]
     ys = xs2d[xs, ys]
     #for i in range(len(lam)):
@@ -391,8 +391,9 @@ def getRVInterpol(lam_templ, templ):
         The object that can be used to evaluate template at any wavelength
     """
 
-    interpol = scipy.interpolate.CubicSpline(
-        lam_templ, templ, extrapolate=False)
+    interpol = scipy.interpolate.CubicSpline(lam_templ,
+                                             templ,
+                                             extrapolate=False)
     return interpol
 
 
@@ -414,7 +415,7 @@ def evalRV(interpol, vel, lams):
     spec: numpy
         Evaluated spectrum
     """
-    beta  = vel * 1000. / speed_of_light
+    beta = vel * 1000. / speed_of_light
     return interpol(lams * np.sqrt((1 - beta) / (1 + beta)))
 
 
@@ -449,8 +450,11 @@ def get_chisq_continuum(specdata, options=None):
         name = curdata.name
         polys = get_basis(curdata, npoly)
         templ = np.ones(len(curdata.spec))
-        curchisq, coeffs = get_chisq0(
-            curdata.spec, templ, polys, get_coeffs=True, espec=curdata.espec)
+        curchisq, coeffs = get_chisq0(curdata.spec,
+                                      templ,
+                                      polys,
+                                      get_coeffs=True,
+                                      espec=curdata.espec)
         model = np.dot(coeffs, polys * templ)
         curchisq = (((model - curdata.spec) / curdata.espec)**2).sum()
         redchisq = curchisq / len(curdata.espec)
@@ -533,7 +537,7 @@ def get_chisq(specdata,
             chisq += badchi
             chisq_array.append(np.nan)
             red_chisq_array.append(np.nan)
-            models.append(np.zeros(len(curdata.lam))+np.nan)
+            models.append(np.zeros(len(curdata.lam)) + np.nan)
             continue
         else:
             chisq += outside * badchi
@@ -542,7 +546,9 @@ def get_chisq(specdata,
                 or curdata.lam[-1] < templ_lam[0]
                 or curdata.lam[-1] > templ_lam[-1]):
             raise Exception(
-                "The template library (%f,%f)  doesn't cover this wavelength range (%f,%f)"%(templ_lam[0],templ_lam[-1],curdata.lam[0],curdata.lam[-1]))
+                "The template library (%f,%f)  doesn't cover this wavelength range (%f,%f)"
+                %
+                (templ_lam[0], templ_lam[-1], curdata.lam[0], curdata.lam[-1]))
 
         # current template interpolator object
         if cache is None or templ_tag not in cache:
@@ -560,19 +566,18 @@ def get_chisq(specdata,
 
         polys = get_basis(curdata, npoly)
 
-        curchisq = get_chisq0(
-            curdata.spec,
-            evalTempl,
-            polys,
-            get_coeffs=full_output,
-            espec=curdata.espec)
+        curchisq = get_chisq0(curdata.spec,
+                              evalTempl,
+                              polys,
+                              get_coeffs=full_output,
+                              espec=curdata.espec)
         if full_output:
             curchisq, coeffs = curchisq
             curmodel = np.dot(coeffs, polys * evalTempl)
             models.append(curmodel)
             XCHISQ = (((curmodel - curdata.spec) / curdata.espec)**2).sum()
-            chisq_array.append(XCHISQ)            
-            red_chisq_array.append( XCHISQ / len(curdata.espec))
+            chisq_array.append(XCHISQ)
+            red_chisq_array.append(XCHISQ / len(curdata.espec))
 
         assert (np.isfinite(np.asscalar(curchisq)))
         chisq += np.asscalar(curchisq)
@@ -588,6 +593,7 @@ def get_chisq(specdata,
     else:
         ret = chisq
     return ret
+
 
 def quadratic_interp(vel_grid, chisq, i):
     """Find the minimum using quadratic interpolation
@@ -605,43 +611,43 @@ def quadratic_interp(vel_grid, chisq, i):
     --------
     The estimated of velocity minimum
     """
-    if i==0 or i==len(vel_grid)-1:
+    if i == 0 or i == len(vel_grid) - 1:
         return vel_grid[i]
-    x=vel_grid[i-1:i+2]
-    y=chisq[i-1:i+2]
-    a2,a1,a0=scipy.polyfit(x,y,2)
-    val = -a1/2/a2
-    assert ((val<vel_grid[i+1])&(val>vel_grid[i-1]))
+    x = vel_grid[i - 1:i + 2]
+    y = chisq[i - 1:i + 2]
+    a2, a1, a0 = scipy.polyfit(x, y, 2)
+    val = -a1 / 2 / a2
+    assert ((val < vel_grid[i + 1]) & (val > vel_grid[i - 1]))
     return val
-    
-    
+
+
 def find_best(specdata,
               vel_grid,
               params_list,
               rot_params,
               resol_params,
               options=None,
-              config=None, quadratic=True):
+              config=None,
+              quadratic=True):
     # find the best fit template and velocity from a grid
     cache = LRUDict(100)
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):
         for i, v in enumerate(vel_grid):
-            chisq[i, j] = get_chisq(
-                specdata,
-                v,
-                curparam,
-                rot_params,
-                resol_params,
-                options=options,
-                config=config,
-                cache=cache)
+            chisq[i, j] = get_chisq(specdata,
+                                    v,
+                                    curparam,
+                                    rot_params,
+                                    resol_params,
+                                    options=options,
+                                    config=config,
+                                    cache=cache)
     xind = np.argmin(chisq)
     i1, i2 = np.unravel_index(xind, chisq.shape)
     probs = np.exp(-0.5 * (chisq[:, i2] - chisq[i1, i2]))
     probs = probs / probs.sum()
     if quadratic:
-        best_vel = quadratic_interp(vel_grid, chisq[:,i2], i1)
+        best_vel = quadratic_interp(vel_grid, chisq[:, i2], i1)
     else:
         best_vel = vel_grid[i1]
     best_err = np.sqrt((probs * (vel_grid - best_vel)**2).sum())
@@ -650,11 +656,10 @@ def find_best(specdata,
     else:
         kurtosis = ((probs * (vel_grid - best_vel)**4).sum()) / best_err**4
         skewness = ((probs * (vel_grid - best_vel)**3).sum()) / best_err**3
-    return dict(
-        best_chi=chisq[i1, i2],
-        best_vel=best_vel,
-        vel_err=best_err,
-        best_param=params_list[i2],
-        kurtosis=kurtosis,
-        skewness=skewness,
-        probs=probs)
+    return dict(best_chi=chisq[i1, i2],
+                best_vel=best_vel,
+                vel_err=best_err,
+                best_param=params_list[i2],
+                kurtosis=kurtosis,
+                skewness=skewness,
+                probs=probs)

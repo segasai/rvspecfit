@@ -33,14 +33,13 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
             rot_params = None
         else:
             rot_params = (vsini, )
-        res = spec_fit.find_best(
-            specdata,
-            vels_grid,
-            params,
-            rot_params,
-            resolParams,
-            config=config,
-            options=options)
+        res = spec_fit.find_best(specdata,
+                                 vels_grid,
+                                 params,
+                                 rot_params,
+                                 resolParams,
+                                 config=config,
+                                 options=options)
 
 
 def process(specdata,
@@ -58,11 +57,11 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     # Configuration parameters, should be moved to the yaml file
     min_vel = config['min_vel']
     max_vel = config['max_vel']
-    vel_step0 = config['vel_step0'] # the starting step in velocities
+    vel_step0 = config['vel_step0']  # the starting step in velocities
     max_vsini = config['max_vsini']
     min_vsini = config['min_vsini']
     min_vel_step = config['min_vel_step']
-    second_minimizer =config['second_minimizer']
+    second_minimizer = config['second_minimizer']
     if config is None:
         raise Exception('Config must be provided')
 
@@ -75,8 +74,9 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     assert (np.allclose(mapVsiniInv(mapVsini(3)), 3))
 
     vels_grid = np.arange(min_vel, max_vel, vel_step0)
-    curparam = spec_fit.param_dict_to_tuple(
-        paramDict0, specdata[0].name, config=config)
+    curparam = spec_fit.param_dict_to_tuple(paramDict0,
+                                            specdata[0].name,
+                                            config=config)
     specParams = spec_inter.getSpecParams(specdata[0].name, config)
     if fixParam is None:
         fixParam = []
@@ -90,14 +90,13 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             fitVsini = False
         else:
             fitVsini = True
-    t0= time.time()
-    res = spec_fit.find_best(
-        specdata,
-        vels_grid, [curparam],
-        rot_params,
-        resolParams,
-        config=config,
-        options=options)
+    t0 = time.time()
+    res = spec_fit.find_best(specdata,
+                             vels_grid, [curparam],
+                             rot_params,
+                             resolParams,
+                             config=config,
+                             options=options)
     best_vel = res['best_vel']
 
     def paramMapper(p0):
@@ -140,32 +139,28 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         pdict = paramMapper(p)
         if pdict['vel'] > max_vel or pdict['vel'] < min_vel:
             return 1e30
-        chisq = spec_fit.get_chisq(
-            specdata,
-            pdict['vel'],
-            pdict['params'],
-            pdict['rot_params'],
-            resolParams,
-            options=options,
-            config=config)
+        chisq = spec_fit.get_chisq(specdata,
+                                   pdict['vel'],
+                                   pdict['params'],
+                                   pdict['rot_params'],
+                                   resolParams,
+                                   options=options,
+                                   config=config)
         return chisq
 
     method = 'Nelder-Mead'
     t1 = time.time()
 
-    res = scipy.optimize.minimize(
-        func,
-        startParam,
-        method=method,
-        options={
-            'fatol': 1e-3,
-            'xatol': 1e-2
-        })
+    res = scipy.optimize.minimize(func,
+                                  startParam,
+                                  method=method,
+                                  options={
+                                      'fatol': 1e-3,
+                                      'xatol': 1e-2
+                                  })
     t2 = time.time()
     if second_minimizer:
-        res = scipy.optimize.minimize(
-            func,
-            res['x'], method='BFGS')
+        res = scipy.optimize.minimize(func, res['x'], method='BFGS')
     t3 = time.time()
     best_param = paramMapper(res['x'])
     ret = {}
@@ -196,13 +191,13 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         vels_grid = np.concatenate(
             (np.arange(best_vel, min_vel, -vel_step)[::-1],
              np.arange(best_vel + vel_step, max_vel, vel_step)))
-        res1 = spec_fit.find_best(
-            specdata,
-            vels_grid, [[ret['param'][_] for _ in specParams]],
-            best_param['rot_params'],
-            resolParams,
-            config=config,
-            options=options)
+        res1 = spec_fit.find_best(specdata,
+                                  vels_grid,
+                                  [[ret['param'][_] for _ in specParams]],
+                                  best_param['rot_params'],
+                                  resolParams,
+                                  config=config,
+                                  options=options)
         best_vel = res1['best_vel']
         if vel_step < res1['vel_err'] / crit_ratio or vel_step < min_vel_step:
             break
@@ -212,30 +207,29 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
             min_vel = max(best_vel - new_width, min_vel)
             max_vel = min(best_vel + new_width, max_vel)
     t4 = time.time()
-    ret['vel'] =best_vel
+    ret['vel'] = best_vel
     ret['vel_err'] = res1['vel_err']
     ret['skewness'] = res1['skewness']
     ret['kurtosis'] = res1['kurtosis']
-    outp = spec_fit.get_chisq(
-        specdata,
-        best_vel, [ret['param'][_] for _ in specParams],
-        best_param['rot_params'],
-        resolParams,
-        options=options,
-        config=config,
-        full_output=True)
+    outp = spec_fit.get_chisq(specdata,
+                              best_vel, [ret['param'][_] for _ in specParams],
+                              best_param['rot_params'],
+                              resolParams,
+                              options=options,
+                              config=config,
+                              full_output=True)
     t5 = time.time()
+
     # compute the uncertainty of stellar params
     def hess_func(p):
-        outp = spec_fit.get_chisq(
-            specdata,
-            best_vel,
-            p,
-            best_param['rot_params'],
-            resolParams,
-            options=options,
-            config=config,
-            full_output=True)
+        outp = spec_fit.get_chisq(specdata,
+                                  best_vel,
+                                  p,
+                                  best_param['rot_params'],
+                                  resolParams,
+                                  options=options,
+                                  config=config,
+                                  full_output=True)
         return 0.5 * outp['chisq']
     hess_step = np.maximum(1e-4*np.abs(np.array([ret['param'][_] for _ in \
                                                  specParams])), 1e-4)
@@ -244,13 +238,13 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     try:
         hessian_inv = scipy.linalg.inv(hessian)
         diag_hess = np.array(np.diag(hessian_inv))
-        bad_diag_hess = diag_hess<0
-        diag_hess[bad_diag_hess ] =0
+        bad_diag_hess = diag_hess < 0
+        diag_hess[bad_diag_hess] = 0
         diag_err = np.sqrt(diag_hess)
-        diag_err[bad_diag_hess]  = np.nan
+        diag_err[bad_diag_hess] = np.nan
     except np.linalg.LinAlgError:
-        print ('WARNING the inversion of the Hessian failed', file=sys.stderr)
-        diag_err = np.zeros(hessian.shape[0])+np.nan
+        print('WARNING the inversion of the Hessian failed', file=sys.stderr)
+        diag_err = np.zeros(hessian.shape[0]) + np.nan
         #
     ret['param_err'] = dict(zip(specParams, diag_err))
 
@@ -259,5 +253,6 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     ret['chisq_array'] = outp['chisq_array']
     t6 = time.time()
     if verbose:
-        print ('Timings2: ', t1-t0, t2-t1, t3-t2, t4-t3, t5-t4,t6-t5)
+        print('Timings2: ', t1 - t0, t2 - t1, t3 - t2, t4 - t3, t5 - t4,
+              t6 - t5)
     return ret

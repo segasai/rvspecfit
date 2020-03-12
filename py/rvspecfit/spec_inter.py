@@ -28,7 +28,13 @@ def getInterp(triang, dats, exp=True):
 
 class SpecInterpolator:
     # Spectrum interpolator object
-    def __init__(self, name, interper, extraper, lam, mapper, parnames,
+    def __init__(self,
+                 name,
+                 interper,
+                 extraper,
+                 lam,
+                 mapper,
+                 parnames,
                  revision='',
                  filename='',
                  creation_soft_version=''):
@@ -44,9 +50,9 @@ class SpecInterpolator:
         self.extraper = extraper
         self.mapper = mapper
         self.parnames = parnames
-        self.revision=revision
-        self.filename=filename
-        self.creation_soft_version=creation_soft_version
+        self.revision = revision
+        self.filename = filename
+        self.creation_soft_version = creation_soft_version
 
     def outsideFlag(self, param0):
         """Check if the point is outside the interpolation grid"""
@@ -77,9 +83,8 @@ def getInterpolator(HR, config, warmup_cache=True):
              parnames) = (fd['triang'], fd['lam'], fd['vec'], fd['extraflags'],
                           fd['mapper'], fd['parnames'])
         expFlag = True
-        dats = np.load(
-            config['template_lib'] + make_nd.INTERPOL_DAT_NAME % HR,
-            mmap_mode='r')
+        dats = np.load(config['template_lib'] + make_nd.INTERPOL_DAT_NAME % HR,
+                       mmap_mode='r')
         if warmup_cache:
             # we read all the templates to put them in the memory cache
             dats.sum()
@@ -88,10 +93,16 @@ def getInterpolator(HR, config, warmup_cache=True):
                                   triang, extraflags))
         revision = fd.get('revision') or ''
         creation_soft_version = fd.get('git_rev') or ''
-        interpObj = SpecInterpolator(HR, interper, extraper, templ_lam, mapper,
-                                     parnames, revision=revision,
-                                     creation_soft_version=creation_soft_version,
-                                     filename=savefile)
+        interpObj = SpecInterpolator(
+            HR,
+            interper,
+            extraper,
+            templ_lam,
+            mapper,
+            parnames,
+            revision=revision,
+            creation_soft_version=creation_soft_version,
+            filename=savefile)
         interp_cache.interps[HR] = interpObj
     else:
         interpObj = interp_cache.interps[HR]
