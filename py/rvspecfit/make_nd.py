@@ -97,7 +97,7 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
 
     # get the positions that are outside the existing grid
     edgepositions = getedgevertices(vec)
-    nearnei = scipy.spatial.cKDTree(vec).query(edgepositions)[1]
+    nearnei = scipy.spatial.cKDTree(vec.T).query(edgepositions.T)[1]
     vec = np.hstack((vec, edgepositions))
 
     nspec, lenspec = specs.shape
