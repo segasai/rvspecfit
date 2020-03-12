@@ -77,16 +77,16 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
     with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
               'rb') as fp:
         D = pickle.load(fp)
-        vec, specs, lam, parnames, mapper = D['vec'], D['specs'], D['lam'], D[
-            'parnames'], D['mapper']
+        vec, specs, lam, parnames, mapper, lognorms = (D['vec'], D['specs'], 
+            D['lam'], D['parnames'], D['mapper'], D['lognorms'])
         del D
 
     vec = vec.astype(float)
     vec = mapper.forward(vec)
     ndim = len(vec[:, 0])
 
-    # It turn's out that Delaunay is sometimes unstable when dealing with uniform
-    # grids, so perturb points
+    # It turn's out that Delaunay is sometimes unstable when dealing with 
+    # regular grids, so perturb points
     if perturb:
         state = np.random.get_state()
         # Make it deterministic
@@ -97,17 +97,22 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
 
     # get the positions that are outside the existing grid
     edgepositions = getedgevertices(vec)
+    nedgepos = len(edgepositions.T)
+
+    # find out the nearest neighbors for those outside points
     nearnei = scipy.spatial.cKDTree(vec.T).query(edgepositions.T)[1]
     vec = np.hstack((vec, edgepositions))
 
     nspec, lenspec = specs.shape
     fakespec = np.ones(lenspec)
-    # add constant spectra to the grid at the edge locations
+
+    # add nearest neighbor sectra to the grid at the edge locations
     specs = np.append(specs, np.array([specs[_] for _ in nearnei]), axis=0)
 
     # extra flags that allow us to detect out of the grid cases (i.e inside
     # our grid the flag should be 0)
-    extraflags = np.concatenate((np.zeros(nspec), np.ones(2**ndim)))
+    extraflags = np.concatenate((np.zeros(nspec), np.ones(nedgepos)))
+    lognorms = np.concatenate((lognorms, np.zeros(nedgepos)))
 
     vec = vec.astype(np.float64)
     extraflags = extraflags.astype(np.float64)
@@ -125,6 +130,7 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
     ret_dict['parnames'] = parnames
     ret_dict['mapper'] = mapper
     ret_dict['revision'] = revision
+    ret_dict['lognorms'] = lognorms
 
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)

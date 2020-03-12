@@ -100,18 +100,19 @@ def extract_spectrum(logg,
     spec0_phot = spec0 * lam
     spec1_phot = read_grid.apply_rebinner(si.mat, spec0_phot)
     spec1 = spec1_phot / si.lamgrid
-
+    
+    normnum = np.median(spec1)
+    spec2 = spec1/ normnum
     if normalize:
-        spec2 = spec1 / get_line_continuum(si.lamgrid, spec1)
-    else:
-        spec2 = spec1 / np.median(spec1)
+        spec2 = spec2 / get_line_continuum(si.lamgrid, spec2)
+
     spec2 = np.log(spec2)  # log the spectrum
     if not np.isfinite(spec2).all():
         raise Exception(
             'The spectrum is not finite (has nans or infs) at parameter values: %s'
             % str((teff, logg, feh, alpha)))
     spec2 = spec2.astype(np.float32)
-    return spec2
+    return spec2, np.log(normnum)
 
 
 class Resolution:
@@ -147,6 +148,7 @@ def process_all(setupInfo,
     tab = np.rec.fromrecords(cur.fetchall())
     tab_id, tab_teff, tab_logg, tab_met, tab_alpha = tab.f0, tab.f1, tab.f2, tab.f3, tab.f4
     ids = (tab_id).astype(int)
+    nspec = len(ids)
     vec = np.array((tab_teff, tab_logg, tab_met, tab_alpha))
     parnames = ('teff', 'logg', 'feh', 'alpha')
     i = 0
@@ -177,6 +179,7 @@ def process_all(setupInfo,
                                   resolution0=resolution0)
 
     specs = []
+    lognorms = np.zeros(nspec)
     si.mat = mat
     si.lamgrid = lamgrid
     pool = mp.Pool(nthreads)
@@ -190,11 +193,12 @@ def process_all(setupInfo,
                               prefix, wavefile, normalize)))
     lam = lamgrid
     for i in range(len(specs)):
-        specs[i] = specs[i].get()
+        specs[i], lognorms[i] = specs[i].get()
 
     pool.close()
     pool.join()
     specs = np.array(specs)
+    lognorms = np.array(lognorms)
 
     if os.path.isdir(oprefix):
         pass
@@ -212,7 +216,8 @@ def process_all(setupInfo,
                  parnames=parnames,
                  git_rev=git_rev,
                  mapper=mapper,
-                 revision=revision), fp)
+                 revision=revision,
+                 lognorms=lognorms), fp)
 
 
 def add_bool_arg(parser, name, default=False, help=None):
