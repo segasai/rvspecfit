@@ -262,14 +262,15 @@ def make_rebinner(lam00,
         l2 = curlam + rightstep
         # these are the edges of the pixel we will integrate over
         coeff1, coeff2 = integrator(x1, x2, l1, l2, cursig)
-
+        curstep = (leftstep+rightstep)
         ys.append(i + curx * 0)
         xs.append(curx)
-        vals.append(coeff1)
+        vals.append(coeff1/curstep)
 
         ys.append(i + curx * 0)
         xs.append(curx + 1)
-        vals.append(coeff2)
+        vals.append(coeff2/curstep)
+        # we divide by the step to preserve the units of 'per wavelength'
 
     xs = np.concatenate(xs)
     ys = np.concatenate(ys)
