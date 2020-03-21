@@ -96,7 +96,7 @@ def valid_file(fname):
     exts = pyfits.open(fname)
     extnames = [_.name for _ in exts]
 
-    names0 = ['PRIMARY']
+    names0 = []#'PRIMARY']
     arms = ['B', 'R', 'Z']
     arm_glued = 'BRZ'
     prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
