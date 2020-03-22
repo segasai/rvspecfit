@@ -131,7 +131,7 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
     ret_dict['mapper'] = mapper
     ret_dict['revision'] = revision
     ret_dict['lognorms'] = lognorms
-
+    ret_dict['git_rev'] = git_rev
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)
     np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
