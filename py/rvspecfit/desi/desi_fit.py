@@ -179,7 +179,7 @@ def proc_onespec(specdata,
     rverr_thresh = 100 * auni.km / auni.s
     rvs_warn = 0
     bitmasks = {'CHISQ_WARN': 1, 'RV_WARN': 2, 'RVERR_WARN': 4}
-    if ((outdict['CHISQ_TOT'] - outdict['CHISQ_C_TOT']) > chisq_thresh):
+    if ((outdict['CHISQ_C_TOT'] - outdict['CHISQ_TOT']) > chisq_thresh):
         rvs_warn |= bitmasks['CHISQ_WARN']
     if (np.abs(outdict['VRAD'] - config['max_vel'] * auni.km / auni.s) <
             rv_thresh) or (np.abs(outdict['VRAD'] - config['min_vel'] *
