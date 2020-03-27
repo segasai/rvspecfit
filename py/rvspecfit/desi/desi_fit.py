@@ -244,7 +244,8 @@ def select_fibers_to_fit(fibermap,
                          minsn=None,
                          mwonly=True,
                          expid_range=None,
-                         glued=False):
+                         glued=False,
+                         fit_targetid=None):
     """
     Identify fibers to fit 
     Currently that either uses MWS_TARGET or S/N cut
@@ -277,6 +278,8 @@ def select_fibers_to_fit(fibermap,
     if not glued:
         subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <=
                                                         maxe)
+    if fit_targetid is not None:
+        subset = subset & (fibermap['TARGETID']==fit_targetid)
     if minsn is not None:
         maxsn = np.max(np.array(list(sns.values())), axis=0)
         with warnings.catch_warnings():
@@ -374,7 +377,7 @@ def proc_desi(fname,
               mod_ofname,
               fig_prefix,
               config,
-              fit_targetid,
+              fit_targetid=None,
               combine=False,
               mwonly=True,
               doplot=True,
@@ -451,7 +454,8 @@ def proc_desi(fname,
                                   minsn=minsn,
                                   mwonly=mwonly,
                                   expid_range=expid_range,
-                                  glued=glued)
+                                  glued=glued,
+                                  fit_targetid=fit_targetid)
 
     # skip if no need to fit anything
     if not (subset.any()):
@@ -682,7 +686,7 @@ def proc_many(files,
               config=None,
               nthreads=1,
               combine=False,
-              targetid=None,
+              fit_targetid=None,
               mwonly=True,
               minsn=-1e9,
               doplot=True,
@@ -706,7 +710,7 @@ def proc_many(files,
         The name of the config file
     combine: bool
         Fit spectra of same targetid together
-    targetid: integer
+    fit_targetid: integer or None
         The targetid to fit (the rest will be ignored)
     mwonly: bool
         Only fit mws_target
@@ -747,8 +751,10 @@ def proc_many(files,
         if (skipexisting) and os.path.exists(tab_ofname):
             print('skipping, products already exist', f)
             continue
-        args = (f, tab_ofname, mod_ofname, fig_prefix, config, targetid)
-        kwargs = dict(combine=combine,
+        args = (f, tab_ofname, mod_ofname, fig_prefix, config)
+        kwargs = dict(
+                      fit_targetid=fit_targetid,
+                      combine=combine,
                       mwonly=mwonly,
                       doplot=doplot,
                       minsn=minsn,
@@ -887,7 +893,7 @@ def main(args):
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config = args.config
-    targetid = args.targetid
+    fit_targetid = args.targetid
     combine = args.combine
     mwonly = not args.allobjects
     doplot = args.doplot
@@ -919,7 +925,7 @@ def main(args):
               fig_prefix,
               nthreads=nthreads,
               config=config,
-              targetid=targetid,
+              fit_targetid=fit_targetid,
               combine=combine,
               mwonly=mwonly,
               doplot=doplot,
