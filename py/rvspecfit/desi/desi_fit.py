@@ -74,7 +74,7 @@ def make_plot(specdata, yfit, title, fig_fname):
     ndat = len(specdata)
     plt.figure(1, figsize=(6, 2 * ndat), dpi=300)
     for i in range(ndat):
-        plt.subplot(ndat, 1, i)
+        plt.subplot(ndat, 1, i+1)
         plt.plot(specdata[i].lam, specdata[i].spec, 'k-', linewidth=line_width)
         plt.plot(specdata[i].lam,
                  yfit[i],
@@ -619,7 +619,7 @@ def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
         curhduname = curhdu.name
 
         if curhduname not in allowed:
-            raise Exception('Weird exception', curhduname)
+            raise Exception('Weird extension', curhduname)
         if curhduname in ['FIBERMAP', 'RVTAB']:
             newdat = atpy.Table(curhdu.data)
             olddat = atpy.Table().read(ofile, hdu=curhduname)
