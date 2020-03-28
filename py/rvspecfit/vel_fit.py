@@ -10,9 +10,12 @@ from rvspecfit import spec_inter
 
 
 def firstguess(specdata, options=None, config=None, resolParams=None):
-    min_vel = -1000
-    max_vel = 1000
-    vel_step0 = 5
+    """ Compute the starting point parameter by just going over a
+    small grid of templates
+    """
+    min_vel = config['min_vel']
+    max_vel = config['max_vel']
+    vel_step0 = config['vel_step0']
     paramsgrid = {
         'logg': [1, 2, 3, 4, 5],
         'teff': [3000, 5000, 8000, 10000],
@@ -91,6 +94,9 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         else:
             fitVsini = True
     t0 = time.time()
+    
+    # This takes the input template parameters and scans the velocity 
+    # grid with it
     res = spec_fit.find_best(specdata,
                              vels_grid, [curparam],
                              rot_params,
