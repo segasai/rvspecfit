@@ -43,6 +43,13 @@ def get_ccf_info(spec_setup, config):
     return CCFCache.ccfs[spec_setup], CCFCache.ccf_models[
         spec_setup], CCFCache.ccf_info[spec_setup]
 
+def ccf_combiner(ccfs):
+    # combine ccfs from multiple filters
+    # since ccf^2 is -chisq 
+    ret = 0
+    for curc in ccfs:
+        ret = ret + np.sign(curc)* curc**2
+    return ret
 
 def fit(specdata, config):
     """
@@ -131,7 +138,7 @@ def fit(specdata, config):
                 curccf[spec_setup][::-1],
                 s=0)(vel_grid)
 
-        allccf = np.array([curccf[_] for _ in setups]).prod(axis=0)
+        allccf = ccf_combiner([curccf[_] for _ in setups])
         if allccf.max() > maxv:
             maxv = allccf.max()
             best_id = id
