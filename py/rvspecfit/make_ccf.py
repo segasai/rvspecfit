@@ -343,7 +343,8 @@ def interp_masker(lam, spec, badmask):
     return spec1
 
 
-def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
+def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, 
+                    maxerr= 10):
     """
     Preprocess data in the same manner as the template spectra, normalize by
     the continuum, apodize and pad
@@ -360,7 +361,8 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
         The CCF configuration
     badmask: Numpy array(boolean), optional
         The optional mask for the CCF
-
+    maxerr: integer
+        The maximum value of error to be masked in units of median(error)
     Returns:
     cap_spec: numpy array
         The processed apodized/normalized/padded spectrum
@@ -369,9 +371,12 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None):
     logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
     curespec = espec.copy()
     curspec = spec0.copy()
-    if badmask is not None:
-        curespec[badmask] = np.zeros_like(curespec[badmask]) + 1e9
-        curspec = interp_masker(lam, curspec, badmask)
+    if badmask is None:
+        badmask = np.zeros(len(curespec),dtype=bool)
+    mederr = np.median(curespec)
+    badmask = badmask | (curespec > maxerr * mederr)
+    curespec[badmask] = np.zeros_like(curespec[badmask]) + 1e9
+    curspec = interp_masker(lam, curspec, badmask)
     cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
     medv = np.median(curspec)
     if medv > 0:
