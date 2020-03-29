@@ -68,14 +68,15 @@ def make_plot(specdata, yfit, title, fig_fname):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
 
-    alpha = 0.7
+    alpha = 0.8
     line_width = 0.8
-    dpi = 100
+    dpi = 150
     plt.clf()
     ndat = len(specdata)
-    plt.figure(1, figsize=(6, 2 * ndat), dpi=300)
+    figsize = (10, 3 * ndat)
+    fig = plt.figure(figsize=figsize, dpi=dpi)
     for i in range(ndat):
-        plt.subplot(ndat, 1, i+1)
+        fig.add_subplot(ndat, 1, i+1)
         curspec = specdata[i].spec
         perc = 0.1
         ymin,ymax = [scipy.stats.scoreatpercentile(curspec, _) for _ in [perc, 100-perc]]
@@ -91,8 +92,8 @@ def make_plot(specdata, yfit, title, fig_fname):
         if i == ndat - 1:
             plt.xlabel(r'$\lambda$ [$\AA$]')
     plt.tight_layout()
-    plt.savefig(fig_fname, dpi=dpi)
-
+    plt.savefig(fig_fname)
+    plt.close(fig=fig)
 
 def valid_file(fname):
     """
