@@ -337,6 +337,13 @@ def convolve_resol(spec, resol_matrix):
     return resol_matrix.mat * spec
 
 
+def rotation_kernel(x):
+    eps = 0.6  # limb darkening coefficient
+    # See https://ui.adsabs.harvard.edu/abs/2011A%26A...531A.143D/abstract
+    # x = ln(lam/lam0) *c/vsini
+    return (2 * (1 - eps) * np.sqrt(1 - x**2) + np.pi / 2 * eps *
+            (1 - x**2)) / 2 / np.pi / (1 - eps / 3)
+
 def convolve_vsini(lam_templ, templ, vsini):
     """
     Convolve the spectrum with the stellar rotation velocity kernel
@@ -354,18 +361,13 @@ def convolve_vsini(lam_templ, templ, vsini):
     spec: numpy
         The convolved spectrum
     """
-    eps = 0.6  # limb darkening coefficient
-
-    def kernelF(x):
-        return (2 * (1 - eps) * np.sqrt(1 - x**2) + np.pi / 2 * eps *
-                (1 - x**2)) / 2 / np.pi / (1 - eps / 3)
-
-    step = np.log(lam_templ[1] / lam_templ[0])
+    lnstep = np.log(lam_templ[1] / lam_templ[0])
     amp = vsini * 1e3 / speed_of_light
-    npts = np.ceil(amp / step)
-    xgrid = np.arange(-npts, npts + 1) * step
-    kernel = kernelF(xgrid)
-    kernel[np.abs(xgrid) > 1] = 0
+    npts = np.ceil(amp / lnstep)
+    xgrid = np.arange(-npts, npts + 1) * lnstep/amp
+    good = np.abs(xgrid)<=1
+    kernel = xgrid * 0.
+    kernel[good] = rotation_kernel(xgrid[good])
     # ensure that the lambda is spaced logarithmically
     assert (np.allclose(lam_templ[1] / lam_templ[0],
                         lam_templ[-1] / lam_templ[-2]))
