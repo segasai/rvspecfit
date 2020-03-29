@@ -43,13 +43,15 @@ def get_ccf_info(spec_setup, config):
     return CCFCache.ccfs[spec_setup], CCFCache.ccf_models[
         spec_setup], CCFCache.ccf_info[spec_setup]
 
+
 def ccf_combiner(ccfs):
     # combine ccfs from multiple filters
-    # since ccf^2 is -chisq 
+    # since ccf^2 is -chisq
     ret = 0
     for curc in ccfs:
-        ret = ret + np.sign(curc)* curc**2
+        ret = ret + np.sign(curc) * curc**2
     return ret
+
 
 def fit(specdata, config):
     """

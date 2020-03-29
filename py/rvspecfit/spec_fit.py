@@ -344,6 +344,7 @@ def rotation_kernel(x):
     return (2 * (1 - eps) * np.sqrt(1 - x**2) + np.pi / 2 * eps *
             (1 - x**2)) / 2 / np.pi / (1 - eps / 3)
 
+
 def convolve_vsini(lam_templ, templ, vsini):
     """
     Convolve the spectrum with the stellar rotation velocity kernel
@@ -366,8 +367,8 @@ def convolve_vsini(lam_templ, templ, vsini):
     lnstep = np.log(lam_templ[1] / lam_templ[0])
     amp = vsini * 1e3 / speed_of_light
     npts = np.ceil(amp / lnstep)
-    xgrid = np.arange(-npts, npts + 1) * lnstep/amp
-    good = np.abs(xgrid)<=1
+    xgrid = np.arange(-npts, npts + 1) * lnstep / amp
+    good = np.abs(xgrid) <= 1
     kernel = xgrid * 0.
     kernel[good] = rotation_kernel(xgrid[good])
     # ensure that the lambda is spaced logarithmically
@@ -572,10 +573,10 @@ def get_chisq(specdata,
         polys = get_basis(curdata, npoly)
 
         curlogl = get_chisq0(curdata.spec,
-                              evalTempl,
-                              polys,
-                              get_coeffs=full_output,
-                              espec=curdata.espec)
+                             evalTempl,
+                             polys,
+                             get_coeffs=full_output,
+                             espec=curdata.espec)
         if full_output:
             curlogl, coeffs = curlogl
             curmodel = np.dot(coeffs, polys * evalTempl)
@@ -586,7 +587,6 @@ def get_chisq(specdata,
 
         assert (np.isfinite(np.asscalar(curlogl)))
         logl += np.asscalar(curlogl)
-
 
     if full_output:
         ret = {}

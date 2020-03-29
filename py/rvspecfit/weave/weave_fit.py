@@ -41,59 +41,51 @@ def make_plot(specdata, res_dict, title, fig_fname):
     l = len(specdata[0].lam)
     l2 = l // 2
     plt.subplot(4, 1, 1)
-    plt.plot(
-        specdata[0].lam[:l2],
-        specdata[0].spec[:l2],
-        'k-',
-        linewidth=line_width)
-    plt.plot(
-        specdata[0].lam[:l2],
-        res_dict['yfit'][0][:l2],
-        'r-',
-        alpha=alpha,
-        linewidth=line_width)
+    plt.plot(specdata[0].lam[:l2],
+             specdata[0].spec[:l2],
+             'k-',
+             linewidth=line_width)
+    plt.plot(specdata[0].lam[:l2],
+             res_dict['yfit'][0][:l2],
+             'r-',
+             alpha=alpha,
+             linewidth=line_width)
     plt.title(title)
 
     plt.subplot(4, 1, 2)
-    plt.plot(
-        specdata[0].lam[l2:],
-        specdata[0].spec[l2:],
-        'k-',
-        linewidth=line_width)
-    plt.plot(
-        specdata[0].lam[l2:],
-        res_dict['yfit'][0][l2:],
-        'r-',
-        alpha=alpha,
-        linewidth=line_width)
+    plt.plot(specdata[0].lam[l2:],
+             specdata[0].spec[l2:],
+             'k-',
+             linewidth=line_width)
+    plt.plot(specdata[0].lam[l2:],
+             res_dict['yfit'][0][l2:],
+             'r-',
+             alpha=alpha,
+             linewidth=line_width)
     l = len(specdata[1].lam)
     l2 = l // 2
 
     plt.subplot(4, 1, 3)
-    plt.plot(
-        specdata[1].lam[:l2],
-        specdata[1].spec[:l2],
-        'k-',
-        linewidth=line_width)
-    plt.plot(
-        specdata[1].lam[:l2],
-        res_dict['yfit'][1][:l2],
-        'r-',
-        alpha=alpha,
-        linewidth=line_width)
+    plt.plot(specdata[1].lam[:l2],
+             specdata[1].spec[:l2],
+             'k-',
+             linewidth=line_width)
+    plt.plot(specdata[1].lam[:l2],
+             res_dict['yfit'][1][:l2],
+             'r-',
+             alpha=alpha,
+             linewidth=line_width)
     plt.title(title)
     plt.subplot(4, 1, 4)
-    plt.plot(
-        specdata[1].lam[l2:],
-        specdata[1].spec[l2:],
-        'k-',
-        linewidth=line_width)
-    plt.plot(
-        specdata[1].lam[l2:],
-        res_dict['yfit'][1][l2:],
-        'r-',
-        alpha=alpha,
-        linewidth=line_width)
+    plt.plot(specdata[1].lam[l2:],
+             specdata[1].spec[l2:],
+             'k-',
+             linewidth=line_width)
+    plt.plot(specdata[1].lam[l2:],
+             res_dict['yfit'][1][l2:],
+             'r-',
+             alpha=alpha,
+             linewidth=line_width)
     plt.xlabel(r'$\lambda$ [$\AA$]')
     plt.tight_layout()
     plt.savefig(fig_fname)
@@ -209,8 +201,11 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
             espec = 1. / curivars**.5
             sns[s] = np.nanmedian(spec / espec)
             specdata.append(
-                spec_fit.SpecData(
-                    'weave_%s' % s, waves[s], spec, espec, badmask=badmask))
+                spec_fit.SpecData('weave_%s' % s,
+                                  waves[s],
+                                  spec,
+                                  espec,
+                                  badmask=badmask))
         t1 = time.time()
         res = fitter_ccf.fit(specdata, config)
         t2 = time.time()
@@ -218,12 +213,11 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
         fixParam = []
         if res['best_vsini'] is not None:
             paramDict0['vsini'] = res['best_vsini']
-        res1 = vel_fit.process(
-            specdata,
-            paramDict0,
-            fixParam=fixParam,
-            config=config,
-            options=options)
+        res1 = vel_fit.process(specdata,
+                               paramDict0,
+                               fixParam=fixParam,
+                               config=config,
+                               options=options)
         t3 = time.time()
         chisq_cont_array = spec_fit.get_chisq_continuum(
             specdata, options=options)['chisq_array']
@@ -332,53 +326,45 @@ def proc_many(files,
 def main(args):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        '--nthreads',
-        help='Number of threads for the fits',
-        type=int,
-        default=1)
+    parser.add_argument('--nthreads',
+                        help='Number of threads for the fits',
+                        type=int,
+                        default=1)
 
-    parser.add_argument(
-        '--config',
-        help='The filename of the configuration file',
-        type=str,
-        default=None)
+    parser.add_argument('--config',
+                        help='The filename of the configuration file',
+                        type=str,
+                        default=None)
 
-    parser.add_argument(
-        '--input_file_mask',
-        help='The file mask of spectra, i.e. spectra*fits',
-        type=str,
-        default=None)
-    parser.add_argument(
-        '--input_file',
-        help='Read the list of spectra from the file',
-        type=str,
-        default=None)
+    parser.add_argument('--input_file_mask',
+                        help='The file mask of spectra, i.e. spectra*fits',
+                        type=str,
+                        default=None)
+    parser.add_argument('--input_file',
+                        help='Read the list of spectra from the file',
+                        type=str,
+                        default=None)
 
-    parser.add_argument(
-        '--output_dir',
-        help='Output directory for the tables',
-        type=str,
-        default=None,
-        required=True)
-    parser.add_argument(
-        '--output_tab_prefix',
-        help='Prefix of output table files',
-        type=str,
-        default='outtab',
-        required=False)
+    parser.add_argument('--output_dir',
+                        help='Output directory for the tables',
+                        type=str,
+                        default=None,
+                        required=True)
+    parser.add_argument('--output_tab_prefix',
+                        help='Prefix of output table files',
+                        type=str,
+                        default='outtab',
+                        required=False)
 
-    parser.add_argument(
-        '--figure_dir',
-        help='Prefix for the fit figures, i.e. fig_folder/',
-        type=str,
-        default='./')
-    parser.add_argument(
-        '--figure_prefix',
-        help='Prefix for the fit figures, i.e. im',
-        type=str,
-        default='fig',
-        required=False)
+    parser.add_argument('--figure_dir',
+                        help='Prefix for the fit figures, i.e. fig_folder/',
+                        type=str,
+                        default='./')
+    parser.add_argument('--figure_prefix',
+                        help='Prefix for the fit figures, i.e. im',
+                        type=str,
+                        default='fig',
+                        required=False)
 
     parser.add_argument(
         '--overwrite',
@@ -411,13 +397,12 @@ def main(args):
     else:
         raise Exception('You need to specify the spectra you want to fit')
 
-    proc_many(
-        files,
-        oprefix,
-        fig_prefix,
-        nthreads=nthreads,
-        overwrite=args.overwrite,
-        config=config)
+    proc_many(files,
+              oprefix,
+              fig_prefix,
+              nthreads=nthreads,
+              overwrite=args.overwrite,
+              config=config)
 
 
 if __name__ == '__main__':

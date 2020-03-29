@@ -77,15 +77,17 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
     with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
               'rb') as fp:
         D = pickle.load(fp)
-        vec, specs, lam, parnames, mapper, lognorms = (D['vec'], D['specs'], 
-            D['lam'], D['parnames'], D['mapper'], D['lognorms'])
+        vec, specs, lam, parnames, mapper, lognorms = (D['vec'], D['specs'],
+                                                       D['lam'], D['parnames'],
+                                                       D['mapper'],
+                                                       D['lognorms'])
         del D
 
     vec = vec.astype(float)
     vec = mapper.forward(vec)
     ndim = len(vec[:, 0])
 
-    # It turn's out that Delaunay is sometimes unstable when dealing with 
+    # It turn's out that Delaunay is sometimes unstable when dealing with
     # regular grids, so perturb points
     if perturb:
         state = np.random.get_state()

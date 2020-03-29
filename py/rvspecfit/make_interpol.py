@@ -100,9 +100,9 @@ def extract_spectrum(logg,
     spec0_phot = spec0 * lam
     spec1_phot = read_grid.apply_rebinner(si.mat, spec0_phot)
     spec1 = spec1_phot / si.lamgrid
-    
+
     normnum = np.median(spec1)
-    spec2 = spec1/ normnum
+    spec2 = spec1 / normnum
     if normalize:
         spec2 = spec2 / get_line_continuum(si.lamgrid, spec2)
 

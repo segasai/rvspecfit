@@ -76,17 +76,20 @@ def make_plot(specdata, yfit, title, fig_fname):
     figsize = (10, 3 * ndat)
     fig = plt.figure(figsize=figsize, dpi=dpi)
     for i in range(ndat):
-        fig.add_subplot(ndat, 1, i+1)
+        fig.add_subplot(ndat, 1, i + 1)
         curspec = specdata[i].spec
         perc = 0.1
-        ymin,ymax = [scipy.stats.scoreatpercentile(curspec, _) for _ in [perc, 100-perc]]
+        ymin, ymax = [
+            scipy.stats.scoreatpercentile(curspec, _)
+            for _ in [perc, 100 - perc]
+        ]
         plt.plot(specdata[i].lam, specdata[i].spec, 'k-', linewidth=line_width)
         plt.plot(specdata[i].lam,
                  yfit[i],
                  'r-',
                  alpha=alpha,
                  linewidth=line_width)
-        plt.ylim(ymin,ymax)
+        plt.ylim(ymin, ymax)
         if i == 0:
             plt.title(title)
         if i == ndat - 1:
@@ -95,6 +98,7 @@ def make_plot(specdata, yfit, title, fig_fname):
     plt.savefig(fig_fname)
     plt.close(fig=fig)
 
+
 def valid_file(fname):
     """
     Check if all required extensions are present if yes return true
@@ -102,7 +106,7 @@ def valid_file(fname):
     exts = pyfits.open(fname)
     extnames = [_.name for _ in exts]
 
-    names0 = []#'PRIMARY']
+    names0 = []  #'PRIMARY']
     arms = ['B', 'R', 'Z']
     arm_glued = 'BRZ'
     prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
@@ -141,8 +145,7 @@ def proc_onespec(specdata,
     paramDict0 = res['best_par']
     fixParam = []
     if res['best_vsini'] is not None:
-        paramDict0['vsini'] = min(max(res['best_vsini'],
-                                      config['min_vsini']),
+        paramDict0['vsini'] = min(max(res['best_vsini'], config['min_vsini']),
                                   config['max_vsini'])
 
     res1 = vel_fit.process(specdata,
@@ -288,7 +291,7 @@ def select_fibers_to_fit(fibermap,
         subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <=
                                                         maxe)
     if fit_targetid is not None:
-        subset = subset & (fibermap['TARGETID']==fit_targetid)
+        subset = subset & (fibermap['TARGETID'] == fit_targetid)
     if minsn is not None:
         maxsn = np.max(np.array(list(sns.values())), axis=0)
         with warnings.catch_warnings():
@@ -352,25 +355,26 @@ def put_empty_file(fname):
                                                         overwrite=True,
                                                         checksum=True)
 
+
 def get_column_desc(setups):
     """ return the list of column descriptions
     when we fitting a given set of configurations
     """
-    columnDesc = dict([('VRAD', 'Radial velocity'),
-                       ('VRAD_ERR', 'Radial velocity error'),
-                       ('VRAD_SKEW', 'Radial velocity posterior skewness'),
-                       ('VRAD_KURT', 'Radial velocity posterior kurtosis'),
-                       ('VSINI', 'Stellar rotation velocity'),
-                       ('LOGG', 'Log of surface gravity'),
-                       ('TEFF', 'Effective temperature'),
-                       ('FEH', '[Fe/H] from template fitting'),
-                       ('ALPHAFE', '[alpha/Fe] from template fitting'),
-                       ('CHISQ_TOT', 'Total chi-square for all arms'),
-                       ('CHISQ_C_TOT', 'Total chi-square for all arms for polynomial only fit'),
-                       ('TARGETID', 'DESI targetid'),
-                       ('EXPID', 'DESI exposure id'),
-                       ('SUCCESS', "Did we succeed or fail"),
-                       ('RVS_WARN', "RVSpecFit warning flag")])
+    columnDesc = dict([
+        ('VRAD', 'Radial velocity'), ('VRAD_ERR', 'Radial velocity error'),
+        ('VRAD_SKEW', 'Radial velocity posterior skewness'),
+        ('VRAD_KURT', 'Radial velocity posterior kurtosis'),
+        ('VSINI', 'Stellar rotation velocity'),
+        ('LOGG', 'Log of surface gravity'), ('TEFF', 'Effective temperature'),
+        ('FEH', '[Fe/H] from template fitting'),
+        ('ALPHAFE', '[alpha/Fe] from template fitting'),
+        ('CHISQ_TOT', 'Total chi-square for all arms'),
+        ('CHISQ_C_TOT',
+         'Total chi-square for all arms for polynomial only fit'),
+        ('TARGETID', 'DESI targetid'), ('EXPID', 'DESI exposure id'),
+        ('SUCCESS', "Did we succeed or fail"),
+        ('RVS_WARN', "RVSpecFit warning flag")
+    ])
 
     for curs in setups:
         curs = curs.upper()
@@ -380,7 +384,7 @@ def get_column_desc(setups):
             'Chi-square in the %s arm after fitting continuum only' % curs)
     return columnDesc
 
-    
+
 def proc_desi(fname,
               tab_ofname,
               mod_ofname,
@@ -555,7 +559,7 @@ def proc_desi(fname,
                             name='%s_MODEL' % curs.upper()))
 
     columnDesc = get_column_desc(setups)
-    
+
     outmod_hdus += [fibermap_subset_hdu]
 
     outtab_hdus = [
@@ -660,14 +664,16 @@ def proc_desi_wrapper(*args, **kwargs):
         print('failed with these arguments', args, kwargs)
         traceback.print_exc()
         pid = os.getpid()
-        logfname = 'crash_%s.log'%(time.ctime().replace(' ',''))
-        with open(logfname,'w') as fd:
-            print ('failed with thes arguments', args, kwargs, file=fd)
+        logfname = 'crash_%s.log' % (time.ctime().replace(' ', ''))
+        with open(logfname, 'w') as fd:
+            print('failed with thes arguments', args, kwargs, file=fd)
             traceback.print_exc(file=fd)
         # I decided not to just fail, proceed instead after
         # writing a bug report
 
+
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
+
 
 class FakeFuture:
     # this is a fake Future object designed for easier switching
@@ -761,8 +767,7 @@ def proc_many(files,
             print('skipping, products already exist', f)
             continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config)
-        kwargs = dict(
-                      fit_targetid=fit_targetid,
+        kwargs = dict(fit_targetid=fit_targetid,
                       combine=combine,
                       mwonly=mwonly,
                       doplot=doplot,

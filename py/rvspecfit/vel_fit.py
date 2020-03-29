@@ -94,8 +94,8 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
         else:
             fitVsini = True
     t0 = time.time()
-    
-    # This takes the input template parameters and scans the velocity 
+
+    # This takes the input template parameters and scans the velocity
     # grid with it
     res = spec_fit.find_best(specdata,
                              vels_grid, [curparam],
@@ -104,7 +104,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
                              config=config,
                              options=options)
     best_vel = res['best_vel']
-    
+
     def paramMapper(p0):
         # construct relevant objects for fitting from a numpy array vectors
         # taking into account which parameters are fixed

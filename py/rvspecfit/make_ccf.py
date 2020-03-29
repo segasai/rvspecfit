@@ -343,8 +343,7 @@ def interp_masker(lam, spec, badmask):
     return spec1
 
 
-def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, 
-                    maxerr= 10):
+def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     """
     Preprocess data in the same manner as the template spectra, normalize by
     the continuum, apodize and pad
@@ -372,7 +371,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None,
     curespec = espec.copy()
     curspec = spec0.copy()
     if badmask is None:
-        badmask = np.zeros(len(curespec),dtype=bool)
+        badmask = np.zeros(len(curespec), dtype=bool)
     mederr = np.median(curespec)
     badmask = badmask | (curespec > maxerr * mederr)
     curespec[badmask] = np.zeros_like(curespec[badmask]) + 1e9
