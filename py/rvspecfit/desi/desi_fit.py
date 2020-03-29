@@ -135,7 +135,10 @@ def proc_onespec(specdata,
     paramDict0 = res['best_par']
     fixParam = []
     if res['best_vsini'] is not None:
-        paramDict0['vsini'] = res['best_vsini']
+        paramDict0['vsini'] = min(max(res['best_vsini'],
+                                      config['min_vsini']),
+                                  config['max_vsini'])
+
     res1 = vel_fit.process(specdata,
                            paramDict0,
                            fixParam=fixParam,

@@ -361,6 +361,8 @@ def convolve_vsini(lam_templ, templ, vsini):
     spec: numpy
         The convolved spectrum
     """
+    if vsini == 0:
+        return templ
     lnstep = np.log(lam_templ[1] / lam_templ[0])
     amp = vsini * 1e3 / speed_of_light
     npts = np.ceil(amp / lnstep)
