@@ -15,6 +15,7 @@ import astropy.table as atpy
 import astropy.io.fits as pyfits
 import astropy.units as auni
 import numpy as np
+import scipy.stats
 
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, spec_inter
 
