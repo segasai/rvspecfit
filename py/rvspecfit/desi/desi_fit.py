@@ -75,12 +75,16 @@ def make_plot(specdata, yfit, title, fig_fname):
     plt.figure(1, figsize=(6, 2 * ndat), dpi=300)
     for i in range(ndat):
         plt.subplot(ndat, 1, i+1)
+        curspec = specdata[i].spec
+        perc = 0.1
+        ymin,ymax = [scipy.stats.scoreatpercentile(curspec, _) for _ in [perc, 100-perc]]
         plt.plot(specdata[i].lam, specdata[i].spec, 'k-', linewidth=line_width)
         plt.plot(specdata[i].lam,
                  yfit[i],
                  'r-',
                  alpha=alpha,
                  linewidth=line_width)
+        plt.ylim(ymin,ymax)
         if i == 0:
             plt.title(title)
         if i == ndat - 1:
