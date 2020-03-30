@@ -16,6 +16,7 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
     min_vel = config['min_vel']
     max_vel = config['max_vel']
     vel_step0 = config['vel_step0']
+    options = options or {}
     paramsgrid = {
         'logg': [1, 2, 3, 4, 5],
         'teff': [3000, 5000, 8000, 10000],
