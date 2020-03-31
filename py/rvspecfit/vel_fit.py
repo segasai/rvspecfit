@@ -31,7 +31,7 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
         curp = [curp[_] for _ in specParams]
         params.append(curp)
     vels_grid = np.arange(min_vel, max_vel, vel_step0)
-
+    best_chisq = np.inf
     for vsini in vsinigrid:
         if vsini is None:
             rot_params = None
@@ -44,7 +44,14 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
                                  resolParams,
                                  config=config,
                                  options=options)
-
+        if res['best_chi']<best_chisq:
+            bestpar={}
+            for i,k in enumerate(specParams):
+                bestpar[k] = res['best_param'][i]
+            if vsini is not None:
+                bestpar['vsini' ] =vsini
+            best_chisq= res['best_chi']
+    return bestpar
 
 def process(specdata,
             paramDict0,
@@ -58,7 +65,9 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
                 config =config, resolParam = None)
     """
 
-    # Configuration parameters, should be moved to the yaml file
+    if config is None:
+        raise Exception('Config must be provided')
+
     min_vel = config['min_vel']
     max_vel = config['max_vel']
     vel_step0 = config['vel_step0']  # the starting step in velocities
@@ -66,8 +75,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
     min_vsini = config['min_vsini']
     min_vel_step = config['min_vel_step']
     second_minimizer = config['second_minimizer']
-    if config is None:
-        raise Exception('Config must be provided')
+    options = options or {}
 
     def mapVsini(vsini):
         return np.log(np.clip(vsini, min_vsini, max_vsini))
