@@ -17,7 +17,7 @@ def get_revision():
     try:
         tmpout = subprocess.Popen(
             'cd ' + os.path.dirname(__file__) +
-            ' ; git log -n 1 --pretty=format:%H -- setup.py',
+            ' ; git log -n 1 --pretty=format:%H',
             shell=True,
             bufsize=80,
             stdout=subprocess.PIPE).stdout
