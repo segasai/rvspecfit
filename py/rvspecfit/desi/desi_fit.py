@@ -189,16 +189,27 @@ def proc_onespec(specdata,
         outdict['CHISQ_C_%s' % s.replace('desi_', '').upper()] = float(
             chisqs_c[s])
 
-    chisq_thresh = 50
-    rv_thresh = 5 * auni.km / auni.s
+    chisq_thresh = 50 
+    # if the delta-chisq between continuum is smaller than this we
+    # set a warning flag
+    
+    rvedge_thresh = 5 * auni.km / auni.s
+    # if we are within this threshold of the RV boundary we set another
+    # warning
     rverr_thresh = 100 * auni.km / auni.s
+    # If the error is larger than this we warn
+
     rvs_warn = 0
     bitmasks = {'CHISQ_WARN': 1, 'RV_WARN': 2, 'RVERR_WARN': 4}
-    if ((outdict['CHISQ_C_TOT'] - outdict['CHISQ_TOT']) < chisq_thresh):
+    dchisq = outdict['CHISQ_C_TOT'] - outdict['CHISQ_TOT'] # should be >0
+
+    if ( dchisq < chisq_thresh):
         rvs_warn |= bitmasks['CHISQ_WARN']
+
     if (np.abs(outdict['VRAD'] - config['max_vel'] * auni.km / auni.s) <
-            rv_thresh) or (np.abs(outdict['VRAD'] - config['min_vel'] *
-                                  auni.km / auni.s) < rv_thresh):
+            rvedge_thresh) or (
+        np.abs(outdict['VRAD'] - config['min_vel'] * auni.km / auni.s) < 
+            rvedge_thresh):
         rvs_warn |= bitmasks['RV_WARN']
     if (outdict['VRAD_ERR'] > rverr_thresh):
         rvs_warn |= bitmasks['RVERR_WARN']
