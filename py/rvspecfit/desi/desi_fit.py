@@ -99,7 +99,7 @@ def make_plot(specdata, yfit, title, fig_fname):
             plt.xlabel(r'$\lambda$ [$\AA$]')
     plt.tight_layout()
     plt.savefig(fig_fname)
-    plt.close(fig=fig)
+    plt.close(fig)
 
 
 def valid_file(fname):
