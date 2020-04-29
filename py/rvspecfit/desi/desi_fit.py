@@ -39,12 +39,12 @@ def get_dep_versions():
 def get_prim_header(versions={}, config=None, cmdline=None):
     header = pyfits.Header()
     for i, (k, v) in enumerate(get_dep_versions().items()):
-        header['DEPNAM%02d' % i] = k
-        header['DEPVER%02d' % i] = v
+        header['DEPNAM%02d' % i] = (k, 'Software')
+        header['DEPVER%02d' % i] = (v, 'Version')
     for i, (k, v) in enumerate(versions.items()):
-        header['TMPLCON%d' % i] = k
-        header['TMPLREV%d' % i] = v['revision']
-        header['TMPLSVR%d' % i] = v['creation_soft_version']
+        header['TMPLCON%d' % i] = (k, 'Spec arm config name')
+        header['TMPLREV%d' % i] = (v['revision'], 'Spec template revision')
+        header['TMPLSVR%d' % i] = (v['creation_soft_version'],'Spec template soft version')
     if config is not None:
         header['RVS_CONF'] = config['config_file_path']
     if cmdline is not None:
