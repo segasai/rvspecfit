@@ -36,7 +36,7 @@ def get_dep_versions():
     return ret
 
 
-def get_prim_header(versions={}, config=None):
+def get_prim_header(versions={}, config=None, cmdline=None):
     header = pyfits.Header()
     for i, (k, v) in enumerate(get_dep_versions().items()):
         header['DEPNAM%02d' % i] = k
@@ -47,6 +47,8 @@ def get_prim_header(versions={}, config=None):
         header['TMPLSVR%d' % i] = v['creation_soft_version']
     if config is not None:
         header['RVS_CONF'] = config['config_file_path']
+    if cmdline is not None:
+        header['RVS_CMD']= cmdline
     return header
 
 
@@ -400,7 +402,8 @@ def proc_desi(fname,
               expid_range=None,
               overwrite=False,
               poolex=None,
-              fitarm=None):
+              fitarm=None,
+              cmdline=None):
     """
     Process One single file with desi spectra
 
@@ -548,7 +551,8 @@ def proc_desi(fname,
                                              name='FIBERMAP')
     outmod_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(versions=versions, 
-                                                 config=config))
+                                                 config=config,
+                                                 cmdline=cmdline))
     ]
 
     # TODO
@@ -568,7 +572,8 @@ def proc_desi(fname,
 
     outtab_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(versions=versions,
-                                                 config=config)),
+                                                 config=config,
+                                                 cmdline=cmdline)),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'), columnDesc),
         fibermap_subset_hdu
     ]
@@ -714,7 +719,8 @@ def proc_many(files,
               expid_range=None,
               overwrite=False,
               skipexisting=False,
-              fitarm=None):
+              fitarm=None,
+              cmdline=None):
     """
     Process many spectral files
 
@@ -738,6 +744,8 @@ def proc_many(files,
         Plotting
     minsn: real
         THe min S/N to fit
+    cmdline: string
+        The command line used in execution of rvspecfit
     expid_range: tuple
         None or a tule of two numbers for the range of expids to fit
     skipexisting: bool
@@ -785,7 +793,8 @@ def proc_many(files,
                       expid_range=expid_range,
                       overwrite=overwrite,
                       poolex=poolEx,
-                      fitarm=fitarm)
+                      fitarm=fitarm,
+                      cmdline=cmdline)
         proc_desi_wrapper(*args, **kwargs)
 
     if parallel:
@@ -799,6 +808,7 @@ def proc_many(files,
 
 
 def main(args):
+    cmdline = ' '.join(args)
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--nthreads',
@@ -957,7 +967,8 @@ def main(args):
               expid_range=(minexpid, maxexpid),
               skipexisting=args.skipexisting,
               overwrite=args.overwrite,
-              fitarm=fitarm)
+              fitarm=fitarm,
+              cmdline=cmdline)
 
 
 if __name__ == '__main__':
