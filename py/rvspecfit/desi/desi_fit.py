@@ -579,7 +579,7 @@ def proc_desi(fname,
             old_rvtab = atpy.Table().read(tab_ofname,
                                           format='fits',
                                           hdu='FIBERMAP')
-        except (FileNotFoundError, OSError) as e:
+        except (FileNotFoundError, OSError, ValueError) as e:
             pass
 
     if overwrite or old_rvtab is None:
