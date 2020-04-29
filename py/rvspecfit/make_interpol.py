@@ -138,8 +138,7 @@ def process_all(setupInfo,
                 air=False,
                 resolution0=None,
                 normalize=True,
-                revision=''):
-    nthreads = 8
+                revision='', nthreads=8):
     if not os.path.exists(dbfile):
         raise Exception('The template database file %s does not exist' %
                         dbfile)
@@ -303,6 +302,10 @@ def main(args):
                         type=float,
                         default=100000,
                         help='The resolution of the input grid')
+    parser.add_argument('--nthreads',
+                        type=int,
+                        default=8,
+                        help='The number of threads used')
     parser.add_argument(
         '--fixed_fwhm',
         action='store_true',
@@ -339,7 +342,8 @@ def main(args):
                 air=args.air,
                 resolution0=args.resolution0,
                 normalize=args.normalize,
-                revision=args.revision)
+                revision=args.revision,
+                nthreads=args.nthreads)
 
 
 if __name__ == '__main__':
