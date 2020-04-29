@@ -36,7 +36,7 @@ def get_dep_versions():
     return ret
 
 
-def get_prim_header(versions={}):
+def get_prim_header(versions={}, config=None):
     header = pyfits.Header()
     for i, (k, v) in enumerate(get_dep_versions().items()):
         header['DEPNAM%02d' % i] = k
@@ -45,7 +45,8 @@ def get_prim_header(versions={}):
         header['TMPLCON%d' % i] = k
         header['TMPLREV%d' % i] = v['revision']
         header['TMPLSVR%d' % i] = v['creation_soft_version']
-
+    if config is not None:
+        header['RVS_CONF'] = config['config_file_path']
     return header
 
 
@@ -411,6 +412,8 @@ def proc_desi(fname,
         The filename where the table with parameters will be stored
     fig_prefix: str
         The prefix where the figures will be stored
+    config: Dictionary
+        The configuration dictionary
     fit_targetid: int
         The targetid to fit. If none fit all.
     mwonly: bool
@@ -544,7 +547,8 @@ def proc_desi(fname,
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                              name='FIBERMAP')
     outmod_hdus = [
-        pyfits.PrimaryHDU(header=get_prim_header(versions=versions))
+        pyfits.PrimaryHDU(header=get_prim_header(versions=versions, 
+                                                 config=config))
     ]
 
     # TODO
@@ -563,7 +567,8 @@ def proc_desi(fname,
     outmod_hdus += [fibermap_subset_hdu]
 
     outtab_hdus = [
-        pyfits.PrimaryHDU(header=get_prim_header(versions=versions)),
+        pyfits.PrimaryHDU(header=get_prim_header(versions=versions,
+                                                 config=config)),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'), columnDesc),
         fibermap_subset_hdu
     ]
@@ -698,7 +703,7 @@ def proc_many(files,
               output_tab_prefix,
               output_mod_prefix,
               fig_prefix,
-              config=None,
+              config_fname=None,
               nthreads=1,
               combine=False,
               fit_targetid=None,
@@ -721,7 +726,7 @@ def proc_many(files,
         The prefix where the table with measurements will be stored
     fig_prefix: string
         The prfix where the figures will be stored
-    config: string
+    config_fname: string
         The name of the config file
     combine: bool
         Fit spectra of same targetid together
@@ -740,7 +745,7 @@ def proc_many(files,
     fitarm: list
         the list of arms/spec configurations to fit (can be None)
     """
-    config = utils.read_config(config)
+    config = utils.read_config(config_fname)
     assert (config is not None)
     assert ('template_lib' in config)
     if nthreads > 1:
@@ -755,7 +760,11 @@ def proc_many(files,
     res = []
     for f in files:
         fname = f.split('/')[-1]
-        assert (len(f.split('/')) > 2)
+        assert (len(f.split('/')) > 2) 
+        # we need that because we use the last two directories in the path
+        # to create output directory structure 
+        # i.e. input file a/b/c/d/e/f/g.fits will produce output file in
+        # output_prefix/e/f/xxx.fits
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
         suffix = ('-'.join(fname.split('-')[1:]))
@@ -906,7 +915,7 @@ def main(args):
     output_dir, output_tab_prefix, output_mod_prefix = args.output_dir, args.output_tab_prefix, args.output_mod_prefix
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
-    config = args.config
+    config_fname = args.config
     fit_targetid = args.targetid
     combine = args.combine
     mwonly = not args.allobjects
@@ -938,7 +947,7 @@ def main(args):
               output_mod_prefix,
               fig_prefix,
               nthreads=nthreads,
-              config=config,
+              config_fname=config_fname,
               fit_targetid=fit_targetid,
               combine=combine,
               mwonly=mwonly,
