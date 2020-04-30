@@ -17,8 +17,8 @@
 import os 
 import sys
 sys.path.insert(0, os.path.abspath('../py/'))
-fp=open('../py/rvspecfit/_version.py','w')
-print ('version="dev"',file=fp)
+fp = open('../py/rvspecfit/_version.py','w')
+print('version="dev"',file=fp)
 fp.close()
 import rvspecfit
 
