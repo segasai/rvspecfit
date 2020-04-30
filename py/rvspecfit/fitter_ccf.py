@@ -26,7 +26,7 @@ def get_ccf_info(spec_setup, config):
     config: dict
         The dictionary with the config
 
-    Returns:
+    Returns
     -------
     d: dict
         The dictionary with the CCF Information as saved by the make_ccf code
@@ -65,10 +65,11 @@ def fit(specdata, config):
     config: dict
         The configuration dictionary
 
-    Returns:
+    Returns
     results: dict
         The dictionary with results such as best template parameters, best velocity
         best vsini.
+
     """
     # configuration parameters
 

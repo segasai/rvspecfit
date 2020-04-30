@@ -37,6 +37,9 @@ def get_dep_versions():
 
 
 def get_prim_header(versions={}, config=None, cmdline=None):
+    """ Return the Primary HDU with various info in the header
+
+    """
     header = pyfits.Header()
     for i, (k, v) in enumerate(get_dep_versions().items()):
         header['DEPNAM%02d' % i] = (k, 'Software')
@@ -57,7 +60,8 @@ def make_plot(specdata, yfit, title, fig_fname):
     Make a plot with the spectra and fits
 
     Parameters
-    -----------
+    ----------
+
     specdata: SpecData object
         The object with specdata
     yfit: list fo numpy arrays
@@ -140,6 +144,31 @@ def proc_onespec(specdata,
                  fig_fname='fig.png',
                  doplot=True,
                  verbose=False):
+    """Process one single Specdata object
+
+    Parameters
+    ----------
+    specdata: list
+        List of Specdata objects to be fit
+    setups: list
+        List of strings of spectroscopic configurations
+    options: dict
+        Configuration options
+    fig_fname: str
+        Filename for the plot
+    doplot: bool 
+        Do plotting or not
+    verbose: bool
+        Verbose output
+
+    Returns
+    -------
+    outdict: dict
+        Dictionary with fit measurements
+    yfit: list
+        List of best-fit models
+  
+    """
     chisqs = {}
     chisqs_c = {}
     t1 = time.time()
@@ -253,6 +282,29 @@ def get_sns(data, ivars, masks):
 
 
 def read_data(fname, glued, setups):
+    """ Read the data file 
+
+    Parameters
+    ----------
+    fname: str
+        Filename
+    glued: bool
+        True if BRZ format
+    setups: list
+        List of spectral configurations (i.e. ['b', 'r', 'z'] 
+    
+    Returns
+    -------
+    fluxes: ndarray
+        2d array of fluxes
+    ivars: ndarray
+        2d array of inverse variances
+    masks: ndarray
+        2d array of masks
+    waves: ndarray
+        1d array of wavelengths
+
+    """
     fluxes = {}
     ivars = {}
     waves = {}
@@ -340,6 +392,32 @@ def get_unique_seqid_to_fit(targetid, subset, combine=False):
 
 
 def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
+    """ Return the list of SpecDatas for one single object
+    
+    Parameters
+    ----------
+
+    waves: ndarray
+        1d wavelength array
+    fluxes: ndarray
+        2d flux array
+    ivars: ndarray
+        2d array of inverse variances
+    masks: ndarray
+        2d array of masks
+    seqid: int
+        Which spectral row to extract
+    glued: bool
+        If spectrum is in BRZ format
+    setups: list
+        List of configurations
+
+    Returns
+    -------
+    ret: list
+        List of specfit.SpecData objects
+
+    """
     large_error = 1e9
     sds = []
 
@@ -366,19 +444,21 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
 
 
 def comment_filler(tab, desc):
+    """ Fill comments in the FITS header """
     for i, k in enumerate(tab.data.columns):
         tab.header['TCOMM%d' % (i + 1)] = desc.get(k.name) or ''
     return tab
 
 
 def put_empty_file(fname):
+    """ Write a dummy empty file if we didn't process any spectra """
     pyfits.PrimaryHDU(header=get_prim_header()).writeto(fname,
                                                         overwrite=True,
                                                         checksum=True)
 
 
 def get_column_desc(setups):
-    """ return the list of column descriptions
+    """ Return the list of column descriptions
     when we fitting a given set of configurations
     """
     columnDesc = dict([
