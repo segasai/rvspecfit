@@ -28,6 +28,8 @@ project = 'rvspecfit'
 copyright = '2020, Sergey Koposov'
 author = 'Sergey Koposov'
 
+master_doc = 'index' ## see https://github.com/readthedocs/readthedocs.org/issues/2569
+
 
 # -- General configuration ---------------------------------------------------
 
