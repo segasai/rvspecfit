@@ -171,8 +171,8 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     Importantly the returned chi-square is not the true chi-square, but instead
     the -2*log(L)
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     spec: numpy
         Spectrum array
     templ: numpy
@@ -261,10 +261,10 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
 
 
 def construct_resol_mat(lam, resol=None, width=None):
-    '''
-    Construct a sparse resolution matrix from a resolution number R
+    '''Construct a sparse resolution matrix from a resolution number R
 
-    Parameters:
+    Parameters
+    ----------
     lam: numpy
         The wavelength vector
     resol: real/numpy
@@ -272,9 +272,11 @@ def construct_resol_mat(lam, resol=None, width=None):
     width: real 
         The Gaussian width of the kernel in angstrom (cannot be specified together with resol)
 
-    Returns:
+    Returns
+    -------
     mat: scipy.sparse matrix
         The matrix describing the resolution convolution operation
+
     '''
     assert (resol is None or width is None)
     assert (resol is not None or width is not None)
@@ -320,19 +322,22 @@ def construct_resol_mat(lam, resol=None, width=None):
 
 
 def convolve_resol(spec, resol_matrix):
-    '''
-    Convolve the spectrum with the resolution matrix
+    '''Convolve the spectrum with the resolution matrix
 
-    Parameters:
+    Parameters
+    ----------
+
     spec: numpy
         The spectrum array
     resol_matrix: ResolMatrix object
         The resolution matrix object
 
-    Returns:
-    --------
+    Returns
+    -------
+
     spec: numpy
         The spectrum array
+
     '''
     return resol_matrix.mat * spec
 
@@ -346,10 +351,11 @@ def rotation_kernel(x):
 
 
 def convolve_vsini(lam_templ, templ, vsini):
-    """
-    Convolve the spectrum with the stellar rotation velocity kernel
+    """Convolve the spectrum with the stellar rotation velocity kernel
 
-    Parameters:
+    Parameters
+    ----------
+
     lam_templ: numpy
         The wavelength vector (MUST be spaced logarithmically)
     templ: numpy
@@ -357,10 +363,11 @@ def convolve_vsini(lam_templ, templ, vsini):
     vsini: real
         The Vsini velocity
 
-    Returns:
-    --------
+    Returns
+    -------
     spec: numpy
         The convolved spectrum
+
     """
     if vsini == 0:
         return templ
@@ -437,16 +444,19 @@ def get_chisq_continuum(specdata, options=None):
     '''
     Fit the spectrum with continuum only 
     
-    Parameters:
+    Parameters
+    ----------
+
     specdata: list of Specdata
         Input spectra
     options: dict
         Dictionary of options (npoly option is required)
 
-    Returns:
-    --------
+    Returns
+    -------
     ret: list
         Array of chi-squares
+
     '''
     npoly = options.get('npoly') or 5
     ret = []
@@ -479,13 +489,13 @@ def get_chisq(specdata,
               config=None,
               cache=None,
               full_output=False):
-    """ 
-    Find the chi-square of the dataset at a given velocity
-    atmospheric parameters, rotation parameters
-    and resolution parameters
+    """ Find the chi-square of the dataset at a given velocity
+        atmospheric parameters, rotation parameters
+        and resolution parameters
 
-    Parameters:
+    Parameters
     ----------
+
     specdata: spec_fit.SpecData
         The object with the data to be fitted
     vel: real
@@ -506,16 +516,17 @@ def get_chisq(specdata,
     full_output: bool
         If full_output is set more info is returned
 
-    Returns:
-    --------
+    Returns
+    -------
     ret: float or dictionary
         If full_output is False, ret is float = -2*log(L) of the whole data
         If full_output is True ret is a dictionary with the following keys
         chisq -- this is the -2*log(L) of the whole dataset
         chisq_array -- this is the array of chi-squares (proper ones) 
-                       for each of the fited spectra
+        for each of the fited spectra
         redchisq_array -- this is the array of reduced chi-squares
         models -- array of best fit models
+
     """
     npoly = options.get('npoly') or 5
     logl = 0

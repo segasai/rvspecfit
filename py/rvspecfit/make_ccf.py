@@ -53,10 +53,9 @@ class CCFConfig:
 
 
 def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
-    """
-    Determine the continuum of the spectrum by fitting a spline
+    """Determine the continuum of the spectrum by fitting a spline
 
-    Parameters:
+    Parameters
     ----------
 
     lam0: numpy array
@@ -71,10 +70,11 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
         The input spectrum will be binned by median filter by this number before
         the fit
 
-    Returns:
-    --------
+    Returns
+    -------
     cont: numpy array
         The continuum vector
+
     """
 
     lammin = lam0.min()
@@ -111,10 +111,11 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
 
 
 def fit_loss(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
-    """
-    Return the loss function (L1 norm) of the continuum fit_loss
+    """ Return the loss function (L1 norm) of the continuum fit_loss
 
-    Parameters:
+    Parameters
+    ----------
+
     p: numpy array
         Array with fit parameters
     spec: numpy array
@@ -128,11 +129,13 @@ def fit_loss(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
     getModel: boolean, optional
         If true return the bestfit model instead of the loss function
 
-    Returns:
+    Returns
+    -------
     loss: real
         The loss function of the fit
     model: numpy array (optional, depending on getModel parameter)
         The evaluated model
+
     """
     II = scipy.interpolate.UnivariateSpline(nodes, p, s=0, k=2)
     model = np.exp(II(lam))
@@ -260,10 +263,11 @@ def preprocess_model(logl,
 
 
 def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
-    """
-    Apply preprocessing to the array of models
+    """Apply preprocessing to the array of models
 
-    Parameters:
+    Parameters
+    ----------
+
     lammodels: numpy array
         The array of wavelengths of the models (assumed to be the same for all models)
     models: numpy array
@@ -276,6 +280,16 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     vsinis: list of floats
         The list of possible Vsini values to convolve model spectra with
         Could be None
+
+    Returns
+    -------
+    ret: tuple
+         **FILL/CHECK ME** 
+         1) log wavelenghts
+         2) processed spectra, 
+         3) spectral params
+         4) list of vsini 
+         
     """
     nthreads = 16
     logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)

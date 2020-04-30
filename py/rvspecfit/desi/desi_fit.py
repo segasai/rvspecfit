@@ -272,10 +272,10 @@ def select_fibers_to_fit(fibermap,
                          expid_range=None,
                          glued=False,
                          fit_targetid=None):
-    """
-    Identify fibers to fit 
+    """ Identify fibers to fit 
     Currently that either uses MWS_TARGET or S/N cut
-    Parameters:
+
+    Parameters
     ----------
     fibermap: Table
         Fibermap table object
@@ -285,11 +285,18 @@ def select_fibers_to_fit(fibermap,
         Threshold S/N
     mwonly: bool
         Only fit MWS
+    expid_range: list
+        The range of EXPID to consider
+    glued: bool
+        If the data has been BRZ glued (deprecated)
+    fit_targetid: int
+        Fit one specific TARGETID
 
-    Returns:
+    Returns
     -------
     ret: bool numpy array
         Array with True for selected spectra
+
     """
     if mwonly:
         subset = fibermap['MWS_TARGET'] != 0

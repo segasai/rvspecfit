@@ -123,6 +123,9 @@ class Resolution:
         assert (self.resol is not None or self.resol_func is not None)
 
     def __call__(self, x):
+        """Evaluate resolution at fixed wavelength
+
+        """
         if self.resol is None:
             return eval(self.resol_func, dict(x=x, np=np))
         else:

@@ -10,6 +10,55 @@ Welcome to rvspecfit's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+.. automodule:: rvspecfit.spec_fit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.vel_fit
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.make_interpol
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.make_nd
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.make_ccf
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.spec_inter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.read_grid
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.fitter_ccf
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: rvspecfit.desi.desi_fit
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 
 Indices and tables

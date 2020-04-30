@@ -45,18 +45,21 @@ def read_config(fname=None):
 
 
 def freezeDict(d):
-    """
-    Take the input object and if it is a dictionary, freeze it (i.e. return frozendict)
+    """ Take the input object and if it is a dictionary, 
+    freeze it (i.e. return frozendict)
     If not, do nothing
 
-    Parameters:
+    Parameters
+    ----------
+
     d: dict
         Input dictionary
 
-    Returns:
-    --------
+    Returns
+    -------
     d: frozendict
         Frozen input dictionary
+
     """
     if isinstance(d, dict):
         d1 = {}
