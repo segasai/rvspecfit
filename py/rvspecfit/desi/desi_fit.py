@@ -56,7 +56,7 @@ def make_plot(specdata, yfit, title, fig_fname):
     """
     Make a plot with the spectra and fits
 
-    Parameters:
+    Parameters
     -----------
     specdata: SpecData object
         The object with specdata
@@ -425,7 +425,7 @@ def proc_desi(fname,
     """
     Process One single file with desi spectra
 
-    Parameters:
+    Parameters
     -----------
     fname: str
         The filename with the spectra to be fitted
@@ -742,7 +742,7 @@ def proc_many(files,
     """
     Process many spectral files
 
-    Parameters:
+    Parameters
     -----------
     files: strings
         The files with spectra

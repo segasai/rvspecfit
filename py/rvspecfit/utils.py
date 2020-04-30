@@ -5,6 +5,14 @@ from rvspecfit import frozendict
 
 
 def get_default_config():
+    """Create a default parameter config ditctionary
+    
+    Returns
+    -------
+    ret: dict
+        Dictionary with config params
+
+"""
     D = {}
     # Configuration parameters, should be moved to the yaml file
     D['min_vel'] = -1000
@@ -21,16 +29,18 @@ def read_config(fname=None):
     """
     Read the configuration file and return the frozendict with it
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
+
     fname: string, optional
         The path to the configuration file. If not given config.yaml in the
         current directory is used
 
-    Returns:
-    --------
+    Returns
+    -------
     config: frozendict
         The dictionary with the configuration from a file
+
     """
     if fname is None:
         fname = 'config.yaml'

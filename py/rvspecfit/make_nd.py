@@ -19,12 +19,12 @@ def getedgevertices(vec):
     cube that fully encompass/surrounds the data, This is sort of the envelope
     around the data
 
-    Parameters:
+    Parameters
     -----------
     vec: numpy (Ndim, Npts)
         The array of input points
 
-    Returns:
+    Returns
     --------
     vec: numpy (Ndim, Nretpts)
         The returned array of surrounding points
@@ -54,7 +54,7 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
     Prepare the triangulation objects for the set of spectral data for a given
     spec_setup.
 
-    Parameters:
+    Parameters
     -----------
     spec_setup: string
         The spectroscopic configuration
@@ -67,9 +67,10 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
         of triangulation. Without perturbation find_simplex for example may revert
         to brute force search.
 
-    Returns:
-    --------
+    Returns
+    -------
     None
+
     """
     perturbation_amplitude = 1e-6
 

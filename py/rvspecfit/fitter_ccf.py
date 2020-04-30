@@ -19,7 +19,7 @@ def get_ccf_info(spec_setup, config):
     """
     Returns the CCF info from the pickled file for a given spectroscopic spec_setup
 
-    Parameters:
+    Parameters
     -----------
     spec_setup: string
         The spectroscopic setup needed
@@ -57,7 +57,7 @@ def fit(specdata, config):
     """
     Process the data by doing cross-correlation with templates
 
-    Parameters:
+    Parameters
     -----------
     specdata: list of SpecData objects
         The list of data that needs to be fitted from differetn spectral

@@ -68,7 +68,7 @@ class SpecData:
         '''
         Construct the spectroscopic dataset
 
-        Parameters:
+        Parameters
         -----------
         name: string
             Name of the spectroscopic setups
@@ -119,11 +119,11 @@ class SpecData:
 
 @functools.lru_cache(100)
 def get_basis(specdata, npoly, rbf=True):
-    '''
-    Get the precomputed polynomials for the continuum for a given specdata
+    '''Get the precomputed polynomials for the continuum for a given specdata
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
+
     specdata: SpecData objects
         The spectroscopic dataset objects
     npoly: integer
@@ -131,10 +131,11 @@ def get_basis(specdata, npoly, rbf=True):
     rbf: bool
         Use the RBF basis instead of monomial basis
 
-    Returns:
-    --------
+    Returns
+    -------
     polys: numpy array(npolys, Nwave)
         The array of continuum polynomials
+
     '''
     lam = specdata.lam
     # get polynomials for continuum
@@ -173,6 +174,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
 
     Parameters
     ----------
+
     spec: numpy
         Spectrum array
     templ: numpy
@@ -185,12 +187,13 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
         If specified, this is the error vector. If not specified, then it is
         assumed that spectrum and template are already divided by the uncertainty
 
-    Returns:
+    Returns
     --------
     chisq: real
         Chi-square of the data
     coeffs: numpy
         The polynomial coefficients (optional)
+
     '''
 
     if espec is not None:
@@ -228,7 +231,7 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
     Get the spectrum in the given setup with given atmospheric parameters and
     given config
 
-    Parameters:
+    Parameters
     -----------
     spec_setup: string
         The name of the spectroscopic setup
@@ -241,7 +244,7 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
     config: dict
         The configuration dictionary
 
-    Returns:
+    Returns
     templ: numpy
         The template vector
     """
@@ -390,14 +393,14 @@ def getRVInterpol(lam_templ, templ):
     Produce the spectrum interpolator to evaluate the spectrum at arbitrary
     wavelengths
 
-    Parameters:
+    Parameters
     -----------
     lam_templ: numpy
         Wavelength array
     templ: numpy
         Spectral array
 
-    Returns:
+    Returns
     --------
     interpol: scipy.interpolate object
         The object that can be used to evaluate template at any wavelength
@@ -413,7 +416,7 @@ def evalRV(interpol, vel, lams):
     """
     Evaluate the spectrum interpolator at a given velocity and given wavelengths
 
-    Parameters:
+    Parameters
     -----------
     interpol: scipy.intepolate object
         Template interpolator
@@ -422,7 +425,7 @@ def evalRV(interpol, vel, lams):
     lams: numpy
         Wavelength array
 
-    Returns:
+    Returns
     --------
     spec: numpy
         Evaluated spectrum
@@ -614,7 +617,7 @@ def get_chisq(specdata,
 def quadratic_interp(vel_grid, chisq, i):
     """Find the minimum using quadratic interpolation
 
-    Parameters:
+    Parameters
     -----------
     vel_grid: numpy
         Array of velocities
@@ -623,7 +626,7 @@ def quadratic_interp(vel_grid, chisq, i):
     i: int
         Index of the point with the smallest chisq
 
-    Returns:
+    Returns
     --------
     The estimated of velocity minimum
     """

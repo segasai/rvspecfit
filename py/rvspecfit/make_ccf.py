@@ -75,7 +75,7 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     cont: numpy array
         The continuum vector
 
-    """
+"""
 
     lammin = lam0.min()
     N = np.log(lam0.max() / lammin) / np.log(1 + ccfconf.splinestep / 3e5)
@@ -155,7 +155,7 @@ def apodize(spec):
     """
     Apodize the spectrum
 
-    Parameters:
+    Parameters
     -----------
     spec: numpy array
         The input numpy array
@@ -175,14 +175,14 @@ def pad(x, y):
     """
     Pad the input array to the power of two lengths
 
-    Parameters:
+    Parameters
     -----------
     x: numpy array
         wavelength vector
     y: numpy array
         spectrum
 
-    Returns:
+    Returns
     --------
     x2: numpy array
         New wavelength vector
@@ -218,7 +218,7 @@ def preprocess_model(logl,
     Take the input template model and return prepared for FFT vectors.
     That includes padding, apodizing and normalizing by continuum
 
-    Parameters:
+    Parameters
     -----------
     logl: numpy array
         The array of log wavelengths on which we want to outputted spectra
@@ -231,7 +231,7 @@ def preprocess_model(logl,
     ccfconf: CCFConfig object, required
         The CCF configuration object
 
-    Returns:
+    Returns
     --------
 
     xlogl: Numpy array
@@ -325,7 +325,7 @@ def interp_masker(lam, spec, badmask):
     The gaps are filled by linear interpolation. The edges are just
     using the value of the closest valid pixel.
 
-    Parameters:
+    Parameters
     -----------
     lam: numpy array
         The array of wavelengths of pixels
@@ -334,7 +334,7 @@ def interp_masker(lam, spec, badmask):
     badmask: boolean array
         The array identifying bad pixels
 
-    Returns:
+    Returns
     --------
     spec: numpy array
         The array with bad pixels interpolated away
@@ -362,7 +362,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     Preprocess data in the same manner as the template spectra, normalize by
     the continuum, apodize and pad
 
-    Parameters:
+    Parameters
     -----------
     lam: numpy array
         The wavelength vector
@@ -376,7 +376,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
         The optional mask for the CCF
     maxerr: integer
         The maximum value of error to be masked in units of median(error)
-    Returns:
+    Returns
     cap_spec: numpy array
         The processed apodized/normalized/padded spectrum
 
@@ -425,7 +425,7 @@ def ccf_executor(spec_setup,
     """
     Prepare the FFT transformations for the CCF
 
-    Parameters:
+    Parameters
     -----------
     spec_setup: string
         The name of the spectroscopic spec_setup
@@ -442,9 +442,11 @@ def ccf_executor(spec_setup,
         Could be None (it means no rotation will be added)
     revision: str (optional)
         The revision of the files/run that will be tagged in the pickle file
-    Returns:
-    --------
+
+    Returns
+    -------
     Nothing
+
     """
 
     with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),

@@ -81,12 +81,12 @@ class ParamMapper:
         Map atmospheric parameters into parameters used in the grid for Interpolation
         That includes logarithming the teff
         
-        Parameters:
+        Parameters
         -----------
         vec: numpy array
             The vector of atmospheric parameters Teff, logg, feh, alpha
         
-        Returns:
+        Returns
         ----------
         ret: numpy array
             The vector of transformed parameters used in interpolation
@@ -98,12 +98,12 @@ class ParamMapper:
         Map transformed parameters used in the grid for interpolation back into
         the atmospheric parameters. That includes exponentiating the log10(teff)
 
-        Parameters:
+        Parameters
         -----------
         vec: numpy array
             The vector of transformed atmospheric parameters log(Teff), logg, feh, alpha
         
-        Returns:
+        Returns
         ----------
         ret: numpy array
             The vector of original atmospheric parameters.
@@ -191,7 +191,7 @@ def make_rebinner(lam00,
     Make the sparse matrix that convolves a given spectrum to
     a given resolution and new wavelength grid
 
-    Parameters:
+    Parameters
     -----------
     lam00: array
         The input wavelength grid of the templates
@@ -206,7 +206,7 @@ def make_rebinner(lam00,
     resolution0: float
         The resolution of input templates
 
-    Returns:
+    Returns
     --------
     The sparse matrix to perform interpolation
     """

@@ -22,14 +22,14 @@ def get_line_continuum(lam, spec):
     Determine the extremely simple linear in log continuum to
     remove away continuum trends in templates
 
-    Parameters:
+    Parameters
     -----------
     lam: numpy array
         Wavelength vector
     spec: numpy array
         spectrum
 
-    Returns:
+    Returns
     --------
     cont: numpy array
         Continuum model
@@ -66,7 +66,7 @@ def extract_spectrum(logg,
     Exctract a spectrum of a given parameters then apply the resolution smearing
     and divide by the continuum
 
-    Parameters:
+    Parameters
     -----------
 
     logg: real
