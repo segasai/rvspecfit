@@ -12,6 +12,24 @@ from rvspecfit import spec_inter
 def firstguess(specdata, options=None, config=None, resolParams=None):
     """ Compute the starting point parameter by just going over a
     small grid of templates
+
+    Parameters
+    ----------
+
+    specdata: list of Specdata
+        Spectroscopic dataset
+    options: dict
+        Optional dictionary of options
+    config: dict
+        Optional dictionary config
+    resolParams: tuple
+        Resultion parameters
+
+    Returns
+    -------
+    bestpar: dict
+        Dictionary of best parameters
+
     """
     min_vel = config['min_vel']
     max_vel = config['max_vel']
@@ -60,9 +78,43 @@ def process(specdata,
             config=None,
             resolParams=None,
             verbose=False):
-    """
-process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixParam = ('feh','vsini'),
-                config =config, resolParam = None)
+    """ Process spectra by doing maximum likelihood fit to spectral data
+
+    Parameters
+    ----------
+
+    specdata: list of SpecData
+        List of spectroscopic datasets to fit
+    paramDict0: dict
+        Dictionary of parameters to start from
+    fixParam: tuple
+        Tuple of parameters that will be fixed
+    options: dict
+        Dictionary of options
+    config: dict
+        Configuration dictionary
+    resolParams: tuple
+        Tuple of parameters for the resolution of current spectrum.
+
+    Returns
+    -------
+    ret: dict
+        Dictionary of parameters
+        Keys are 'yfit' -- the list of best-fit models
+        'vel', 'vel_kurtosis', 'vel_skewness', 'vel_err' velocity and its constraints
+        'param' -- parameter values
+        'param_err' -- parameter uncertaintoes
+        'chisq' -- -2*log(likelihood) value (does not equal to chisq, because of
+         marginalization)
+        'chisq_array' -- array of proper chi-squares of the mode
+
+    Example
+    -------
+
+    >>> ret = process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,
+        'vsini':0}, fixParam = ('feh','vsini'),
+                config=config, resolParam = None)
+
     """
 
     if config is None:
@@ -246,7 +298,7 @@ process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,'vsini':0}, fixPara
                                   config=config,
                                   full_output=True)
         return 0.5 * outp['chisq']
-    hess_step = np.maximum(1e-4*np.abs(np.array([ret['param'][_] for _ in \
+    hess_step = np.maximum(1e-4 * np.abs(np.array([ret['param'][_] for _ in \
                                                  specParams])), 1e-4)
     hessian = ndf.Hessian(
         hess_func, step=hess_step)([ret['param'][_] for _ in specParams])

@@ -7,8 +7,25 @@ from rvspecfit import make_nd
 
 
 def getInterp(triang, dats, exp=True):
-    # get Interpolation object from the Delaunay triangulation
-    # and array of vectors
+    """Get the Interpolation function from the Delaunay triangulation
+    and array of vectors
+
+    Parameters
+    ----------
+
+    triang: Delaunay triangulation
+        Triangulation from scipy.spatial
+    dats: ndarray
+        2d array of vectors to be interpolated
+    exp: bool
+        if True the output needs to be exponentiated
+
+    Returns
+    -------
+    func: function
+        Function that takes parameters and returns interpolated spectrum
+
+    """
     def func(p):
         p = np.asarray(p)
         ndim = triang.ndim
@@ -22,7 +39,6 @@ def getInterp(triang, dats, exp=True):
         if exp:
             spec = np.exp(spec)
         return spec
-
     return func
 
 

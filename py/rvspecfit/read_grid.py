@@ -288,10 +288,30 @@ def apply_rebinner(mat, spec0):
 
 
 def rebin(lam0, spec0, newlam, resolution):
-    """rebin a given spectrum lam0, spec0 to the new wavelenght and new resolution
-    > lam,spec=read_grid.get_spec(1,5250,-1,0.4)
-    > newlam = np.linspace(4000,9000,4000)
-    > newspec=read_grid.rebin(lam, spec, newlam, 1800)
+    """ Rebin a given spectrum lam0, spec0 to the new wavelength 
+    and new resolution
+    
+    Parameters
+    ----------
+    lam0: ndarray
+        1d numpy array with wavelengths of the template pixels
+    spec0: ndarray
+        1d numpy array with the template spectrum
+    newlam: ndarray
+        1d array with the wavelengths of the output spectrum
+    resolution: float
+        Resolution lam/dlam
+    
+    Returns
+    -------
+    spec: ndarray
+        Rebinned spectrum
+    
+    Example
+    -------
+    >>> lam,spec=read_grid.get_spec(1,5250,-1,0.4)
+    >>> newlam = np.linspace(4000,9000,4000)
+    >>> newspec=read_grid.rebin(lam, spec, newlam, 1800)
     """
     lam, spec = get_spec(1, 5000, -1, 0.2)
 
