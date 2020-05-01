@@ -10,13 +10,30 @@ import astropy.wcs as pywcs
 import argparse
 
 
-def myintegrator(A, B, x1, x2, l1, l2, s):
-    # this is the integral of (Ax+B)/sqrt(2pi)/s*exp(-1/2*(x-y)^2/s^2
-    # for x=x1..x2 y=l1..l2
-    # Here is the mathematica code
-    # FortranForm[
-    # Simplify[Integrate[(A*x + B)/Sqrt[2*Pi]/s*
-    # Exp[-1/2*(x - y)^2/s^2], {x, x1, x2}, {y, l1, l2}]]]
+def gau_integrator(A, B, x1, x2, l1, l2, s):
+    """ This computes the integral of (Ax+B)/sqrt(2pi)/s*exp(-1/2*(x-y)^2/s^2
+    for x=x1..x2 y=l1..l2
+
+    Here is the mathematica code
+    FortranForm[
+    Simplify[Integrate[(A*x + B)/Sqrt[2*Pi]/s*
+    Exp[-1/2*(x - y)^2/s^2], {x, x1, x2}, {y, l1, l2}]]]
+
+    Parameters
+    A: ndarray
+    B: ndarray
+    x1: ndarray
+    x2: ndarray
+    l1: ndarray
+    l2: ndarray
+    s: ndarray
+
+    Returns
+    -------
+    ret: float
+        Integral of the function
+
+    """
     E = np.exp(1)
     Sqrt = np.sqrt
     Erf = scipy.special.erf
@@ -53,18 +70,32 @@ def myintegrator(A, B, x1, x2, l1, l2, s):
                                             (-l2 + x2) / (Sqrt(2) * s))) / 4.
 
 
-def integrator(x1, x2, l1, l2, s):
-    """
-    Integrate the flux within the pixel given the lsf.
+def pix_integrator(x1, x2, l1, l2, s):
+    """ Integrate the flux within the pixel given the LSF
     We assume that the flux before LSF convolution is given by linear
-    interpolation from x1,x2.
+    interpolation from x1, x2.
     The l1,l2 are scalar edges of the pixel within which we want to compute
     the flux. s is the sigma of the LSF
-    The function returns two values of weights for y1,y2 where y1,y2 are 
+    The function returns two values of weights for y1,y2 where y1,y2 are
     the values of the non-convolved spectra at x1,x2
+
+    Parameters
+    ----------
+    x1: ndarray
+    x2: ndarray
+    l1: ndarray
+    l2: ndarray
+    s: ndarray
+
+    Results
+    -------
+    ret: tuple of ndarray
+        Two weights for the integral (a,b) i.e. if the fluxes at x1,x2 are f1,f2
+        the result is a*f1+b*f2
+
     """
-    ret1 = myintegrator(1 / (x1 - x2), -x2 / (x1 - x2), x1, x2, l1, l2, s)
-    ret2 = myintegrator(1 / (x2 - x1), -x1 / (x2 - x1), x1, x2, l1, l2, s)
+    ret1 = gau_integrator(1 / (x1 - x2), -x2 / (x1 - x2), x1, x2, l1, l2, s)
+    ret2 = gau_integrator(1 / (x2 - x1), -x1 / (x2 - x1), x1, x2, l1, l2, s)
     return ret1, ret2
 
 
@@ -80,12 +111,12 @@ class ParamMapper:
         """
         Map atmospheric parameters into parameters used in the grid for Interpolation
         That includes logarithming the teff
-        
+
         Parameters
         -----------
         vec: numpy array
             The vector of atmospheric parameters Teff, logg, feh, alpha
-        
+
         Returns
         ----------
         ret: numpy array
@@ -102,7 +133,7 @@ class ParamMapper:
         -----------
         vec: numpy array
             The vector of transformed atmospheric parameters log(Teff), logg, feh, alpha
-        
+
         Returns
         ----------
         ret: numpy array
@@ -112,9 +143,18 @@ class ParamMapper:
 
 
 def makedb(
-    prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
+    prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     dbfile='files.db'):
-    """ Create an sqlite database of the templates """
+    """ Create an sqlite database of the templates
+
+    Parameters
+    ----------
+    prefix: str
+        The path to PHOENIX
+    dbfile: str
+        The output file with the sqlite DB
+
+    """
     DB = sqlite3.connect(dbfile)
     id = 0
     DB.execute(
@@ -149,9 +189,39 @@ def get_spec(
     prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
     wavefile='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
 ):
-    """ returns individual spectra
-    > lam,spec=read_grid.get_spec(1,5250,-1,0.4)
+    """ Returns individual spectra for a given spectral parameters
+
+    Parameters
+    ----------
+    logg: real
+        Surface gravity
+    temp: real
+        Temperature
+    met: real
+        [Fe/H]
+    alpha: real
+        [alpha/Fe]
+    dbfile: string
+        The pathname to the database sqlite file of templates
+    prefix: string
+        The prefix path to templates
+    wavefile: string
+        The filename of fits file with the wavelength vector
+
+    Returns
+    -------
+    lam: ndarray
+        1-D array of wavelength
+    spec: ndarray
+        1-D array of spectrum
+    Example
+    -------
+    >>> lam,spec=read_grid.get_spec(1,5250,-1,0.4)
+
     """
+
+    # We don't look for equality we look around the value with the following
+    # deltas
     deltalogg = 0.01
     deltatemp = 1
     deltaalpha = 0.01
@@ -187,7 +257,7 @@ def make_rebinner(lam00,
                   resolution_function,
                   resolution0=None,
                   toair=True):
-    """ 
+    """
     Make the sparse matrix that convolves a given spectrum to
     a given resolution and new wavelength grid
 
@@ -198,11 +268,11 @@ def make_rebinner(lam00,
     lam: array
         The desired wavelength grid of the output
     resolution_function: function
-        The function that when called with the wavelength as an argument 
+        The function that when called with the wavelength as an argument
         will return the resolution of the desired spectra (R=l/dl)
-        I.e. it could be just lambda x: 5000 
+        I.e. it could be just lambda x: 5000
     toair: bool
-        Convert the input spectra into the air frame 
+        Convert the input spectra into the air frame
     resolution0: float
         The resolution of input templates
 
@@ -261,7 +331,7 @@ def make_rebinner(lam00,
         l1 = curlam - leftstep
         l2 = curlam + rightstep
         # these are the edges of the pixel we will integrate over
-        coeff1, coeff2 = integrator(x1, x2, l1, l2, cursig)
+        coeff1, coeff2 = pix_integrator(x1, x2, l1, l2, cursig)
         curstep = (leftstep + rightstep)
         ys.append(i + curx * 0)
         xs.append(curx)
@@ -288,9 +358,9 @@ def apply_rebinner(mat, spec0):
 
 
 def rebin(lam0, spec0, newlam, resolution):
-    """ Rebin a given spectrum lam0, spec0 to the new wavelength 
+    """ Rebin a given spectrum lam0, spec0 to the new wavelength
     and new resolution
-    
+
     Parameters
     ----------
     lam0: ndarray
@@ -301,12 +371,12 @@ def rebin(lam0, spec0, newlam, resolution):
         1d array with the wavelengths of the output spectrum
     resolution: float
         Resolution lam/dlam
-    
+
     Returns
     -------
     spec: ndarray
         Rebinned spectrum
-    
+
     Example
     -------
     >>> lam,spec=read_grid.get_spec(1,5250,-1,0.4)

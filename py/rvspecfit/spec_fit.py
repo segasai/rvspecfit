@@ -166,7 +166,7 @@ def get_basis(specdata, npoly, rbf=True):
 
 def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     '''
-    Get the chi-square values for the vector of velocities and grid of 
+    Get the chi-square values for the vector of velocities and grid of
     templates after marginalizing over continuum
     If espec is not provided we assume data and template are alreay normalized
     Importantly the returned chi-square is not the true chi-square, but instead
@@ -272,7 +272,7 @@ def construct_resol_mat(lam, resol=None, width=None):
         The wavelength vector
     resol: real/numpy
         The resolution value (R=lambda/delta lambda)
-    width: real 
+    width: real
         The Gaussian width of the kernel in angstrom (cannot be specified together with resol)
 
     Returns
@@ -445,8 +445,8 @@ def param_dict_to_tuple(paramDict, setup, config):
 
 def get_chisq_continuum(specdata, options=None):
     '''
-    Fit the spectrum with continuum only 
-    
+    Fit the spectrum with continuum only
+
     Parameters
     ----------
 
@@ -510,9 +510,9 @@ def get_chisq(specdata,
     resol_parameters: tuple
         The parameters of the spectral resolution (can be None)
     options: dict
-        The dictionary with fitting options (such as npoly for the degree of 
+        The dictionary with fitting options (such as npoly for the degree of
         the polynomial)
-    config: dict (optional) 
+    config: dict (optional)
         The configuration objection
     cache: dict (optional)
         The cache object, to preserve info between calls
@@ -525,7 +525,7 @@ def get_chisq(specdata,
         If full_output is False, ret is float = -2*log(L) of the whole data
         If full_output is True ret is a dictionary with the following keys
         chisq -- this is the -2*log(L) of the whole dataset
-        chisq_array -- this is the array of chi-squares (proper ones) 
+        chisq_array -- this is the array of chi-squares (proper ones)
         for each of the fited spectra
         redchisq_array -- this is the array of reduced chi-squares
         models -- array of best fit models
@@ -648,7 +648,39 @@ def find_best(specdata,
               options=None,
               config=None,
               quadratic=True):
-    # find the best fit template and velocity from a grid
+    """ Find the best fit template and velocity from a grid
+
+    Parameters
+    ----------
+    specdata: list of SpecData
+        Spectroscopic dataset
+    vel_grid: ndarray
+        Array of velocities
+    params_list: list
+        Array of parameters to explore
+    rot_params: tuple
+        Parameters of rotation (or None)
+    resol_params: tuple
+        Parameters of resolution convolution (or None)
+    options: dict
+        Dictionary of options
+    config: dict
+        Dictionary of the configuration
+    quadratic: bool
+        if True we try to do velocity quadratic interpolation near the max
+
+    Returns
+    -------
+    ret: dict
+        Dictionary with measured parameters. The keys are
+        best_vel -- velocity
+        vel_err -- velocity error
+        best_param -- best param
+        kurtosis -- kurtosi of velocity distribution
+        skewness -- skewness of velocity distribution
+        probs -- vector of 'posterior' probabilities over the grid
+
+    """
     cache = LRUDict(100)
     chisq = np.zeros((len(vel_grid), len(params_list)))
     for j, curparam in enumerate(params_list):

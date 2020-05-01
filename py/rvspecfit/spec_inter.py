@@ -6,44 +6,51 @@ import pickle
 from rvspecfit import make_nd
 
 
-def getInterp(triang, dats, exp=True):
-    """Get the Interpolation function from the Delaunay triangulation
-    and array of vectors
+class TriInterp:
+    def __init__(triang, dats, exp=True):
+        """
+        Get the Interpolation object from the Delaunay triangulation
+        and array of vectors
 
-    Parameters
-    ----------
+        Parameters
+        ----------
 
-    triang: Delaunay triangulation
-        Triangulation from scipy.spatial
-    dats: ndarray
-        2d array of vectors to be interpolated
-    exp: bool
-        if True the output needs to be exponentiated
+        triang: Delaunay triangulation
+            Triangulation from scipy.spatial
+        dats: ndarray
+            2d array of vectors to be interpolated
+        exp: bool
+            if True the output needs to be exponentiated
 
-    Returns
-    -------
-    func: function
-        Function that takes parameters and returns interpolated spectrum
+        """
+        self.triang = triang
+        self.dats = dats
+        self.exp = exp
 
-    """
-    def func(p):
+    def __call__(self, p):
+        """ Compute the interpolated spectrum at parameter vector p
+
+        Parameters
+        ----------
+        p: ndarray
+            1-D numpy array of parameters
+
+        """
         p = np.asarray(p)
-        ndim = triang.ndim
-        xid = triang.find_simplex(p)
+        ndim = self.triang.ndim
+        xid = self.triang.find_simplex(p)
         if xid == -1:
             return np.nan
-        b = triang.transform[xid, :ndim, :].dot(p -
-                                                triang.transform[xid, ndim, :])
+        b = self.triang.transform[xid, :ndim, :].dot(p -
+                                                self.triang.transform[xid, ndim, :])
         b1 = np.r_[b, [1 - b.sum()]]
-        spec = (dats[triang.simplices[xid], :] * b1[:, None]).sum(axis=0)
-        if exp:
+        spec = (self.dats[self.triang.simplices[xid], :] * b1[:, None]).sum(axis=0)
+        if self.exp:
             spec = np.exp(spec)
         return spec
-    return func
-
 
 class SpecInterpolator:
-    # Spectrum interpolator object
+    """ Spectrum interpolator object """
     def __init__(self,
                  name,
                  interper,
@@ -55,9 +62,28 @@ class SpecInterpolator:
                  filename='',
                  creation_soft_version=''):
         """ Construct the interpolator object
-        The arguments are the name of the instrument setup
-        The interpolator object that returns the
-        The extrapolation object,
+
+        Parameters
+        ----------
+        name: string
+            The name of spectroscopic configuration (instrument arm)
+        interper: function
+            The interpolating function from parameters to spectrum
+        extraper: function
+            Function that returns non-zero if outside the box
+        lam: ndarray
+            Wavelength vector
+        mapper: function
+            Function that does the mapping from scaled box parameters to proper values
+        parnames: tuple
+            The list of parameter names ('logg', 'teff' ,.. ) etc
+        revision: str
+            The revision of the grid
+        filename: str
+            The filename from which the template was read
+        creation_soft_version: str
+            The version of soft used to create the interpolator
+
         """
 
         self.name = name
@@ -71,7 +97,18 @@ class SpecInterpolator:
         self.creation_soft_version = creation_soft_version
 
     def outsideFlag(self, param0):
-        """Check if the point is outside the interpolation grid"""
+        """Check if the point is outside the interpolation grid
+
+        Parameters
+        ----------
+        param0: tuple
+            parameter vector
+
+        Returns
+        ret: bool
+            True if point outside the grid
+
+        """
         param = self.mapper.forward(param0)
         return self.extraper(param)
 
@@ -84,12 +121,29 @@ class SpecInterpolator:
 
 
 class interp_cache:
+    """ Singleton object caching the interpolators
+    """
     interps = {}
 
 
 def getInterpolator(HR, config, warmup_cache=True):
-    """ return the spectrum interpolation object for a given instrument
-    setup HR and config
+    """ Return the spectrum interpolation object for a given instrument
+    setup HR and config. This function also checks the cache
+
+    Parameters
+    ----------
+    HR: string
+        Spectral configuration
+    config: dict
+        Configuration
+    warmup_cache: bool
+        If True we read the whole file to warm up the OS cache
+
+    Returns
+    -------
+    ret: SpecInterpolator
+        The spectral interpolator
+
     """
     if HR not in interp_cache.interps:
         savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
@@ -104,7 +158,7 @@ def getInterpolator(HR, config, warmup_cache=True):
         if warmup_cache:
             # we read all the templates to put them in the memory cache
             dats.sum()
-        interper, extraper = (getInterp(triang, dats, exp=expFlag),
+        interper, extraper = (TriInterp(triang, dats, exp=expFlag),
                               scipy.interpolate.LinearNDInterpolator(
                                   triang, extraflags))
         revision = fd.get('revision') or ''
@@ -127,5 +181,18 @@ def getInterpolator(HR, config, warmup_cache=True):
 
 def getSpecParams(setup, config):
     ''' Return the ordered list of spectral parameters
-    of a given spectroscopic setup'''
+    of a given spectroscopic setup
+
+    Parameters
+    ----------
+    setup: str
+        Spectral configuration
+    config: dict
+        Configuration dictionary
+
+    Returns
+    -------
+    ret: list
+        List of parameters names
+    '''
     return getInterpolator(setup, config).parnames
