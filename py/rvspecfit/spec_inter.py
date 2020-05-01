@@ -7,7 +7,7 @@ from rvspecfit import make_nd
 
 
 class TriInterp:
-    def __init__(triang, dats, exp=True):
+    def __init__(self, triang, dats, exp=True):
         """
         Get the Interpolation object from the Delaunay triangulation
         and array of vectors
