@@ -17,6 +17,7 @@ import astropy.units as auni
 import numpy as np
 import scipy.stats
 
+import rvspecfit
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, spec_inter
 
 
@@ -919,11 +920,11 @@ def main(args):
                         type=str,
                         default=None)
 
-    parser.add_argument('--input_files',
+    parser.add_argument('input_files',
                         help='Space separated list of files to process',
                         type=str,
                         default=None,
-                        nargs='+')
+                        nargs='*')
     parser.add_argument(
         '--input_file_from',
         help='Read the list of spectral files from the text file',
@@ -933,8 +934,8 @@ def main(args):
     parser.add_argument('--output_dir',
                         help='Output directory for the tables',
                         type=str,
-                        default=None,
-                        required=True)
+                        default='./',
+                        required=False)
     parser.add_argument('--targetid',
                         help='Fit only a given targetid',
                         type=int,
@@ -979,11 +980,15 @@ def main(args):
                         type=str,
                         default='fig',
                         required=False)
-
     parser.add_argument(
         '--overwrite',
         help=
         'If enabled the code will overwrite the existing products, otherwise it will attempt to update/append',
+        action='store_true',
+        default=False)
+    parser.add_argument(
+        '--version',
+        help='Output the version of the software',
         action='store_true',
         default=False)
 
@@ -1017,6 +1022,11 @@ def main(args):
                         default=False)
 
     args = parser.parse_args(args)
+
+    if args.version:
+        print (rvspecfit._version.version)
+        sys.exit(0)
+        
     input_files = args.input_files
     input_file_from = args.input_file_from
     verbose = args.verbose
@@ -1034,12 +1044,12 @@ def main(args):
     fitarm = args.fitarm
     if fitarm is not None:
         fitarm = fitarm.split(',')
-    if input_files is not None and input_file_from is not None:
+    if input_files == [] and input_file_from is not None:
         raise Exception(
             'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
         )
 
-    if input_files is not None:
+    if input_files != []:
         files = input_files
     elif input_file_from is not None:
         files = []
@@ -1047,7 +1057,8 @@ def main(args):
             for l in fp:
                 files.append(l.rstrip())
     else:
-        raise Exception('You need to specify the spectra you want to fit')
+        parser.print_help()
+        raise RuntimeError('You need to specify the spectra you want to fit')
 
     proc_many(files,
               output_dir,
