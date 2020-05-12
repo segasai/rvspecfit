@@ -2,7 +2,7 @@ import numpy as np
 import scipy.spatial
 import scipy.interpolate
 import pickle
-
+import itertools
 from rvspecfit import make_nd
 
 
@@ -41,13 +41,73 @@ class TriInterp:
         xid = self.triang.find_simplex(p)
         if xid == -1:
             return np.nan
-        b = self.triang.transform[xid, :ndim, :].dot(p -
-                                                self.triang.transform[xid, ndim, :])
+        b = self.triang.transform[xid, :ndim, :].dot(
+            p - self.triang.transform[xid, ndim, :])
         b1 = np.r_[b, [1 - b.sum()]]
-        spec = (self.dats[self.triang.simplices[xid], :] * b1[:, None]).sum(axis=0)
+        spec = (self.dats[self.triang.simplices[xid], :] *
+                b1[:, None]).sum(axis=0)
         if self.exp:
             spec = np.exp(spec)
         return spec
+
+
+class GridInterp:
+    def __init__(self, uvecs, idgrid, dats, exp=True):
+        """
+        Get the Grid interpolation object
+
+        Parameters
+        ----------
+
+        uvecs: List of unique grid values
+        idgrid: grid of spectral ids (-1 if not avalaible
+        dats: ndarray
+            2d array of vectors to be interpolated
+        exp: bool
+            if True the output needs to be exponentiated
+
+        """
+        self.uvecs = uvecs
+        self.dats = dats
+        self.exp = exp
+        self.idgrid = idgrid
+        self.ndim = len(self.uvecs)
+        self.lens = [len(_) for _ in self.uvecs]
+        edges = itertools.product(*[[0, 1] for i in range(self.ndim)])
+        self.edges = [np.array(_) for _ in edges]  # 0,1,0,1 vectors
+
+    def __call__(self, p):
+        """ Compute the interpolated spectrum at parameter vector p
+
+        Parameters
+        ----------
+        p: ndarray
+            1-D numpy array of parameters
+
+        """
+        p = np.asarray(p)
+        ndim = self.ndim
+        # gridlocs
+        pos = [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)]
+        if any([(pos[i] < 0) or (pos[i] >= self.lens[i] - 1)
+                for i in range(ndim)]):
+            return np.ones(len(self.dats[0]))
+        coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
+                           (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
+                           for i in range(ndim)])  # from 0 to 1
+        coeffs2 = np.zeros((2**ndim))
+        pos2 = np.zeros(2**ndim, dtype=int)
+        for i, curp in enumerate(self.edges):
+            coeffs2[i] = np.prod(coeffs**curp * (1 - coeffs)**(1 - curp))
+            pos2[i] = self.idgrid[tuple(curp + pos)]
+        if np.any(pos2 < 0):
+            ## outside boundary
+            return np.ones(len(self.dats[0]))
+        spec = (np.dot(coeffs2, self.dats[pos2, :]))
+        if self.exp:
+            return np.exp(spec)
+        return spec
+
 
 class SpecInterpolator:
     """ Spectrum interpolator object """
