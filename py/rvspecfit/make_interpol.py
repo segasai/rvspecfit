@@ -155,10 +155,10 @@ def process_all(setupInfo,
     parnames = ('teff', 'logg', 'feh', 'alpha')
     i = 0
 
-    templ_lam, spec = read_grid.get_spec(4.5,
-                                         12000,
-                                         0,
-                                         0,
+    templ_lam, spec = read_grid.get_spec(tab_logg[0],
+                                         tab_teff[0],
+                                         tab_met[0],
+                                         tab_alpha[0],
                                          dbfile=dbfile,
                                          prefix=prefix,
                                          wavefile=wavefile)
