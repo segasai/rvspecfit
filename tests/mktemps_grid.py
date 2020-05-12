@@ -17,30 +17,31 @@ def getspec(lam, teff, logg, alpha, met, wresol=0):
     return np.prod(np.array(lines), axis=0) * cont
 
 
-def make_grid(prefix, wavefile, nspec):
+def make_grid(prefix, wavefile):
+    nt,nl,nf,na=7,7,7,7
     S0 = np.random.get_state()
     np.random.seed(1)
     lam = np.linspace(4500, 5500, 50000)
-    teffs = np.random.uniform(3000, 12000, nspec)
-    fehs = np.random.uniform(-2, 0, nspec)
-    alphas = np.random.uniform(0, 1, nspec)
-    loggs = np.random.uniform(0, 5, nspec)
-    loggs[0] = 4.5
-    teffs[0] = 12000
-    alphas[0] = 0
-    fehs[0] = 0
-    #     4.5, 12000, 0, 0
-    for i in range(nspec):
-        spec = getspec(lam, teffs[i], loggs[i], alphas[i], fehs[i])
-        hdr = dict(PHXLOGG=loggs[i],
-                   PHXALPHA=alphas[i],
-                   PHXTEFF=teffs[i],
-                   PHXM_H=fehs[i])
-        fname = prefix + 'specs/xx_%05d.fits' % i
-        pyfits.writeto(fname, spec, pyfits.Header(hdr), overwrite=True)
+    teffs = np.linspace(3000, 13000, nt)
+    fehs = np.random.uniform(-2, 0, nf)
+    alphas = np.random.uniform(0, 1, na)
+    loggs = np.random.uniform(0, 5, nl)
+    i=0
+    for iit in range(nt):
+        for iil in range(nl):
+            for iif in range(nf):
+                for iia in range(na):
+                    spec = getspec(lam, teffs[iit], loggs[iil], alphas[iia], fehs[iif])
+                    hdr = dict(PHXLOGG=loggs[iil],
+                   PHXALPHA=alphas[iia],
+                   PHXTEFF=teffs[iit],
+                   PHXM_H=fehs[iif])
+                    fname = prefix + 'specs/xx_%05d.fits' % i
+                    i+=1
+                    pyfits.writeto(fname, spec, pyfits.Header(hdr), overwrite=True)
     pyfits.writeto(prefix+'/'+wavefile, lam, overwrite=True)
     np.random.set_state(S0)
 
 
 if __name__ == '__main__':
-    make_grid(sys.argv[1], sys.argv[2], int(sys.argv[3]))
+    make_grid(sys.argv[1], sys.argv[2])

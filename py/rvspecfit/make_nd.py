@@ -1,5 +1,6 @@
 import pickle
 import argparse
+import sys
 import numpy as np
 import numpy.random
 import scipy.spatial
@@ -49,7 +50,7 @@ def getedgevertices(vec):
     return positions
 
 
-def execute(spec_setup, prefix=None, perturb=True, revision=''):
+def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     """
     Prepare the triangulation objects for the set of spectral data for a given
     spec_setup.
@@ -72,9 +73,7 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
     None
 
     """
-    perturbation_amplitude = 1e-6
 
-    postf = ''
     with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
               'rb') as fp:
         D = pickle.load(fp)
@@ -87,54 +86,70 @@ def execute(spec_setup, prefix=None, perturb=True, revision=''):
     vec = vec.astype(float)
     vec = mapper.forward(vec)
     ndim = len(vec[:, 0])
+    ret_dict = {}
 
-    # It turn's out that Delaunay is sometimes unstable when dealing with
-    # regular grids, so perturb points
-    if perturb:
-        state = np.random.get_state()
-        # Make it deterministic
-        np.random.seed(1)
-        vec = vec + np.random.uniform(
-            -perturbation_amplitude, perturbation_amplitude, size=vec.shape)
-        np.random.set_state(state)
+    if not regular:
+        perturbation_amplitude = 1e-6
+        # It turn's out that Delaunay is sometimes unstable when dealing with
+        # regular grids, so perturb points
+        if perturb:
+            state = np.random.get_state()
+            # Make it deterministic
+            np.random.seed(1)
+            vec = vec + np.random.uniform(
+                -perturbation_amplitude, perturbation_amplitude, size=vec.shape)
+            np.random.set_state(state)
 
-    # get the positions that are outside the existing grid
-    edgepositions = getedgevertices(vec)
-    nedgepos = len(edgepositions.T)
+        # get the positions that are outside the existing grid
+        edgepositions = getedgevertices(vec)
+        nedgepos = len(edgepositions.T)
 
-    # find out the nearest neighbors for those outside points
-    nearnei = scipy.spatial.cKDTree(vec.T).query(edgepositions.T)[1]
-    vec = np.hstack((vec, edgepositions))
+        # find out the nearest neighbors for those outside points
+        nearnei = scipy.spatial.cKDTree(vec.T).query(edgepositions.T)[1]
+        vec = np.hstack((vec, edgepositions))
 
-    nspec, lenspec = specs.shape
-    fakespec = np.ones(lenspec)
+        nspec, lenspec = specs.shape
+        fakespec = np.ones(lenspec)
 
-    # add nearest neighbor sectra to the grid at the edge locations
-    specs = np.append(specs, np.array([specs[_] for _ in nearnei]), axis=0)
+        # add nearest neighbor sectra to the grid at the edge locations
+        specs = np.append(specs, np.array([specs[_] for _ in nearnei]), axis=0)
 
-    # extra flags that allow us to detect out of the grid cases (i.e inside
-    # our grid the flag should be 0)
-    extraflags = np.concatenate((np.zeros(nspec), np.ones(nedgepos)))
-    lognorms = np.concatenate((lognorms, np.zeros(nedgepos)))
+        # extra flags that allow us to detect out of the grid cases (i.e inside
+        # our grid the flag should be 0)
+        extraflags = np.concatenate((np.zeros(nspec), np.ones(nedgepos)))
 
-    vec = vec.astype(np.float64)
-    extraflags = extraflags.astype(np.float64)
-    specs = specs.astype(np.float64)
-    extraflags = extraflags[:, None]
+ 
+        lognorms = np.concatenate((lognorms, np.zeros(nedgepos)))
+        vec = vec.astype(np.float64)
+        extraflags = extraflags.astype(np.float64)
+        specs = specs.astype(np.float64)
+        extraflags = extraflags[:, None]
 
-    triang = scipy.spatial.Delaunay(vec.T)
+        triang = scipy.spatial.Delaunay(vec.T)
+        ret_dict['triang'] = triang
+        ret_dict['extraflags'] = extraflags
+
+    else:
+        uvecs = [np.unique(vec[i,:],return_inverse=True) for i in range(ndim) ]
+        vecids = [_[1] for _ in  uvecs]
+        uvecs = [_[0] for _ in  uvecs]
+        lens = [len(_) for _ in uvecs]
+        idgrid = np.zeros(lens,dtype=int)-1
+        idgrid[tuple(vecids)]=np.arange(vec.shape[1])
+        ret_dict['uvecs'] = uvecs
+        ret_dict['regular']=True
+        ret_dict['idgrid'] = idgrid
 
     savefile = ('%s/' + INTERPOL_PKL_NAME) % (prefix, spec_setup)
-    ret_dict = {}
     ret_dict['lam'] = lam
-    ret_dict['triang'] = triang
-    ret_dict['extraflags'] = extraflags
+
     ret_dict['vec'] = vec
     ret_dict['parnames'] = parnames
     ret_dict['mapper'] = mapper
     ret_dict['revision'] = revision
     ret_dict['lognorms'] = lognorms
     ret_dict['git_rev'] = git_rev
+
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)
     np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
@@ -153,13 +168,18 @@ def main(args):
                         type=str,
                         help='Name of the spectral configuration',
                         required=True)
+    parser.add_argument('--regulargrid',
+                        action='store_true',
+                        help='Use regular grid interpolation ',
+                        required=False)
     parser.add_argument('--revision',
                         type=str,
                         help='Revision of the data files/run',
                         required=False)
 
     args = parser.parse_args(args)
-    execute(args.setup, prefix=args.prefix, revision=args.revision)
+    execute(args.setup, prefix=args.prefix, revision=args.revision, regular=
+            args.regulargrid)
 
 
 if __name__ == '__main__':

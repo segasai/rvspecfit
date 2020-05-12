@@ -24,3 +24,5 @@ script:
   - python test_fit.py
   - python test_fit1.py
   - ./make_templ.sh
+  - ./gen_test_templ.sh
+  - ./gen_test_templ_grid.sh
