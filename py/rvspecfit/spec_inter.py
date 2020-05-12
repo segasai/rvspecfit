@@ -50,6 +50,22 @@ class TriInterp:
             spec = np.exp(spec)
         return spec
 
+class GridOutsideCheck:
+    def __init__(self, uvecs, idgrid):
+        self.uvecs = uvecs
+        self.idgrid = idgrid
+        self.ndim = len(self.uvecs)
+        edges = itertools.product(*[[0, 1] for i in range(self.ndim)])
+        self.edges = [np.array(_) for _ in edges]  # 0,1,0,1 vectors
+        self.lens = np.array([len(_) for _ in self.uvecs])
+    def __call__(self, p):
+        pos = np.array([np.digitize(p[i], self.uvecs[i]) - 1 for i in range(self.ndim)])
+        if np.any((pos<0)|(pos>=self.lens - 1)):
+            return True 
+        for curp in self.edges:
+            if self.idgrid[tuple(curp)]==-1:
+                return True
+        return False
 
 class GridInterp:
     def __init__(self, uvecs, idgrid, dats, exp=True):
@@ -206,21 +222,32 @@ def getInterpolator(HR, config, warmup_cache=True):
 
     """
     if HR not in interp_cache.interps:
-        savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
-        with open(savefile, 'rb') as fd0:
-            fd = pickle.load(fd0)
-            (triang, templ_lam, vecs, extraflags, mapper,
-             parnames) = (fd['triang'], fd['lam'], fd['vec'], fd['extraflags'],
-                          fd['mapper'], fd['parnames'])
         expFlag = True
         dats = np.load(config['template_lib'] + make_nd.INTERPOL_DAT_NAME % HR,
                        mmap_mode='r')
         if warmup_cache:
             # we read all the templates to put them in the memory cache
             dats.sum()
-        interper, extraper = (TriInterp(triang, dats, exp=expFlag),
+
+        savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
+        with open(savefile, 'rb') as fd0:            
+            fd = pickle.load(fd0)
+        (templ_lam, vecs, mapper, parnames) = (fd['lam'], fd['vec'],
+                          fd['mapper'], fd['parnames'])
+            
+        if 'triang' in fd:
+            # triangulation based interpolation
+            (triang, extraflags) = (fd['triang'], fd['extraflags'])
+            interper, extraper = (TriInterp(triang, dats, exp=expFlag),
                               scipy.interpolate.LinearNDInterpolator(
                                   triang, extraflags))
+        elif 'regular' in fd:
+            # regular grid interpolation
+            uvecs,idgrid = (fd['uvecs'], fd['idgrid'])
+            interper = GridInterp(uvecs, idgrid, dats, exp=expFlag)
+            extraper = GridOutsideCheck(uvecs, idgrid)
+        else:
+            raise RuntimeError('Unrecognized interpolation file')
         revision = fd.get('revision') or ''
         creation_soft_version = fd.get('git_rev') or ''
         interpObj = SpecInterpolator(

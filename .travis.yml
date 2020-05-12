@@ -26,3 +26,5 @@ script:
   - ./make_templ.sh
   - ./gen_test_templ.sh
   - ./gen_test_templ_grid.sh
+  - python test_fit_fake.py
+  - python test_fit_fake_grid.py

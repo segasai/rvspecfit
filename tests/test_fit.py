@@ -24,10 +24,16 @@ fixParam = ['vsini']
 
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = ['vsini']
-res = vel_fit.process(
-    specdata, paramDict0, fixParam=fixParam, config=config, options=options)
+res = vel_fit.process(specdata,
+                      paramDict0,
+                      fixParam=fixParam,
+                      config=config,
+                      options=options)
 
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -1, 'alpha': 0.2, 'vsini': 19}
 fixParam = []
-res = vel_fit.process(
-    specdata, paramDict0, fixParam=fixParam, config=config, options=options)
+res = vel_fit.process(specdata,
+                      paramDict0,
+                      fixParam=fixParam,
+                      config=config,
+                      options=options)
