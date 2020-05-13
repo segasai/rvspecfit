@@ -23,9 +23,9 @@ def make_grid(prefix, wavefile):
     np.random.seed(1)
     lam = np.linspace(4500, 5500, 50000)
     teffs = np.linspace(3000, 13000, nt)
-    fehs = np.random.uniform(-2, 0, nf)
-    alphas = np.random.uniform(0, 1, na)
-    loggs = np.random.uniform(0, 5, nl)
+    fehs = np.linspace(-2, 0, nf)
+    alphas = np.linspace(0, 1, na)
+    loggs = np.linspace(0, 5, nl)
     i=0
     for iit in range(nt):
         for iil in range(nl):

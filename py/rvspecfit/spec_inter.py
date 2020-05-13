@@ -50,6 +50,7 @@ class TriInterp:
             spec = np.exp(spec)
         return spec
 
+
 class GridOutsideCheck:
     def __init__(self, uvecs, idgrid):
         self.uvecs = uvecs
@@ -58,14 +59,34 @@ class GridOutsideCheck:
         edges = itertools.product(*[[0, 1] for i in range(self.ndim)])
         self.edges = [np.array(_) for _ in edges]  # 0,1,0,1 vectors
         self.lens = np.array([len(_) for _ in self.uvecs])
+        self.Ns = self.idgrid.shape
+        cur = np.arange(np.prod(self.Ns))
+        grid = []
+        
+        for i in range(self.ndim):
+            grid.append(cur % self.Ns[i])
+            cur //= self.Ns[i]
+        xind = self.idgrid[tuple(grid)]
+        goodgrid = np.array(grid)[:,xind]
+        self.tree = scipy.spatial.cKDTree(goodgrid.T)
+
     def __call__(self, p):
-        pos = np.array([np.digitize(p[i], self.uvecs[i]) - 1 for i in range(self.ndim)])
-        if np.any((pos<0)|(pos>=self.lens - 1)):
-            return True 
-        for curp in self.edges:
-            if self.idgrid[tuple(curp)]==-1:
-                return True
-        return False
+        ## ATM that doesn't return something that tells us how far away
+        ## we are
+        pos = np.array(
+            [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(self.ndim)])
+        outside = False
+        if np.any((pos < 0) | (pos >= self.lens - 1)):
+            outside = True
+        else:
+            for curp in self.edges:
+                if self.idgrid[tuple(curp)] == -1:
+                    outside = True
+                    break
+        if outside: 
+            return self.tree.query(pos)[0]
+        return 0
+
 
 class GridInterp:
     def __init__(self, uvecs, idgrid, dats, exp=True):
@@ -88,7 +109,7 @@ class GridInterp:
         self.exp = exp
         self.idgrid = idgrid
         self.ndim = len(self.uvecs)
-        self.lens = [len(_) for _ in self.uvecs]
+        self.lens = np.array([len(_) for _ in self.uvecs])
         edges = itertools.product(*[[0, 1] for i in range(self.ndim)])
         self.edges = [np.array(_) for _ in edges]  # 0,1,0,1 vectors
 
@@ -104,9 +125,8 @@ class GridInterp:
         p = np.asarray(p)
         ndim = self.ndim
         # gridlocs
-        pos = [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)]
-        if any([(pos[i] < 0) or (pos[i] >= self.lens[i] - 1)
-                for i in range(ndim)]):
+        pos = np.array([np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)])
+        if np.any((pos<0)|(pos>=(self.lens-1))):
             return np.ones(len(self.dats[0]))
         coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
                            (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
@@ -181,8 +201,8 @@ class SpecInterpolator:
             parameter vector
 
         Returns
-        ret: bool
-            True if point outside the grid
+        ret: float
+            > 0 if point outside the grid
 
         """
         param = self.mapper.forward(param0)
@@ -230,20 +250,20 @@ def getInterpolator(HR, config, warmup_cache=True):
             dats.sum()
 
         savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
-        with open(savefile, 'rb') as fd0:            
+        with open(savefile, 'rb') as fd0:
             fd = pickle.load(fd0)
         (templ_lam, vecs, mapper, parnames) = (fd['lam'], fd['vec'],
-                          fd['mapper'], fd['parnames'])
-            
+                                               fd['mapper'], fd['parnames'])
+
         if 'triang' in fd:
             # triangulation based interpolation
             (triang, extraflags) = (fd['triang'], fd['extraflags'])
             interper, extraper = (TriInterp(triang, dats, exp=expFlag),
-                              scipy.interpolate.LinearNDInterpolator(
-                                  triang, extraflags))
+                                  scipy.interpolate.LinearNDInterpolator(
+                                      triang, extraflags))
         elif 'regular' in fd:
             # regular grid interpolation
-            uvecs,idgrid = (fd['uvecs'], fd['idgrid'])
+            uvecs, idgrid = (fd['uvecs'], fd['idgrid'])
             interper = GridInterp(uvecs, idgrid, dats, exp=expFlag)
             extraper = GridOutsideCheck(uvecs, idgrid)
         else:
