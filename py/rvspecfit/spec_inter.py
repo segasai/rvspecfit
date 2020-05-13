@@ -52,7 +52,7 @@ class TriInterp:
 
 
 class GridOutsideCheck:
-    def __init__(self, uvecs, idgrid):
+    def __init__(self, uvecs, vecs, idgrid):
         self.uvecs = uvecs
         self.idgrid = idgrid
         self.ndim = len(self.uvecs)
@@ -60,15 +60,10 @@ class GridOutsideCheck:
         self.edges = [np.array(_) for _ in edges]  # 0,1,0,1 vectors
         self.lens = np.array([len(_) for _ in self.uvecs])
         self.Ns = self.idgrid.shape
-        cur = np.arange(np.prod(self.Ns))
-        grid = []
-
-        for i in range(self.ndim):
-            grid.append(cur % self.Ns[i])
-            cur //= self.Ns[i]
-        xind = self.idgrid[tuple(grid)]>=0
-        goodgrid = np.array(grid)[:, xind]
-        self.tree = scipy.spatial.cKDTree(goodgrid.T)
+        self.ptp = vecs.ptp(axis=1)
+        self.tree = scipy.spatial.cKDTree(vecs.T / self.ptp[None, :],
+                                          compact_nodes=False,
+                                          balanced_tree=False)
 
     def __call__(self, p):
         ## ATM that doesn't return something that tells us how far away
@@ -79,17 +74,15 @@ class GridOutsideCheck:
         if np.any((pos < 0) | (pos >= self.lens - 1)):
             outside = True
         else:
-            for curp in self.edges:
-                if self.idgrid[tuple(curp)] == -1:
-                    outside = True
-                    break
+            if (self.idgrid[tuple((pos[None, :] + self.edges).T)] == -1).any():
+                outside = True
         if outside:
-            return self.tree.query(pos)[0]
+            return self.tree.query(p / self.ptp)[0]
         return 0
 
 
 class GridInterp:
-    def __init__(self, uvecs, idgrid, dats, exp=True):
+    def __init__(self, uvecs, idgrid, vecs, dats, exp=True):
         """
         Get the Grid interpolation object
 
@@ -113,6 +106,12 @@ class GridInterp:
         edges = itertools.product(*[[0, 1] for i in range(self.ndim)])
         self.edges = np.array([np.array(_) for _ in edges])  # 0,1,0,1 vectors
 
+        self.ptp = vecs.ptp(axis=1)
+        self.tree = scipy.spatial.cKDTree(vecs.T / self.ptp[None, :])
+
+    def get_nearest(self, p):
+        return self.tree.query(p / self.ptp)[1]
+
     def __call__(self, p):
         """ Compute the interpolated spectrum at parameter vector p
 
@@ -124,27 +123,36 @@ class GridInterp:
         """
         p = np.asarray(p)
         ndim = self.ndim
+
+        ### wrapper to exponentiate when needed
+        if self.exp:
+            FF = lambda x: np.exp(x)
+        else:
+            FF = lambda x: (x)
+
         # gridlocs
         pos = np.array(
             [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)])
         if np.any((pos < 0) | (pos >= (self.lens - 1))):
-            return np.ones(len(self.dats[0]))
+            ret = self.get_nearest(p)
+            return FF(self.dats[ret])
+
         coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
                            (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
                            for i in range(ndim)])  # from 0 to 1
         ## ndim  vec
         coeffs2 = np.zeros((2**ndim, self.ndim))
         pos2 = np.zeros(2**ndim, dtype=int)
-        coeffs2 = coeffs[None,:]**self.edges * (1 - coeffs[None,:])**(1 - self.edges)
-        pos2 = self.idgrid[tuple((pos[None,:] + self.edges).T)]
+        coeffs2 = coeffs[None, :]**self.edges * (1 - coeffs[None, :])**(
+            1 - self.edges)
+        pos2 = self.idgrid[tuple((pos[None, :] + self.edges).T)]
         coeffs2 = np.prod(coeffs2, axis=1)
         if np.any(pos2 < 0):
             ## outside boundary
-            return np.ones(len(self.dats[0]))
+            ret = self.get_nearest(p)
+            return FF(self.dats[ret])
         spec = (np.dot(coeffs2, self.dats[pos2, :]))
-        if self.exp:
-            return np.exp(spec)
-        return spec
+        return FF(spec)
 
 
 class SpecInterpolator:
@@ -266,8 +274,8 @@ def getInterpolator(HR, config, warmup_cache=True):
         elif 'regular' in fd:
             # regular grid interpolation
             uvecs, idgrid = (fd['uvecs'], fd['idgrid'])
-            interper = GridInterp(uvecs, idgrid, dats, exp=expFlag)
-            extraper = GridOutsideCheck(uvecs, idgrid)
+            interper = GridInterp(uvecs, idgrid, vecs, dats, exp=expFlag)
+            extraper = GridOutsideCheck(uvecs, vecs, idgrid)
         else:
             raise RuntimeError('Unrecognized interpolation file')
         revision = fd.get('revision') or ''
