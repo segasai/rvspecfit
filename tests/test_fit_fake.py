@@ -14,7 +14,7 @@ config = utils.read_config('test.yaml')
 # read data
 lam = np.linspace(4600, 5400, 800)
 v0 = np.random.normal(0, 100)
-lam1 = lam * (1 + v0 / 3e5)
+lam1 = lam / (1 + v0 / 3e5)
 resol = 1000.
 lamcen = 5000
 w = lamcen / resol / 2.35
@@ -33,8 +33,6 @@ res = vel_fit.process(specdata,
                       config=config,
                       options=options)
 
-#res = vel_fit.process(
-#    specdata, paramDict0, fixParam=fixParam, config=config, options=options)
 print(res['vel'] - v0, res['vel_err'])
 if True:
     plt.figure(figsize=(6, 2), dpi=300)

@@ -62,12 +62,12 @@ class GridOutsideCheck:
         self.Ns = self.idgrid.shape
         cur = np.arange(np.prod(self.Ns))
         grid = []
-        
+
         for i in range(self.ndim):
             grid.append(cur % self.Ns[i])
             cur //= self.Ns[i]
         xind = self.idgrid[tuple(grid)]
-        goodgrid = np.array(grid)[:,xind]
+        goodgrid = np.array(grid)[:, xind]
         self.tree = scipy.spatial.cKDTree(goodgrid.T)
 
     def __call__(self, p):
@@ -83,7 +83,7 @@ class GridOutsideCheck:
                 if self.idgrid[tuple(curp)] == -1:
                     outside = True
                     break
-        if outside: 
+        if outside:
             return self.tree.query(pos)[0]
         return 0
 
@@ -125,17 +125,19 @@ class GridInterp:
         p = np.asarray(p)
         ndim = self.ndim
         # gridlocs
-        pos = np.array([np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)])
-        if np.any((pos<0)|(pos>=(self.lens-1))):
+        pos = np.array(
+            [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)])
+        if np.any((pos < 0) | (pos >= (self.lens - 1))):
             return np.ones(len(self.dats[0]))
         coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
                            (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
                            for i in range(ndim)])  # from 0 to 1
-        coeffs2 = np.zeros((2**ndim))
+        coeffs2 = np.zeros((2**ndim, self.ndim))
         pos2 = np.zeros(2**ndim, dtype=int)
         for i, curp in enumerate(self.edges):
-            coeffs2[i] = np.prod(coeffs**curp * (1 - coeffs)**(1 - curp))
+            coeffs2[i, :] = coeffs**curp * (1 - coeffs)**(1 - curp)
             pos2[i] = self.idgrid[tuple(curp + pos)]
+        coeffs2 = np.prod(coeffs2, axis=1)
         if np.any(pos2 < 0):
             ## outside boundary
             return np.ones(len(self.dats[0]))
