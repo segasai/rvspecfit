@@ -66,7 +66,7 @@ class GridOutsideCheck:
         for i in range(self.ndim):
             grid.append(cur % self.Ns[i])
             cur //= self.Ns[i]
-        xind = self.idgrid[tuple(grid)]
+        xind = self.idgrid[tuple(grid)]>=0
         goodgrid = np.array(grid)[:, xind]
         self.tree = scipy.spatial.cKDTree(goodgrid.T)
 
