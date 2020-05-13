@@ -1075,8 +1075,10 @@ def main(args):
             for l in fp:
                 fit_targetid.append(int(l.rstrip()))
         fit_targetid = np.unique(fit_targetid)
+    elif targetid is not None:
+        fit_targetid = np.unique([targetid])
     else:
-        fit_targetid = np.unique([fit_targetid])
+        pass
 
     proc_many(files,
               output_dir,
