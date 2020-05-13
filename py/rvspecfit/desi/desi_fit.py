@@ -943,7 +943,7 @@ def main(args):
                         required=False)
     parser.add_argument('--targetid_file_from',
                         help='Fit only a given targetids from a given file',
-                        type=int,
+                        type=str,
                         default=None,
                         required=False)
     parser.add_argument('--minsn',
