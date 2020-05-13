@@ -18,7 +18,7 @@ def getspec(lam, teff, logg, alpha, met, wresol=0):
 
 
 def make_grid(prefix, wavefile):
-    nt,nl,nf,na=7,7,7,7
+    nt, nl, nf, na = 7, 7, 7, 7
     S0 = np.random.get_state()
     np.random.seed(1)
     lam = np.linspace(4500, 5500, 50000)
@@ -26,20 +26,24 @@ def make_grid(prefix, wavefile):
     fehs = np.linspace(-2, 0, nf)
     alphas = np.linspace(0, 1, na)
     loggs = np.linspace(0, 5, nl)
-    i=0
+    i = 0
     for iit in range(nt):
         for iil in range(nl):
             for iif in range(nf):
                 for iia in range(na):
-                    spec = getspec(lam, teffs[iit], loggs[iil], alphas[iia], fehs[iif])
+                    spec = getspec(lam, teffs[iit], loggs[iil], alphas[iia],
+                                   fehs[iif])
                     hdr = dict(PHXLOGG=loggs[iil],
-                   PHXALPHA=alphas[iia],
-                   PHXTEFF=teffs[iit],
-                   PHXM_H=fehs[iif])
+                               PHXALPHA=alphas[iia],
+                               PHXTEFF=teffs[iit],
+                               PHXM_H=fehs[iif])
                     fname = prefix + 'specs/xx_%05d.fits' % i
-                    i+=1
-                    pyfits.writeto(fname, spec, pyfits.Header(hdr), overwrite=True)
-    pyfits.writeto(prefix+'/'+wavefile, lam, overwrite=True)
+                    i += 1
+                    pyfits.writeto(fname,
+                                   spec,
+                                   pyfits.Header(hdr),
+                                   overwrite=True)
+    pyfits.writeto(prefix + '/' + wavefile, lam, overwrite=True)
     np.random.set_state(S0)
 
 

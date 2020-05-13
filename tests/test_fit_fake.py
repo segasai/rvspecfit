@@ -13,13 +13,13 @@ config = utils.read_config('test.yaml')
 
 # read data
 lam = np.linspace(4600, 5400, 800)
-v0 = np.random.normal(0,100)
-lam1 = lam * (1+v0/3e5)
-resol=1000.
-lamcen =5000
-w=lamcen/resol/2.35
+v0 = np.random.normal(0, 100)
+lam1 = lam * (1 + v0 / 3e5)
+resol = 1000.
+lamcen = 5000
+w = lamcen / resol / 2.35
 
-spec0 =getspec(lam1, 5000,2,0.2, -1, wresol=w)
+spec0 = getspec(lam1, 5000, 2, 0.2, -1, wresol=w)
 espec = spec0 * 0.001
 spec = np.random.normal(spec0, espec)
 # construct specdata object

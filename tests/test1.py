@@ -31,24 +31,22 @@ vel_grid = np.linspace(-600, 600, 1000)
 options = {'npoly': 10}
 
 t1 = time.time()
-spec_fit.find_best(
-    specdata,
-    vel_grid,
-    params_list,
-    rot_params,
-    resols_params,
-    options=options,
-    config=config)
+spec_fit.find_best(specdata,
+                   vel_grid,
+                   params_list,
+                   rot_params,
+                   resols_params,
+                   options=options,
+                   config=config)
 
 t2 = time.time()
-res = (spec_fit.find_best(
-    specdata,
-    vel_grid,
-    params_list,
-    rot_params,
-    resols_params,
-    options=options,
-    config=config))
+res = (spec_fit.find_best(specdata,
+                          vel_grid,
+                          params_list,
+                          rot_params,
+                          resols_params,
+                          options=options,
+                          config=config))
 bestv, bestpar, bestchi, vel_err = [
     res[_] for _ in ['best_vel', 'best_param', 'best_chi', 'vel_err']
 ]
@@ -56,15 +54,14 @@ t3 = time.time()
 print(t2 - t1, t3 - t2)
 
 rot_params = (300, )
-ret = spec_fit.get_chisq(
-    specdata,
-    bestv,
-    bestpar,
-    rot_params,
-    resols_params,
-    options=options,
-    config=config,
-    full_output=True)
+ret = spec_fit.get_chisq(specdata,
+                         bestv,
+                         bestpar,
+                         rot_params,
+                         resols_params,
+                         options=options,
+                         config=config,
+                         full_output=True)
 plt.plot(specdata[0].lam, specdata[0].spec, 'k')
 plt.plot(specdata[0].lam, ret['models'][0], 'r')
 plt.savefig('test1.png')
@@ -73,15 +70,14 @@ plt.savefig('test1.png')
 rot_params = None
 resol_mat = spec_fit.construct_resol_mat(specdata[0].lam, 50)
 resols_params = {'sdss1': resol_mat}
-ret = spec_fit.get_chisq(
-    specdata,
-    bestv,
-    bestpar,
-    rot_params,
-    resols_params,
-    options=options,
-    config=config,
-    full_output=True)
+ret = spec_fit.get_chisq(specdata,
+                         bestv,
+                         bestpar,
+                         rot_params,
+                         resols_params,
+                         options=options,
+                         config=config,
+                         full_output=True)
 plt.plot(specdata[0].lam, specdata[0].spec, 'k')
 plt.plot(specdata[0].lam, ret['models'][0], 'r')
 plt.savefig('test2.png')

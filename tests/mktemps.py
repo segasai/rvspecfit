@@ -38,7 +38,7 @@ def make_grid(prefix, wavefile, nspec):
                    PHXM_H=fehs[i])
         fname = prefix + 'specs/xx_%05d.fits' % i
         pyfits.writeto(fname, spec, pyfits.Header(hdr), overwrite=True)
-    pyfits.writeto(prefix+'/'+wavefile, lam, overwrite=True)
+    pyfits.writeto(prefix + '/' + wavefile, lam, overwrite=True)
     np.random.set_state(S0)
 
 
