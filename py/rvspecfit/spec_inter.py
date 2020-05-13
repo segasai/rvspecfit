@@ -111,7 +111,7 @@ class GridInterp:
         self.ndim = len(self.uvecs)
         self.lens = np.array([len(_) for _ in self.uvecs])
         edges = itertools.product(*[[0, 1] for i in range(self.ndim)])
-        self.edges = [np.array(_) for _ in edges]  # 0,1,0,1 vectors
+        self.edges = np.array([np.array(_) for _ in edges])  # 0,1,0,1 vectors
 
     def __call__(self, p):
         """ Compute the interpolated spectrum at parameter vector p
@@ -132,11 +132,11 @@ class GridInterp:
         coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
                            (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
                            for i in range(ndim)])  # from 0 to 1
+        ## ndim  vec
         coeffs2 = np.zeros((2**ndim, self.ndim))
         pos2 = np.zeros(2**ndim, dtype=int)
-        for i, curp in enumerate(self.edges):
-            coeffs2[i, :] = coeffs**curp * (1 - coeffs)**(1 - curp)
-            pos2[i] = self.idgrid[tuple(curp + pos)]
+        coeffs2 = coeffs[None,:]**self.edges * (1 - coeffs[None,:])**(1 - self.edges)
+        pos2 = self.idgrid[tuple((pos[None,:] + self.edges).T)]
         coeffs2 = np.prod(coeffs2, axis=1)
         if np.any(pos2 < 0):
             ## outside boundary
