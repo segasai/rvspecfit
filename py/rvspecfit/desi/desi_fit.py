@@ -342,8 +342,8 @@ def select_fibers_to_fit(fibermap,
         The range of EXPID to consider
     glued: bool
         If the data has been BRZ glued (deprecated)
-    fit_targetid: int
-        Fit one specific TARGETID
+    fit_targetid: list of ints
+        Fit only specific TARGETIDs
 
     Returns
     -------
@@ -365,7 +365,7 @@ def select_fibers_to_fit(fibermap,
         subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <=
                                                         maxe)
     if fit_targetid is not None:
-        subset = subset & (fibermap['TARGETID'] == fit_targetid)
+        subset = subset & np.in1d(fibermap['TARGETID'], fit_targetid)
     if minsn is not None:
         maxsn = np.max(np.array(list(sns.values())), axis=0)
         with warnings.catch_warnings():
@@ -941,6 +941,11 @@ def main(args):
                         type=int,
                         default=None,
                         required=False)
+    parser.add_argument('--targetid_file_from',
+                        help='Fit only a given targetids from a given file',
+                        type=int,
+                        default=None,
+                        required=False)
     parser.add_argument('--minsn',
                         help='Fit only S/N larger than this',
                         type=float,
@@ -968,7 +973,7 @@ def main(args):
                         default='rvmod',
                         required=False)
     parser.add_argument('--fitarm',
-                        help='Comma separated',
+                        help='Comma separated arms like b,r,z or b ',
                         type=str,
                         required=False)
     parser.add_argument('--figure_dir',
@@ -1034,13 +1039,15 @@ def main(args):
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config_fname = args.config
-    fit_targetid = args.targetid
     combine = args.combine
     mwonly = not args.allobjects
     doplot = args.doplot
     minsn = args.minsn
     minexpid = args.minexpid
     maxexpid = args.maxexpid
+    targetid_file_from  = args.targetid_file_from
+    targetid = args.targetid
+
     fitarm = args.fitarm
     if fitarm is not None:
         fitarm = fitarm.split(',')
@@ -1048,7 +1055,6 @@ def main(args):
         raise Exception(
             'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
         )
-
     if input_files != []:
         files = input_files
     elif input_file_from is not None:
@@ -1059,6 +1065,18 @@ def main(args):
     else:
         parser.print_help()
         raise RuntimeError('You need to specify the spectra you want to fit')
+
+    fit_targetid = None
+    if targetid_file_from is not None and targetid is not None:
+        raise RuntimeError('You can only specify targetid or targetid_file_from options')
+    elif targetid_file_from is not None:
+        fit_targetid = []
+        with open(targetid_file_from, 'r') as fp:
+            for l in fp:
+                fit_targetid.append(int(l.rstrip()))
+        fit_targetid = np.unique(fit_targetid)
+    else:
+        fit_targetid = np.unique([fit_targetid])
 
     proc_many(files,
               output_dir,
