@@ -12,6 +12,7 @@ from scipy.constants.constants import speed_of_light
 import scipy.sparse
 import scipy.signal
 import collections
+import threadpoolctl
 
 from rvspecfit import frozendict
 from rvspecfit import utils
@@ -209,7 +210,8 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     # M
     vector1 = polys1 @ normspec
     # M^T S
-    u, s, v = scipy.linalg.svd(polys1, full_matrices=False, check_finite=False)
+    with threadpoolctl.threadpool_limits(limits=1,user_api='blas'):
+        u, s, v = scipy.linalg.svd(polys1, full_matrices=False, check_finite=False)
     #u = np.matrix(u, copy=False)
     matrix1 = u @ np.diag(s**2) @ u.T
     det = np.prod(s)**2
