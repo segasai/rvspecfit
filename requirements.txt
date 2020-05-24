@@ -6,4 +6,3 @@ scipy
 numdifftools
 pandas
 numpydoc
-threadpoolctl
