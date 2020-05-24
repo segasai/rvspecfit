@@ -69,7 +69,7 @@ class GridOutsideCheck:
         ## ATM that doesn't return something that tells us how far away
         ## we are
         pos = np.array(
-            [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(self.ndim)])
+            [np.searchsorted(self.uvecs[i], p[i], 'right') - 1 for i in range(self.ndim)])
         outside = False
         if np.any((pos < 0) | (pos >= self.lens - 1)):
             outside = True
