@@ -615,7 +615,7 @@ def get_chisq(specdata,
     return ret
 
 
-def quadratic_interp(vel_grid, chisq, i):
+def quadratic_interp_min(vel_grid, chisq, i):
     """Find the minimum using quadratic interpolation
 
     Parameters
@@ -635,7 +635,7 @@ def quadratic_interp(vel_grid, chisq, i):
         return vel_grid[i]
     x = vel_grid[i - 1:i + 2]
     y = chisq[i - 1:i + 2]
-    a2, a1, a0 = scipy.polyfit(x, y, 2)
+    a2, a1, a0 = np.polyfit(x, y, 2)
     val = -a1 / 2 / a2
     assert ((val < vel_grid[i + 1]) & (val > vel_grid[i - 1]))
     return val
@@ -699,7 +699,7 @@ def find_best(specdata,
     probs = np.exp(-0.5 * (chisq[:, i2] - chisq[i1, i2]))
     probs = probs / probs.sum()
     if quadratic:
-        best_vel = quadratic_interp(vel_grid, chisq[:, i2], i1)
+        best_vel = quadratic_interp_min(vel_grid, chisq[:, i2], i1)
     else:
         best_vel = vel_grid[i1]
     best_err = np.sqrt((probs * (vel_grid - best_vel)**2).sum())
