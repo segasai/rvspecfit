@@ -1,3 +1,5 @@
+import os
+os.environ['OMP_NUM_THREADS']='1'
 import multiprocessing as mp
 import numpy as np
 import sys
