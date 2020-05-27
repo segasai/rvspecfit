@@ -15,7 +15,8 @@ class si:
     fname = 'test.yaml'
     config = utils.read_config(fname)
 
-def doone(seed, sn=100, nlam=400, config_name='test.yaml', doplot=False):
+def doone(seed, sn=100, nlam=400, config_name='test.yaml', doplot=False,
+          resol=1000):
 
     if config_name != si.fname:
         si.config = utils.read_config(config_name)
@@ -30,7 +31,6 @@ def doone(seed, sn=100, nlam=400, config_name='test.yaml', doplot=False):
     #                       2.76249E8 / lamcen**4)
     v0 = np.random.normal(0, 300)
     slope = (np.random.uniform(-2, 2))
-    resol = 1000.
     wresol = (lamcen / resol / 2.35)
     lam = np.linspace(4600, 5400, nlam)
     #spec0 = (1 - 0.02 * np.exp(-0.5 * ((lam - lamcen1) / w)**2))*lam**slope
