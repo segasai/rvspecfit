@@ -12,7 +12,7 @@ import mktemps
 # this is the accuracy testing suite
 
 
-def doone(seed, sn=100, doplot=False):
+def doone(seed, sn=100, nlam=400, doplot=False):
 
     np.random.seed(seed)
     config = utils.read_config('test.yaml')
@@ -25,13 +25,14 @@ def doone(seed, sn=100, doplot=False):
     slope = (np.random.uniform(-2, 2))
     resol = 1000.
     wresol = (lamcen / resol / 2.35)
-    lam = np.linspace(4600, 5400, 400)
+    lam = np.linspace(4600, 5400, nlam)
     #spec0 = (1 - 0.02 * np.exp(-0.5 * ((lam - lamcen1) / w)**2))*lam**slope
     teff = np.random.uniform(3000, 12000)
     feh = np.random.uniform(-2, 0)
     alpha = np.random.uniform(0, 1)
     logg = np.random.uniform(0, 5)
-    lam1 = lam / (1 + v0 / 299792.458)
+    c = 299792.458
+    lam1 = lam / np.sqrt((1 + v0 / c) / (1 - v0 / c))
     spec0 = mktemps.getspec(lam1, teff, logg, alpha, feh,
                             wresol=wresol) * lam**slope
     spec0 = spec0 / np.median(spec0) * 10**np.random.uniform(-3, 3)
