@@ -295,33 +295,36 @@ def construct_resol_mat(lam, resol=None, width=None):
     assert (np.all(np.diff(lam) > 0))
     l1 = lam - thresh * sigs
     l2 = lam + thresh * sigs
+    # leftmost/rightmost wavelength edges contributing to the convolution
+
     i1 = np.searchsorted(lam, l1, 'left')
     i1 = np.maximum(i1, 0)
+    # pixelids of leftmost edges, truncate at 0
+
     i2 = np.searchsorted(lam, l2, 'right')
     i2 = np.minimum(i2, len(lam) - 1)
-    xs = []
-    ys = []
-    vals = []
+    # pixelids of rightmost edges, truncate at right edge
+
     lampix = np.arange(len(lam))
     maxl = max(np.max(i2 - lampix), np.max(lampix - i1))
-    xs2d = lampix[:, None] + np.arange(-maxl, maxl + 1)[None, :]
-    mask = (xs2d >= 0) * (xs2d < len(lam))
+    maxl = min(len(lam),maxl)
+    # maximum number of pixels to use
+
+    offsets = np.arange(-maxl, maxl+1)
+    xs2d = lampix[None,:] + offsets[:, None]
+    #2d array of pixels of neighbors shape (win, npix)
+
+    mask = (xs2d >= 0) & (xs2d < len(lam)) 
     xs2d[~mask] = 0
-    XL = np.exp(-0.5 * ((lam[xs2d] - lam[:, None]) / sigs[:, None])**2) * mask
-    XL = XL / XL.sum(axis=1)[:, None]
-    xs, ys = np.nonzero(XL)
-    vals = XL[xs, ys]
-    ys = xs2d[xs, ys]
-    #for i in range(len(lam)):
-    #    iis = np.arange(i1[i], i2[i] + 1)
-    #    kernel = np.exp(-0.5 * (lam[iis] - lam[i])**2 / sigs[i]**2)
-    #    kernel = kernel / kernel.sum()
-    #    ys.append(iis)
-    #    xs.append(np.zeros(len(iis))+i)
-    #    vals.append(kernel)
-    #xs, ys, vals = [np.concatenate(_) for _ in [xs, ys, vals]]
-    mat = scipy.sparse.coo_matrix((vals, (xs, ys)), shape=(len(lam), len(lam)))
-    mat = mat.tocsc()
+    xs2d[~mask] = 0
+    # zero-out outside boundary ones
+
+    XL = np.exp(-0.5 * ((lam[xs2d] - lam[None, :]) / sigs[None, :])**2) * mask
+    XL = XL / XL.sum(axis=0)[None, :]
+    yids = (lampix[None,:]+(len(lam)-offsets)[:,None])%len(lam)
+    xids = yids* 0 + maxl + offsets[:,None]
+    XL=XL[xids,yids]
+    mat= scipy.sparse.spdiags(XL, offsets, len(lam),len(lam))
     return ResolMatrix(mat)
 
 
@@ -343,7 +346,7 @@ def convolve_resol(spec, resol_matrix):
         The spectrum array
 
     '''
-    return resol_matrix.mat * spec
+    return resol_matrix.mat @ spec
 
 
 def rotation_kernel(x):
