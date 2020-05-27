@@ -11,11 +11,18 @@ import mktemps
 
 # this is the accuracy testing suite
 
+class si:
+    fname = 'test.yaml'
+    config = utils.read_config(fname)
 
-def doone(seed, sn=100, nlam=400, doplot=False):
+def doone(seed, sn=100, nlam=400, config_name='test.yaml', doplot=False):
 
+    if config_name != si.fname:
+        si.config = utils.read_config(config_name)
+        si.fname = config_name
+    config = si.config
+    st = np.random.get_state()
     np.random.seed(seed)
-    config = utils.read_config('test.yaml')
 
     # read data
     lamcen = 5000.
@@ -59,6 +66,7 @@ def doone(seed, sn=100, nlam=400, doplot=False):
         plt.tight_layout()
         plt.savefig('accuracy_test.png')
         #1/0
+    np.random.set_state(st)
     return ret
 
 
