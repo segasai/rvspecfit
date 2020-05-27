@@ -214,7 +214,8 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     det = np.prod(s)**2
     # matrix1 = u @ np.diag(s**2) @ u.T
     # matrix1 is the M^T M matrix
-    v2 = u @ np.diag(1./s**2) @ u.T @ vector1  #  this is matrix1^(-1) vector1
+    v2 = u @ np.diag(
+        1. / s**2) @ u.T @ vector1  #  this is matrix1^(-1) vector1
     #v2 = scipy.linalg.solve(matrix1, vector1, check_finite=False)
 
     chisq = -vector1.T @ v2 + \
@@ -307,24 +308,24 @@ def construct_resol_mat(lam, resol=None, width=None):
 
     lampix = np.arange(len(lam))
     maxl = max(np.max(i2 - lampix), np.max(lampix - i1))
-    maxl = min(len(lam),maxl)
+    maxl = min(len(lam), maxl)
     # maximum number of pixels to use
 
-    offsets = np.arange(-maxl, maxl+1)
-    xs2d = lampix[None,:] + offsets[:, None]
+    offsets = np.arange(-maxl, maxl + 1)
+    xs2d = lampix[None, :] + offsets[:, None]
     #2d array of pixels of neighbors shape (win, npix)
 
-    mask = (xs2d >= 0) & (xs2d < len(lam)) 
+    mask = (xs2d >= 0) & (xs2d < len(lam))
     xs2d[~mask] = 0
     xs2d[~mask] = 0
     # zero-out outside boundary ones
 
     XL = np.exp(-0.5 * ((lam[xs2d] - lam[None, :]) / sigs[None, :])**2) * mask
     XL = XL / XL.sum(axis=0)[None, :]
-    yids = (lampix[None,:]+(len(lam)-offsets)[:,None])%len(lam)
-    xids = yids* 0 + maxl + offsets[:,None]
-    XL=XL[xids,yids]
-    mat= scipy.sparse.spdiags(XL, offsets, len(lam),len(lam))
+    yids = (lampix[None, :] + (len(lam) - offsets)[:, None]) % len(lam)
+    xids = yids * 0 + maxl + offsets[:, None]
+    XL = XL[xids, yids]
+    mat = scipy.sparse.spdiags(XL, offsets, len(lam), len(lam))
     return ResolMatrix(mat)
 
 
