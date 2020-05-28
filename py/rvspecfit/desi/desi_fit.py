@@ -874,10 +874,10 @@ def proc_many(files,
         # output_prefix/e/f/xxx.fits
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
-        suffix = ('-'.join(fname.split('-')[1:]))
+        #suffix = ('-'.join(fname.split('-')[1:]))
         os.makedirs(folder_path, exist_ok=True)
-        tab_ofname = folder_path + output_tab_prefix + '-' + suffix
-        mod_ofname = folder_path + output_mod_prefix + '-' + suffix
+        tab_ofname = folder_path + output_tab_prefix + '_' + fname
+        mod_ofname = folder_path + output_mod_prefix + '_' + fname
 
         if (skipexisting) and os.path.exists(tab_ofname):
             print('skipping, products already exist', f)
