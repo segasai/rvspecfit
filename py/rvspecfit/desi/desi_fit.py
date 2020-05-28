@@ -48,11 +48,12 @@ def get_prim_header(versions={}, config=None, cmdline=None):
     for i, (k, v) in enumerate(versions.items()):
         header['TMPLCON%d' % i] = (k, 'Spec arm config name')
         header['TMPLREV%d' % i] = (v['revision'], 'Spec template revision')
-        header['TMPLSVR%d' % i] = (v['creation_soft_version'],'Spec template soft version')
+        header['TMPLSVR%d' % i] = (v['creation_soft_version'],
+                                   'Spec template soft version')
     if config is not None:
         header['RVS_CONF'] = config['config_file_path']
     if cmdline is not None:
-        header['RVS_CMD']= cmdline
+        header['RVS_CMD'] = cmdline
     return header
 
 
@@ -86,12 +87,27 @@ def make_plot(specdata, yfit, title, fig_fname):
     for i in range(ndat):
         fig.add_subplot(ndat, 1, i + 1)
         curspec = specdata[i].spec
-        perc = 0.1
+        perc = 0.2
+        xind = specdata[i].badmask
         ymin, ymax = [
-            scipy.stats.scoreatpercentile(curspec, _)
+            scipy.stats.scoreatpercentile(curspec[~xind], _)
             for _ in [perc, 100 - perc]
         ]
         plt.plot(specdata[i].lam, specdata[i].spec, 'k-', linewidth=line_width)
+        plt.plot(specdata[i].lam[xind],
+                 specdata[i].spec[xind],
+                 'b.',
+                 linewidth=line_width)
+        plt.fill_between(specdata[i].lam,
+                         specdata[i].spec - specdata[i].espec,
+                         specdata[i].spec + specdata[i].espec,
+                         color='grey',
+                         alpha=0.1,
+                         zorder=10)
+        plt.plot(specdata[i].lam[xind],
+                 specdata[i].spec[xind],
+                 'b.',
+                 linewidth=line_width)
         plt.plot(specdata[i].lam,
                  yfit[i],
                  'r-',
@@ -219,10 +235,10 @@ def proc_onespec(specdata,
         outdict['CHISQ_C_%s' % s.replace('desi_', '').upper()] = float(
             chisqs_c[s])
 
-    chisq_thresh = 50 
+    chisq_thresh = 50
     # if the delta-chisq between continuum is smaller than this we
     # set a warning flag
-    
+
     rvedge_thresh = 5 * auni.km / auni.s
     # if we are within this threshold of the RV boundary we set another
     # warning
@@ -231,15 +247,14 @@ def proc_onespec(specdata,
 
     rvs_warn = 0
     bitmasks = {'CHISQ_WARN': 1, 'RV_WARN': 2, 'RVERR_WARN': 4}
-    dchisq = outdict['CHISQ_C_TOT'] - outdict['CHISQ_TOT'] # should be >0
+    dchisq = outdict['CHISQ_C_TOT'] - outdict['CHISQ_TOT']  # should be >0
 
-    if ( dchisq < chisq_thresh):
+    if (dchisq < chisq_thresh):
         rvs_warn |= bitmasks['CHISQ_WARN']
 
     if (np.abs(outdict['VRAD'] - config['max_vel'] * auni.km / auni.s) <
-            rvedge_thresh) or (
-        np.abs(outdict['VRAD'] - config['min_vel'] * auni.km / auni.s) < 
-            rvedge_thresh):
+            rvedge_thresh) or (np.abs(outdict['VRAD'] - config['min_vel'] *
+                                      auni.km / auni.s) < rvedge_thresh):
         rvs_warn |= bitmasks['RV_WARN']
     if (outdict['VRAD_ERR'] > rverr_thresh):
         rvs_warn |= bitmasks['RVERR_WARN']
@@ -649,9 +664,8 @@ def proc_desi(fname,
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                              name='FIBERMAP')
     outmod_hdus = [
-        pyfits.PrimaryHDU(header=get_prim_header(versions=versions, 
-                                                 config=config,
-                                                 cmdline=cmdline))
+        pyfits.PrimaryHDU(header=get_prim_header(
+            versions=versions, config=config, cmdline=cmdline))
     ]
 
     # TODO
@@ -670,9 +684,8 @@ def proc_desi(fname,
     outmod_hdus += [fibermap_subset_hdu]
 
     outtab_hdus = [
-        pyfits.PrimaryHDU(header=get_prim_header(versions=versions,
-                                                 config=config,
-                                                 cmdline=cmdline)),
+        pyfits.PrimaryHDU(header=get_prim_header(
+            versions=versions, config=config, cmdline=cmdline)),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'), columnDesc),
         fibermap_subset_hdu
     ]
@@ -867,9 +880,9 @@ def proc_many(files,
     res = []
     for f in files:
         fname = f.split('/')[-1]
-        assert (len(f.split('/')) > 2) 
+        assert (len(f.split('/')) > 2)
         # we need that because we use the last two directories in the path
-        # to create output directory structure 
+        # to create output directory structure
         # i.e. input file a/b/c/d/e/f/g.fits will produce output file in
         # output_prefix/e/f/xxx.fits
         fdirs = f.split('/')
@@ -991,11 +1004,10 @@ def main(args):
         'If enabled the code will overwrite the existing products, otherwise it will attempt to update/append',
         action='store_true',
         default=False)
-    parser.add_argument(
-        '--version',
-        help='Output the version of the software',
-        action='store_true',
-        default=False)
+    parser.add_argument('--version',
+                        help='Output the version of the software',
+                        action='store_true',
+                        default=False)
 
     parser.add_argument(
         '--skipexisting',
@@ -1029,9 +1041,9 @@ def main(args):
     args = parser.parse_args(args)
 
     if args.version:
-        print (rvspecfit._version.version)
+        print(rvspecfit._version.version)
         sys.exit(0)
-        
+
     input_files = args.input_files
     input_file_from = args.input_file_from
     verbose = args.verbose
@@ -1045,7 +1057,7 @@ def main(args):
     minsn = args.minsn
     minexpid = args.minexpid
     maxexpid = args.maxexpid
-    targetid_file_from  = args.targetid_file_from
+    targetid_file_from = args.targetid_file_from
     targetid = args.targetid
 
     fitarm = args.fitarm
@@ -1068,7 +1080,8 @@ def main(args):
 
     fit_targetid = None
     if targetid_file_from is not None and targetid is not None:
-        raise RuntimeError('You can only specify targetid or targetid_file_from options')
+        raise RuntimeError(
+            'You can only specify targetid or targetid_file_from options')
     elif targetid_file_from is not None:
         fit_targetid = []
         with open(targetid_file_from, 'r') as fp:
