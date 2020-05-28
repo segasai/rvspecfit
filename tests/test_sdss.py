@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 from rvspecfit import spec_fit
 from rvspecfit import utils
 
-setup = 'test'
-
 config = utils.read_config()
 
 # read data
@@ -64,7 +62,7 @@ ret = spec_fit.get_chisq(specdata,
                          full_output=True)
 plt.plot(specdata[0].lam, specdata[0].spec, 'k')
 plt.plot(specdata[0].lam, ret['models'][0], 'r')
-plt.savefig('test1.png')
+plt.savefig('plot_sdss_test1.png')
 
 # Test the fit with the resolution matrix
 rot_params = None
@@ -80,4 +78,4 @@ ret = spec_fit.get_chisq(specdata,
                          full_output=True)
 plt.plot(specdata[0].lam, specdata[0].spec, 'k')
 plt.plot(specdata[0].lam, ret['models'][0], 'r')
-plt.savefig('test2.png')
+plt.savefig('plot_sdss_test2.png')

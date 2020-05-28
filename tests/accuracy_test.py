@@ -40,13 +40,13 @@ def doone(seed, sn=100, nlam=400, config_name='test.yaml', doplot=False,
     logg = np.random.uniform(0, 5)
     c = 299792.458
     lam1 = lam / np.sqrt((1 + v0 / c) / (1 - v0 / c))
-    spec0 = mktemps.getspec(lam1, teff, logg, alpha, feh,
+    spec0 = mktemps.getspec(lam1, teff, logg, feh, alpha,
                             wresol=wresol) * lam**slope
     spec0 = spec0 / np.median(spec0) * 10**np.random.uniform(-3, 3)
     espec = spec0 / sn
     spec = np.random.normal(spec0, espec)
     # construct specdata object
-    specdata = [spec_fit.SpecData('test1', lam, spec, espec)]
+    specdata = [spec_fit.SpecData('config1', lam, spec, espec)]
     options = {'npoly': 10}
     paramDict0 = {'logg': 2.5, 'teff': 5000, 'feh': -1, 'alpha': 0.5}
     #, 'vsini': 0.0}
@@ -64,7 +64,7 @@ def doone(seed, sn=100, nlam=400, config_name='test.yaml', doplot=False,
         plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
         plt.plot(specdata[0].lam, res['yfit'][0], 'r-')
         plt.tight_layout()
-        plt.savefig('accuracy_test.png')
+        plt.savefig('plot_accuracy_test.png')
         #1/0
     np.random.set_state(st)
     return ret

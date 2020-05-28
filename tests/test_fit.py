@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from rvspecfit import utils
 from rvspecfit import vel_fit
 from rvspecfit import spec_fit
+from rvspecfit import fitter_ccf
 
 config = utils.read_config()
 
@@ -37,3 +38,23 @@ res = vel_fit.process(specdata,
                       fixParam=fixParam,
                       config=config,
                       options=options)
+
+
+
+options = {'npoly': 15}
+res = fitter_ccf.fit(specdata, config)
+paramDict0 = res['best_par']
+fixParam = []
+if res['best_vsini'] is not None:
+    paramDict0['vsini'] = res['best_vsini']
+res1 = vel_fit.process(specdata,
+                       paramDict0,
+                       fixParam=fixParam,
+                       config=config,
+                       options=options)
+print(res1)
+plt.figure(figsize=(6, 2), dpi=300)
+plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
+plt.plot(specdata[0].lam, res1['yfit'][0], 'r-')
+plt.tight_layout()
+plt.savefig('plot_test_fit_sdss.png')

@@ -3,6 +3,7 @@ os.environ['OMP_NUM_THREADS']='1'
 import multiprocessing as mp
 import numpy as np
 import sys
+import accuracy_test
 
 if __name__ == '__main__':
     np.random.seed(1)
@@ -12,15 +13,15 @@ if __name__ == '__main__':
         sn = 300
     nthreads = 24
     nlam = 400
+    resol = 1000
     nit = 1000
     xs = np.random.randint(0, int(1e9), size=nit)
-    import accuracy_test
 
     if nthreads>1:
         poo = mp.Pool(nthreads)
     ret = []
     for i in xs:
-        kw = dict(sn=sn, nlam=nlam)
+        kw = dict(sn=sn, nlam=nlam, resol=resol)
         args = (i,)
         if nthreads>1:
             ret.append(poo.apply_async(accuracy_test.doone,args, kw))

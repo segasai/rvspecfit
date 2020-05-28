@@ -19,11 +19,11 @@ resol = 1000.
 lamcen = 5000
 w = lamcen / resol / 2.35
 
-spec0 = getspec(lam1, 5000, 2, 0.2, -1, wresol=w)
+spec0 = getspec(lam1, 5000, 2, -1, 0.2, wresol=w)
 espec = spec0 * 0.01
 spec = np.random.normal(spec0, espec)
 # construct specdata object
-specdata = [spec_fit.SpecData('testgrid', lam, spec, espec)]
+specdata = [spec_fit.SpecData('config1_grid', lam, spec, espec)]
 options = {'npoly': 15}
 paramDict0 = {'logg': 2, 'teff': 5000, 'feh': -0.2, 'alpha': 0.2, 'vsini': 0.1}
 fixParam = []  #'vsini']
@@ -42,4 +42,4 @@ if True:
     plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
     plt.plot(specdata[0].lam, res['yfit'][0], 'r-')
     plt.tight_layout()
-    plt.savefig('test_fit_fake_grid.png')
+    plt.savefig('plot_test_fit_fake_grid.png')
