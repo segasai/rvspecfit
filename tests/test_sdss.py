@@ -66,7 +66,7 @@ plt.savefig('plot_sdss_test1.png')
 
 # Test the fit with the resolution matrix
 rot_params = None
-resol_mat = spec_fit.construct_resol_mat(specdata[0].lam, 50)
+resol_mat = spec_fit.construct_resol_mat(lam=specdata[0].lam, resol=50)
 resols_params = {'sdss1': resol_mat}
 ret = spec_fit.get_chisq(specdata,
                          bestv,
