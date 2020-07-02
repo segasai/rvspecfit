@@ -265,8 +265,7 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
     return outside, curInterp.lam, spec, templ_tag
 
 
-def construct_resol_mat(lam=None, setup=None, resol=None, width=None, 
-                        config=None):
+def construct_resol_mat(lam, resol=None, width=None):
     '''Construct a sparse resolution matrix from a resolution number R
 
     Parameters
@@ -284,12 +283,8 @@ def construct_resol_mat(lam=None, setup=None, resol=None, width=None,
         The matrix describing the resolution convolution operation
 
     '''
-    assert(lam is None or setup is None)
-    assert(lam is not None or setup is not None)
     assert (resol is None or width is None)
     assert (resol is not None or width is not None)
-    if lam is None:
-        lam = spec_inter.getInterpolator(setup, config).lam
     if resol is not None:
         sigs = lam / resol / 2.35
     else:
@@ -580,10 +575,6 @@ def get_chisq(specdata,
                 %
                 (templ_lam[0], templ_lam[-1], curdata.lam[0], curdata.lam[-1]))
 
-        # take into account the resolution
-        if resol_params is not None:
-            templ_spec = convolve_resol(templ_spec, resol_params[name])
-
         # current template interpolator object
         if cache is None or templ_tag not in cache:
             curtemplI = getRVInterpol(templ_lam, templ_spec)
@@ -594,6 +585,9 @@ def get_chisq(specdata,
 
         evalTempl = evalRV(curtemplI, vel, curdata.lam)
 
+        # take into account the resolution
+        if resol_params is not None:
+            evalTempl = convolve_resol(evalTempl, resol_params[name])
 
         polys = get_basis(curdata, npoly)
 
