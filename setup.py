@@ -15,12 +15,11 @@ def get_revision():
         The string with the git revision
     """
     try:
-        tmpout = subprocess.Popen(
-            'cd ' + os.path.dirname(__file__) +
-            ' ; git log -n 1 --pretty=format:%H',
-            shell=True,
-            bufsize=80,
-            stdout=subprocess.PIPE).stdout
+        tmpout = subprocess.Popen('cd ' + os.path.dirname(__file__) +
+                                  ' ; git log -n 1 --pretty=format:%H',
+                                  shell=True,
+                                  bufsize=80,
+                                  stdout=subprocess.PIPE).stdout
         revision = tmpout.read().decode()[:6]
         return revision
     except:
@@ -36,8 +35,8 @@ def read(fname):
 
 
 #VERSIONPIP = '0.0.1'
-VERSIONPIP=read('version.txt').rstrip()
-print (get_revision())
+VERSIONPIP = read('version.txt').rstrip()
+print(get_revision())
 VERSION = VERSIONPIP + 'dev-' + get_revision()
 
 with open('py/rvspecfit/_version.py', 'w') as fp:
@@ -54,6 +53,7 @@ setup(
     url="http://github.com/segasai/rvspecfit",
     packages=['rvspecfit', 'rvspecfit/desi', 'rvspecfit/weave'],
     scripts=[fname for fname in glob.glob(os.path.join('bin', '*'))],
+    zip_safe=False,
     package_dir={'': 'py/'},
     package_data={'rvspecfit': ['tests/']},
     long_description=read('README.md'),

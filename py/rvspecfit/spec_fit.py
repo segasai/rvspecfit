@@ -203,20 +203,15 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
         normspec = spec
         normtempl = templ
 
-    npoly = polys.shape[0]
-
     polys1 = normtempl[None, :] * polys
     # M
     vector1 = polys1 @ normspec
     # M^T S
     u, s, v = scipy.linalg.svd(polys1, full_matrices=False, check_finite=False)
-    #u = np.matrix(u, copy=False)
     det = np.prod(s)**2
     # matrix1 = u @ np.diag(s**2) @ u.T
     # matrix1 is the M^T M matrix
-    v2 = u @ np.diag(
-        1. / s**2) @ u.T @ vector1  #  this is matrix1^(-1) vector1
-    #v2 = scipy.linalg.solve(matrix1, vector1, check_finite=False)
+    v2 = u @ np.diag(1. / s**2) @ u.T @ vector1  # this is matrix1^(-1) vector1
 
     chisq = -vector1.T @ v2 + \
         0.5 * np.log(det)
@@ -275,7 +270,8 @@ def construct_resol_mat(lam, resol=None, width=None):
     resol: real/numpy
         The resolution value (R=lambda/delta lambda)
     width: real
-        The Gaussian width of the kernel in angstrom (cannot be specified together with resol)
+        The Gaussian width of the kernel in angstrom
+        (cannot be specified together with resol)
 
     Returns
     -------
@@ -313,7 +309,7 @@ def construct_resol_mat(lam, resol=None, width=None):
 
     offsets = np.arange(-maxl, maxl + 1)
     xs2d = lampix[None, :] + offsets[:, None]
-    #2d array of pixels of neighbors shape (win, npix)
+    # 2d array of pixels of neighbors shape (win, npix)
 
     mask = (xs2d >= 0) & (xs2d < len(lam))
     xs2d[~mask] = 0
@@ -419,7 +415,8 @@ def getRVInterpol(lam_templ, templ):
 
 def evalRV(interpol, vel, lams):
     """
-    Evaluate the spectrum interpolator at a given velocity and given wavelengths
+    Evaluate the spectrum interpolator at a given velocity and given
+    wavelengths
 
     Parameters
     -----------
@@ -470,7 +467,7 @@ def get_chisq_continuum(specdata, options=None):
     ret = []
     ret1 = []
     for curdata in specdata:
-        name = curdata.name
+        # name = curdata.name
         polys = get_basis(curdata, npoly)
         templ = np.ones(len(curdata.spec))
         curchisq, coeffs = get_chisq0(curdata.spec,
@@ -571,8 +568,8 @@ def get_chisq(specdata,
                 or curdata.lam[-1] < templ_lam[0]
                 or curdata.lam[-1] > templ_lam[-1]):
             raise Exception(
-                "The template library (%f,%f)  doesn't cover this wavelength range (%f,%f)"
-                %
+                ("The template library (%f,%f)  doesn't cover" +
+                 "this wavelength range (%f,%f)") %
                 (templ_lam[0], templ_lam[-1], curdata.lam[0], curdata.lam[-1]))
 
         # current template interpolator object

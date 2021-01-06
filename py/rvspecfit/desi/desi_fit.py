@@ -1,24 +1,22 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
-import glob
-import warnings
-import sys
-import argparse
-import time
-import pandas
-import itertools
-import traceback
-import importlib
-import concurrent.futures
-from collections import OrderedDict
-import astropy.table as atpy
-import astropy.io.fits as pyfits
-import astropy.units as auni
-import numpy as np
-import scipy.stats
+import warnings  # noqa: E402
+import sys  # noqa: E402
+import argparse  # noqa: E402
+import time  # noqa: E402
+import itertools  # noqa: E402
+import traceback  # noqa: E402
+import importlib  # noqa: E402
+import concurrent.futures  # noqa: E402
+import astropy.table as atpy  # noqa: E402
+import astropy.io.fits as pyfits  # noqa: E402
+import astropy.units as auni  # noqa: E402
+import numpy as np  # noqa: E402
+import scipy.stats  # noqa: E402
 
-import rvspecfit
-from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, spec_inter
+import rvspecfit  # noqa: E402
+from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, \
+    spec_inter  # noqa: E402
 
 
 def get_dep_versions():
@@ -130,7 +128,7 @@ def valid_file(fname):
     exts = pyfits.open(fname)
     extnames = [_.name for _ in exts]
 
-    names0 = []  #'PRIMARY']
+    names0 = []
     arms = ['B', 'R', 'Z']
     arm_glued = 'BRZ'
     prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
@@ -173,7 +171,7 @@ def proc_onespec(specdata,
         Configuration options
     fig_fname: str
         Filename for the plot
-    doplot: bool 
+    doplot: bool
         Do plotting or not
     verbose: bool
         Verbose output
@@ -262,9 +260,11 @@ def proc_onespec(specdata,
     outdict['RVS_WARN'] = rvs_warn
 
     if doplot:
-        title = 'logg=%.1f teff=%.1f [Fe/H]=%.1f [alpha/Fe]=%.1f Vrad=%.1f+/-%.1f' % (
-            res1['param']['logg'], res1['param']['teff'], res1['param']['feh'],
-            res1['param']['alpha'], res1['vel'], res1['vel_err'])
+        title = ('logg=%.1f teff=%.1f [Fe/H]=%.1f ' +
+                 '[alpha/Fe]=%.1f Vrad=%.1f+/-%.1f') % (
+                     res1['param']['logg'], res1['param']['teff'],
+                     res1['param']['feh'], res1['param']['alpha'], res1['vel'],
+                     res1['vel_err'])
         if len(specdata) > len(setups):
             for i in range(len(specdata) // len(setups)):
                 sl = slice(i * len(setups), (i + 1) * len(setups))
@@ -298,7 +298,7 @@ def get_sns(data, ivars, masks):
 
 
 def read_data(fname, glued, setups):
-    """ Read the data file 
+    """ Read the data file
 
     Parameters
     ----------
@@ -307,7 +307,7 @@ def read_data(fname, glued, setups):
     glued: bool
         True if BRZ format
     setups: list
-        List of spectral configurations (i.e. ['b', 'r', 'z'] 
+        List of spectral configurations (i.e. ['b', 'r', 'z']
     
     Returns
     -------
@@ -340,14 +340,14 @@ def select_fibers_to_fit(fibermap,
                          expid_range=None,
                          glued=False,
                          fit_targetid=None):
-    """ Identify fibers to fit 
+    """ Identify fibers to fit
     Currently that either uses MWS_TARGET or S/N cut
 
     Parameters
     ----------
     fibermap: Table
         Fibermap table object
-    sns: dict of numpy arrays 
+    sns: dict of numpy arrays
         Array of S/Ns
     minsn: float
         Threshold S/N
@@ -392,7 +392,7 @@ def select_fibers_to_fit(fibermap,
 def get_unique_seqid_to_fit(targetid, subset, combine=False):
     """ 
     Return the row ids of that needs to be processed
-    The complexity here is dealing with the combine mode, in that 
+    The complexity here is dealing with the combine mode, in that
     case I return list of lists of integers
 
     """
@@ -576,9 +576,10 @@ def proc_desi(fname,
 
     for _ in setups:
         if len(sns[_]) != len(fibermap):
-            print(
-                'WARNING the size of the data in arm %s does not match the size of the fibermap; file %s; skipping...'
-                % (_, fname))
+            print((
+                'WARNING the size of the data in arm %s' +
+                'does not match the size of the fibermap; file %s; skipping...'
+            ) % (_, fname))
             return 0
     targetid = fibermap['TARGETID']
 
@@ -696,7 +697,7 @@ def proc_desi(fname,
             old_rvtab = atpy.Table().read(tab_ofname,
                                           format='fits',
                                           hdu='FIBERMAP')
-        except (FileNotFoundError, OSError, ValueError) as e:
+        except (FileNotFoundError, OSError, ValueError) as e:  # noqa F841
             pass
 
     if overwrite or old_rvtab is None:
@@ -726,10 +727,8 @@ def proc_desi(fname,
                                    suffixes=['_x', '_y'],
                                    indicator=True,
                                    how='outer')
-        #newids = np.array(merge['rowid_x'])[np.array(merge['_merge']=='left_only')]
         repset = np.array(merge['_merge'] == 'both_only')
         repid_old = np.array(merge['rowid_y'], dtype=int)[repset]
-        #repid_new = np.array(merge['rowid_x'])[repset]
 
         keepmask = np.ones(len(old_rvtab), dtype=bool)
         keepmask[repid_old] = False
@@ -781,14 +780,14 @@ def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
 
 def proc_desi_wrapper(*args, **kwargs):
     try:
-        ret = proc_desi(*args, **kwargs)
-    except Exception as e:
+        proc_desi(*args, **kwargs)
+    except Exception as e:  # noqa F841
         print('failed with these arguments', args, kwargs)
         traceback.print_exc()
         pid = os.getpid()
-        logfname = 'crash_%s.log' % (time.ctime().replace(' ', ''))
+        logfname = 'crash_%d_%s.log' % (pid, time.ctime().replace(' ', ''))
         with open(logfname, 'w') as fd:
-            print('failed with thes arguments', args, kwargs, file=fd)
+            print('failed with these arguments', args, kwargs, file=fd)
             traceback.print_exc(file=fd)
         # I decided not to just fail, proceed instead after
         # writing a bug report
@@ -887,7 +886,6 @@ def proc_many(files,
         # output_prefix/e/f/xxx.fits
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
-        #suffix = ('-'.join(fname.split('-')[1:]))
         os.makedirs(folder_path, exist_ok=True)
         tab_ofname = folder_path + output_tab_prefix + '_' + fname
         mod_ofname = folder_path + output_mod_prefix + '_' + fname
@@ -1000,8 +998,8 @@ def main(args):
                         required=False)
     parser.add_argument(
         '--overwrite',
-        help=
-        'If enabled the code will overwrite the existing products, otherwise it will attempt to update/append',
+        help='''If enabled the code will overwrite the existing products,
+ otherwise it will attempt to update/append''',
         action='store_true',
         default=False)
     parser.add_argument('--version',
@@ -1009,12 +1007,11 @@ def main(args):
                         action='store_true',
                         default=False)
 
-    parser.add_argument(
-        '--skipexisting',
-        help=
-        'If enabled the code will completely skip if there are existing products',
-        action='store_true',
-        default=False)
+    parser.add_argument('--skipexisting',
+                        help='''If enabled the code will completely skip
+ if there are existing products''',
+                        action='store_true',
+                        default=False)
 
     parser.add_argument('--doplot',
                         help='Make plots',
@@ -1023,8 +1020,8 @@ def main(args):
 
     parser.add_argument(
         '--combine',
-        help=
-        'If enabled the code will simultaneously fit multiple spectra belonging to one targetid',
+        help='If enabled the code will simultaneously fit multiple spectra ' +
+        'belonging to one targetid (OBSOLETE ???)',
         action='store_true',
         default=False)
 
@@ -1047,7 +1044,9 @@ def main(args):
     input_files = args.input_files
     input_file_from = args.input_file_from
     verbose = args.verbose
-    output_dir, output_tab_prefix, output_mod_prefix = args.output_dir, args.output_tab_prefix, args.output_mod_prefix
+    output_dir, output_tab_prefix, output_mod_prefix = (args.output_dir,
+                                                        args.output_tab_prefix,
+                                                        args.output_mod_prefix)
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config_fname = args.config
@@ -1065,15 +1064,15 @@ def main(args):
         fitarm = fitarm.split(',')
     if input_files == [] and input_file_from is not None:
         raise Exception(
-            'You can only specify --input_files OR --input_file_from options but not both of them simulatenously'
-        )
+            '''You can only specify --input_files OR --input_file_from options
+but not both of them simulatenously''')
     if input_files != []:
         files = input_files
     elif input_file_from is not None:
         files = []
         with open(input_file_from, 'r') as fp:
-            for l in fp:
-                files.append(l.rstrip())
+            for curl in fp:
+                files.append(curl.rstrip())
     else:
         parser.print_help()
         raise RuntimeError('You need to specify the spectra you want to fit')
@@ -1085,8 +1084,8 @@ def main(args):
     elif targetid_file_from is not None:
         fit_targetid = []
         with open(targetid_file_from, 'r') as fp:
-            for l in fp:
-                fit_targetid.append(int(l.rstrip()))
+            for curl in fp:
+                fit_targetid.append(int(curl.rstrip()))
         fit_targetid = np.unique(fit_targetid)
     elif targetid is not None:
         fit_targetid = np.unique([targetid])
