@@ -50,7 +50,7 @@ def read_config(fname=None):
         for k in D0.keys():
             if k not in D:
                 D[k] = D0[k]
-        D['config_file_path']= os.path.abspath(fname)
+        D['config_file_path'] = os.path.abspath(fname)
         return freezeDict(D)
 
 
