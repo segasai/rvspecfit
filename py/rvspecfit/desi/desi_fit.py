@@ -13,7 +13,7 @@ import astropy.io.fits as pyfits  # noqa: E402
 import astropy.units as auni  # noqa: E402
 import numpy as np  # noqa: E402
 import scipy.stats  # noqa: E402
-
+import logging
 import rvspecfit  # noqa: E402
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, \
     spec_inter  # noqa: E402
@@ -146,19 +146,20 @@ def valid_file(fname):
             if curn not in extnames:
                 missing_glued.append(curn)
         if len(missing_glued) > 0:
-            print('WARNING Extensions %s are missing' % (','.join(missing)))
+            logging.warning('Extensions %s are missing' % (','.join(missing)))
             return (False, True)
         return (True, True)
     return (True, False)
 
 
-def proc_onespec(specdata,
-                 setups,
-                 config,
-                 options,
-                 fig_fname='fig.png',
-                 doplot=True,
-                 verbose=False):
+def proc_onespec(
+    specdata,
+    setups,
+    config,
+    options,
+    fig_fname='fig.png',
+    doplot=True,
+):
     """Process one single Specdata object
 
     Parameters
@@ -173,8 +174,6 @@ def proc_onespec(specdata,
         Filename for the plot
     doplot: bool
         Do plotting or not
-    verbose: bool
-        Verbose output
 
     Returns
     -------
@@ -195,12 +194,13 @@ def proc_onespec(specdata,
         paramDict0['vsini'] = min(max(res['best_vsini'], config['min_vsini']),
                                   config['max_vsini'])
 
-    res1 = vel_fit.process(specdata,
-                           paramDict0,
-                           fixParam=fixParam,
-                           config=config,
-                           options=options,
-                           verbose=verbose)
+    res1 = vel_fit.process(
+        specdata,
+        paramDict0,
+        fixParam=fixParam,
+        config=config,
+        options=options,
+    )
     t3 = time.time()
     chisq_cont_array = spec_fit.get_chisq_continuum(
         specdata, options=options)['chisq_array']
@@ -277,8 +277,7 @@ def proc_onespec(specdata,
         versions[k] = dict(revision=v.revision,
                            creation_soft_version=v.creation_soft_version)
     outdict['versions'] = versions
-    if verbose:
-        print('Timing1: ', t2 - t1, t3 - t2, t4 - t3)
+    logging.debug('Timing: %.4f %.4f %.4f' % (t2 - t1, t3 - t2, t4 - t3))
     return outdict, res1['yfit']
 
 
@@ -512,7 +511,6 @@ def proc_desi(fname,
               mwonly=True,
               doplot=True,
               minsn=-1e9,
-              verbose=False,
               expid_range=None,
               overwrite=False,
               poolex=None,
@@ -537,8 +535,6 @@ def proc_desi(fname,
         Fit only MWS_TARGET or every object
     doplot: bool
         Produce plots
-    verbose: bool
-        Produce a bit more debug output
     minsn: real
         The slallest S/N for processing
     expid_range: tuple of ints
@@ -556,10 +552,10 @@ def proc_desi(fname,
 
     options = {'npoly': 10}
 
-    print('Processing', fname)
+    logging.info('Processing %s' % fname)
     valid, glued = valid_file(fname)
     if not valid:
-        print('Not valid file:', fname)
+        logging.error('Not valid file: %s' % (fname))
         return 0
 
     if glued:
@@ -576,7 +572,7 @@ def proc_desi(fname,
 
     for _ in setups:
         if len(sns[_]) != len(fibermap):
-            print((
+            logging.warning((
                 'WARNING the size of the data in arm %s' +
                 'does not match the size of the fibermap; file %s; skipping...'
             ) % (_, fname))
@@ -593,7 +589,7 @@ def proc_desi(fname,
 
     # skip if no need to fit anything
     if not (subset.any()):
-        print('No fibers selected in file', fname)
+        logging.warning('No fibers selected in file %s' % (fname))
         put_empty_file(tab_ofname)
         put_empty_file(mod_ofname)
         return 0
@@ -631,10 +627,10 @@ def proc_desi(fname,
         fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
                                                     curseqid)
 
-        rets.append((poolex.submit(
-            proc_onespec, *(specdatas, setups, config, options),
-            **dict(fig_fname=fig_fname, doplot=doplot,
-                   verbose=verbose)), curFiberRow, curseqid))
+        rets.append(
+            (poolex.submit(proc_onespec, *(specdatas, setups, config, options),
+                           **dict(fig_fname=fig_fname,
+                                  doplot=doplot)), curFiberRow, curseqid))
 
     for r in rets:
         outdict, curmodel = r[0].result()
@@ -782,8 +778,8 @@ def proc_desi_wrapper(*args, **kwargs):
     try:
         proc_desi(*args, **kwargs)
     except Exception as e:  # noqa F841
-        print('failed with these arguments', args, kwargs)
-        traceback.print_exc()
+        logging.exception('failed with these arguments' + str(args) +
+                          str(kwargs))
         pid = os.getpid()
         logfname = 'crash_%d_%s.log' % (pid, time.ctime().replace(' ', ''))
         with open(logfname, 'w') as fd:
@@ -826,7 +822,6 @@ def proc_many(files,
               mwonly=True,
               minsn=-1e9,
               doplot=True,
-              verbose=False,
               expid_range=None,
               overwrite=False,
               skipexisting=False,
@@ -891,7 +886,7 @@ def proc_many(files,
         mod_ofname = folder_path + output_mod_prefix + '_' + fname
 
         if (skipexisting) and os.path.exists(tab_ofname):
-            print('skipping, products already exist', f)
+            logging.info('skipping, products already exist %s' % f)
             continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config)
         kwargs = dict(fit_targetid=fit_targetid,
@@ -899,7 +894,6 @@ def proc_many(files,
                       mwonly=mwonly,
                       doplot=doplot,
                       minsn=minsn,
-                      verbose=verbose,
                       expid_range=expid_range,
                       overwrite=overwrite,
                       poolex=poolEx,
@@ -996,6 +990,16 @@ def main(args):
                         type=str,
                         default='fig',
                         required=False)
+    parser.add_argument('--log',
+                        help='Log filename',
+                        type=str,
+                        default=None,
+                        required=False)
+    parser.add_argument('--log_level',
+                        help='DEBUG/INFO/WARNING/ERROR/CRITICAL',
+                        type=str,
+                        default='WARNING',
+                        required=False)
     parser.add_argument(
         '--overwrite',
         help='''If enabled the code will overwrite the existing products,
@@ -1025,11 +1029,6 @@ def main(args):
         action='store_true',
         default=False)
 
-    parser.add_argument('--verbose',
-                        help='Verbose output',
-                        action='store_true',
-                        default=False)
-
     parser.add_argument('--allobjects',
                         help='Fit all objects not only MW_TARGET',
                         action='store_true',
@@ -1041,9 +1040,16 @@ def main(args):
         print(rvspecfit._version.version)
         sys.exit(0)
 
+    log_level = args.log_level
+
+    if args.log is not None:
+        logging.basicConfig(filename=args.log, level=log_level)
+    else:
+        logging.basicConfig(level=log_level)
+
+    logging.debug('This message should go to the log file')
     input_files = args.input_files
     input_file_from = args.input_file_from
-    verbose = args.verbose
     output_dir, output_tab_prefix, output_mod_prefix = (args.output_dir,
                                                         args.output_tab_prefix,
                                                         args.output_mod_prefix)
@@ -1104,7 +1110,6 @@ but not both of them simulatenously''')
               mwonly=mwonly,
               doplot=doplot,
               minsn=minsn,
-              verbose=verbose,
               expid_range=(minexpid, maxexpid),
               skipexisting=args.skipexisting,
               overwrite=args.overwrite,

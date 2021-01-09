@@ -1,11 +1,9 @@
-import sys
-import os
 import pickle
-import time
 import numpy as np
 import scipy.optimize
 import scipy.interpolate
 from rvspecfit import make_ccf
+import logging
 
 
 class CCFCache:
@@ -109,7 +107,7 @@ def fit(specdata, config):
         proc_spec_std = proc_spec.std()
         if proc_spec_std == 0:
             proc_spec_std = 1
-            print('WARNING spectrum looks like a constant...')
+            logging.warning('Spectrum looks like a constant...')
         proc_spec /= proc_spec_std
         proc_specs[spec_setup] = proc_spec
         spec_fft = np.fft.fft(proc_spec)

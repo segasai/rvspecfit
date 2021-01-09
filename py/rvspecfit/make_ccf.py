@@ -6,6 +6,7 @@ import numpy as np
 import scipy.interpolate
 import scipy.stats
 import sys
+import logging
 
 from rvspecfit import spec_fit
 from rvspecfit import make_interpol
@@ -90,7 +91,7 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
         medspec = np.abs(medspec)
         if medspec == 0:
             medspec = 1
-        print('WARNING the spectrum has a median that is non-positive...')
+        logging.warning('The spectrum has a median that is non-positive...')
 
     BS = scipy.stats.binned_statistic(lam0, spec0, 'median', bins=nodesedges)
     p0 = np.log(np.maximum(BS.statistic, 1e-3 * medspec))
@@ -255,7 +256,7 @@ def preprocess_model(logl,
     xlogl, cpa_model = pad(logl, ca_model)
     std = (cpa_model**2).sum()**.5
     if std > 1e5:
-        print(
+        logging.warning(
             'WARNING something went wrong with the spectrum ormalization, model ',
             modid)
     cpa_model /= std
@@ -295,7 +296,6 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
     res = []
     retparams = []
-    norms = []
     if vsinis is None:
         vsinis = [None]
     vsinisList = []
@@ -311,7 +311,7 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
             vsinisList.append(vsini)
 
     for ii, curx in enumerate(q):
-        print(ii, '/', len(q))
+        print('Processing : %d / %d' % (ii, len(q)))
         xlogl, cpa_model = curx.get()
         res.append(cpa_model)
     pool.close()

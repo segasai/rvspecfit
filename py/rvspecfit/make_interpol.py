@@ -1,7 +1,6 @@
 from __future__ import print_function
 import multiprocessing as mp
 import os
-import subprocess
 import sys
 import argparse
 import pickle
@@ -12,6 +11,7 @@ import sqlite3
 from rvspecfit import read_grid
 from rvspecfit import utils
 import rvspecfit
+
 git_rev = rvspecfit.__version__
 
 SPEC_PKL_NAME = 'specs_%s.pkl'
@@ -141,7 +141,8 @@ def process_all(setupInfo,
                 air=False,
                 resolution0=None,
                 normalize=True,
-                revision='', nthreads=8):
+                revision='',
+                nthreads=8):
     if not os.path.exists(dbfile):
         raise Exception('The template database file %s does not exist' %
                         dbfile)
@@ -186,7 +187,6 @@ def process_all(setupInfo,
     si.lamgrid = lamgrid
     pool = mp.Pool(nthreads)
     for curteff, curlogg, curfeh, curalpha in vec.T:
-        curid = ids[i]
         i += 1
         print(i)
         specs.append(

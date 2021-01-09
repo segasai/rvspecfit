@@ -1,4 +1,3 @@
-import sys
 import time
 import itertools
 import numpy as np
@@ -6,6 +5,7 @@ import scipy.optimize
 import numdifftools as ndf
 from rvspecfit import spec_fit
 from rvspecfit import spec_inter
+import logging
 
 
 def firstguess(specdata, options=None, config=None, resolParams=None):
@@ -71,13 +71,14 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
     return bestpar
 
 
-def process(specdata,
-            paramDict0,
-            fixParam=None,
-            options=None,
-            config=None,
-            resolParams=None,
-            verbose=False):
+def process(
+    specdata,
+    paramDict0,
+    fixParam=None,
+    options=None,
+    config=None,
+    resolParams=None,
+):
     """ Process spectra by doing maximum likelihood fit to spectral data
 
     Parameters
@@ -233,10 +234,11 @@ def process(specdata,
     t1 = time.time()
     curval = np.array(startParam)
     R = np.random.RandomState(43434)
-    curiter = 0
-    maxiter = 10
+    curiter = 1
+    maxiter = 2
     ndim = len(curval)
     simp = np.zeros((ndim + 1, ndim))
+    minimize_success = True
     while True:
         simp[0, :] = curval
         simp[1:, :] = (
@@ -252,12 +254,13 @@ def process(specdata,
                                           'initial_simplex': simp
                                       })
         curval = res['x']
-        curiter += 1
         if res['success']:
             break
-        if curiter > maxiter:
-            print('WARNING maximum number of iteration reached')
+        if curiter == maxiter:
+            logging.warning('Maximum number of iterations reached')
+            minimize_success = False
             break
+        curiter += 1
 
     t2 = time.time()
     if second_minimizer:
@@ -278,7 +281,7 @@ def process(specdata,
     # is likely wrong with the object , so to prevent future failure
     # I just limit the velocity
     if best_vel > max_vel or best_vel < min_vel:
-        print('Warning velocity too large...')
+        logging.warning('Velocity too large...')
         if best_vel > max_vel:
             best_vel = max_vel
         else:
@@ -347,16 +350,16 @@ def process(specdata,
         diag_err = np.sqrt(diag_hess)
         diag_err[bad_diag_hess] = np.nan
     except np.linalg.LinAlgError:
-        print('WARNING the inversion of the Hessian failed', file=sys.stderr)
+        logging.warning('The inversion of the Hessian failed')
         diag_err = np.zeros(hessian.shape[0]) + np.nan
         #
     ret['param_err'] = dict(zip(specParams, diag_err))
+    ret['minimize_success'] = minimize_success
 
     ret['yfit'] = outp['models']
     ret['chisq'] = outp['chisq']
     ret['chisq_array'] = outp['chisq_array']
     t6 = time.time()
-    if verbose:
-        print('Timings2: ', t1 - t0, t2 - t1, t3 - t2, t4 - t3, t5 - t4,
-              t6 - t5)
+    logging.debug('Timings process: %.4f %.4f %.4f %.4f, %.4f %.4f' %
+                  (t1 - t0, t2 - t1, t3 - t2, t4 - t3, t5 - t4, t6 - t5))
     return ret
