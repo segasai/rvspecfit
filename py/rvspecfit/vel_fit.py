@@ -1,7 +1,6 @@
 import sys
 import time
 import itertools
-import astropy.io.fits as pyfits
 import numpy as np
 import scipy.optimize
 import numdifftools as ndf
@@ -62,14 +61,15 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
                                  resolParams,
                                  config=config,
                                  options=options)
-        if res['best_chi']<best_chisq:
-            bestpar={}
-            for i,k in enumerate(specParams):
+        if res['best_chi'] < best_chisq:
+            bestpar = {}
+            for i, k in enumerate(specParams):
                 bestpar[k] = res['best_param'][i]
             if vsini is not None:
-                bestpar['vsini' ] =vsini
-            best_chisq= res['best_chi']
+                bestpar['vsini'] = vsini
+            best_chisq = res['best_chi']
     return bestpar
+
 
 def process(specdata,
             paramDict0,
@@ -101,11 +101,12 @@ def process(specdata,
     ret: dict
         Dictionary of parameters
         Keys are 'yfit' -- the list of best-fit models
-        'vel', 'vel_kurtosis', 'vel_skewness', 'vel_err' velocity and its constraints
+        'vel', 'vel_kurtosis', 'vel_skewness', 'vel_err' velocity and
+        its constraints
         'param' -- parameter values
         'param_err' -- parameter uncertaintoes
-        'chisq' -- -2*log(likelihood) value (does not equal to chisq, because of
-         marginalization)
+        'chisq' -- -2*log(likelihood) value (does not equal to chisq, because
+        of marginalization)
         'chisq_array' -- array of proper chi-squares of the mode
 
     Example
@@ -138,6 +139,7 @@ def process(specdata,
     assert (np.allclose(mapVsiniInv(mapVsini(3)), 3))
 
     vels_grid = np.arange(min_vel, max_vel, vel_step0)
+
     curparam = spec_fit.param_dict_to_tuple(paramDict0,
                                             specdata[0].name,
                                             config=config)
@@ -193,14 +195,26 @@ def process(specdata,
         assert (len(p0rev) == 0)
         return ret
 
+    # std_vec is the vector of standard deviations used to create
+    # a simplex for Nelder mead
+    std_vec = [5]
+
     startParam = [best_vel]
 
     if fitVsini:
         startParam.append(mapVsini(paramDict0['vsini']))
+        std_vec.append(0.1)
 
     for x in specParams:
         if x not in fixParam:
             startParam.append(paramDict0[x])
+            std_vec.append({
+                'logg': 0.5,
+                'teff': 300,
+                'feh': 0.5,
+                'alpha': 0.25
+            }.get(x) or 0.5)
+    std_vec = np.array(std_vec)
 
     def func(p):
         pdict = paramMapper(p)
@@ -217,14 +231,34 @@ def process(specdata,
 
     method = 'Nelder-Mead'
     t1 = time.time()
+    curval = np.array(startParam)
+    R = np.random.RandomState(43434)
+    curiter = 0
+    maxiter = 10
+    ndim = len(curval)
+    simp = np.zeros((ndim + 1, ndim))
+    while True:
+        simp[0, :] = curval
+        simp[1:, :] = (
+            curval[None, :] +
+            np.array(std_vec)[None, :] * R.normal(size=(ndim, ndim)))
 
-    res = scipy.optimize.minimize(func,
-                                  startParam,
-                                  method=method,
-                                  options={
-                                      'fatol': 1e-3,
-                                      'xatol': 1e-2
-                                  })
+        res = scipy.optimize.minimize(func,
+                                      curval,
+                                      method=method,
+                                      options={
+                                          'fatol': 1e-3,
+                                          'xatol': 1e-2,
+                                          'initial_simplex': simp
+                                      })
+        curval = res['x']
+        curiter += 1
+        if res['success']:
+            break
+        if curiter > maxiter:
+            print('WARNING maximum number of iteration reached')
+            break
+
     t2 = time.time()
     if second_minimizer:
         res = scipy.optimize.minimize(func, res['x'], method='BFGS')
@@ -237,7 +271,8 @@ def process(specdata,
     ret['vel'] = best_param['vel']
     best_vel = best_param['vel']
 
-    # For a given template measure the chi-square as a function of velocity to get the uncertainty
+    # For a given template measure the chi-square as a function of velocity
+    # to get the uncertainty
 
     # if the velocity is outside the range considered, something
     # is likely wrong with the object , so to prevent future failure
@@ -249,7 +284,8 @@ def process(specdata,
         else:
             best_vel = min_vel
 
-    crit_ratio = 5  # we want the step size to be at least crit_ratio times smaller than the uncertainty
+    crit_ratio = 5  # we want the step size to be at least crit_ratio
+    # times smaller than the uncertainty
 
     # Here we are evaluating the chi-quares on the grid of
     # velocities to get the uncertainty
@@ -298,8 +334,9 @@ def process(specdata,
                                   config=config,
                                   full_output=True)
         return 0.5 * outp['chisq']
-    hess_step = np.maximum(1e-4 * np.abs(np.array([ret['param'][_] for _ in \
-                                                 specParams])), 1e-4)
+
+    hess_step = np.maximum(
+        1e-4 * np.abs(np.array([ret['param'][_] for _ in specParams])), 1e-4)
     hessian = ndf.Hessian(
         hess_func, step=hess_step)([ret['param'][_] for _ in specParams])
     try:
