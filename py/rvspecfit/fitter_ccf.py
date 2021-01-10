@@ -126,7 +126,6 @@ def fit(specdata, config):
 
     nfft = ccf_dats[spec_setup].shape[0]
     vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
-    best_ccf = vel_grid * 0
     for cur_id in range(nfft):
         curccf = {}
         for spec_setup in setups:
@@ -156,7 +155,6 @@ def fit(specdata, config):
                                          int(best_vel / velstep[spec_setup]))
     best_par = ccf_infos[setups[0]]['params'][best_id]
     best_par = dict(zip(ccf_infos[setups[0]]['parnames'], best_par))
-
     best_vsini = ccf_infos[setups[0]]['vsinis'][best_id]
 
     result = dict(best_par=best_par,
