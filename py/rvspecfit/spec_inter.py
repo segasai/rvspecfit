@@ -69,8 +69,8 @@ class GridOutsideCheck:
                                           balanced_tree=False)
 
     def __call__(self, p):
-        ## ATM that doesn't return something that tells us how far away
-        ## we are
+        # ATM that doesn't return something that tells us how far away
+        # we are
         pos = np.array([
             np.searchsorted(self.uvecs[i], p[i], 'right') - 1
             for i in range(self.ndim)
@@ -129,11 +129,11 @@ class GridInterp:
         p = np.asarray(p)
         ndim = self.ndim
 
-        ### wrapper to exponentiate when needed
+        # wrapper to exponentiate when needed
         if self.exp:
-            FF = lambda x: np.exp(x)
+            FF = np.exp
         else:
-            FF = lambda x: (x)
+            FF = lambda x: x
 
         # gridlocs
         pos = np.array(
@@ -145,7 +145,7 @@ class GridInterp:
         coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
                            (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
                            for i in range(ndim)])  # from 0 to 1
-        ## ndim  vec
+        # ndim  vec
         coeffs2 = np.zeros((2**ndim, self.ndim))
         pos2 = np.zeros(2**ndim, dtype=int)
         coeffs2 = coeffs[None, :]**self.edges * (1 - coeffs[None, :])**(
@@ -153,7 +153,7 @@ class GridInterp:
         pos2 = self.idgrid[tuple((pos[None, :] + self.edges).T)]
         coeffs2 = np.prod(coeffs2, axis=1)
         if np.any(pos2 < 0):
-            ## outside boundary
+            # outside boundary
             ret = self.get_nearest(p)
             return FF(self.dats[ret])
         spec = (np.dot(coeffs2, self.dats[pos2, :]))
@@ -185,7 +185,8 @@ class SpecInterpolator:
         lam: ndarray
             Wavelength vector
         mapper: function
-            Function that does the mapping from scaled box parameters to proper values
+            Function that does the mapping from scaled box parameters to 
+            proper values
         parnames: tuple
             The list of parameter names ('logg', 'teff' ,.. ) etc
         revision: str
