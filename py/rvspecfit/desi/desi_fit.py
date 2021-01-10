@@ -1,5 +1,7 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
+
+# The noqa are to prevent warnings due to imports being not at the top
 import warnings  # noqa: E402
 import sys  # noqa: E402
 import argparse  # noqa: E402
@@ -7,13 +9,13 @@ import time  # noqa: E402
 import itertools  # noqa: E402
 import traceback  # noqa: E402
 import importlib  # noqa: E402
+import logging  # noqa: E402
 import concurrent.futures  # noqa: E402
 import astropy.table as atpy  # noqa: E402
 import astropy.io.fits as pyfits  # noqa: E402
 import astropy.units as auni  # noqa: E402
 import numpy as np  # noqa: E402
 import scipy.stats  # noqa: E402
-import logging
 import rvspecfit  # noqa: E402
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, \
     spec_inter  # noqa: E402
@@ -1047,7 +1049,6 @@ def main(args):
     else:
         logging.basicConfig(level=log_level)
 
-    logging.debug('This message should go to the log file')
     input_files = args.input_files
     input_file_from = args.input_file_from
     output_dir, output_tab_prefix, output_mod_prefix = (args.output_dir,
