@@ -230,7 +230,6 @@ def process(
                                    config=config)
         return chisq
 
-    method = 'Nelder-Mead'
     t1 = time.time()
     curval = np.array(startParam)
     R = np.random.RandomState(43434)
@@ -239,21 +238,22 @@ def process(
     ndim = len(curval)
     simp = np.zeros((ndim + 1, ndim))
     minimize_success = True
+    simp[0, :] = curval
+    simp[1:, :] = (curval[None, :] +
+                   np.array(std_vec)[None, :] * R.normal(size=(ndim, ndim)))
     while True:
-        simp[0, :] = curval
-        simp[1:, :] = (
-            curval[None, :] +
-            np.array(std_vec)[None, :] * R.normal(size=(ndim, ndim)))
-
         res = scipy.optimize.minimize(func,
                                       curval,
-                                      method=method,
+                                      method='Nelder-Mead',
                                       options={
                                           'fatol': 1e-3,
                                           'xatol': 1e-2,
-                                          'initial_simplex': simp
+                                          'initial_simplex': simp,
+                                          'maxiter': 10000,
+                                          'maxfev': np.inf
                                       })
         curval = res['x']
+        simp = res['final_simplex'][0]
         if res['success']:
             break
         if curiter == maxiter:

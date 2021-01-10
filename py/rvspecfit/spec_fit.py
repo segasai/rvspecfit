@@ -156,11 +156,15 @@ def get_basis(specdata, npoly, rbf=True):
         nrbf = npoly - npoly0
         assert (npoly >= npoly0)
         if nrbf > 0:
-            sig = 2. / nrbf
+            sig = 1. / nrbf
+            # larger values lead to
+            # poorly conditioned matrices and noisy likelihood
+            # BE CAREFUL
             rbfcens = np.linspace(-1, 1, nrbf, True)
             for i in range(nrbf):
-                polys[npoly0 + i, :] = scipy.stats.norm(rbfcens[i],
-                                                        sig).pdf(normlam)
+                polys[npoly0 + i, :] = np.exp(
+                    -0.5 * (normlam - rbfcens[i])**2 / sig**2)
+
     return polys
 
 
