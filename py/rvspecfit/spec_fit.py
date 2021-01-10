@@ -16,6 +16,7 @@ import collections
 from rvspecfit import frozendict
 from rvspecfit import utils
 from rvspecfit import spec_inter
+from rvspecfit import cubic
 
 
 class LRUDict:
@@ -411,9 +412,7 @@ def getRVInterpol(lam_templ, templ):
         The object that can be used to evaluate template at any wavelength
     """
 
-    interpol = scipy.interpolate.CubicSpline(lam_templ,
-                                             templ,
-                                             extrapolate=False)
+    interpol = cubic.CubicSpline(lam_templ, templ, extrapolate=False)
     return interpol
 
 
