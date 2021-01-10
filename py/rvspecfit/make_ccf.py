@@ -97,59 +97,22 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     p0 = np.log(np.maximum(BS.statistic, 1e-3 * medspec))
     p0[~np.isfinite(p0)] = np.log(medspec)
 
-    lam, spec, espec = (lam0[::bin], scipy.signal.medfilt(spec0, bin)[::bin],
-                        scipy.signal.medfilt(espec0, bin)[::bin])
-
-    res = scipy.optimize.minimize(
-        fit_loss,
-        p0,
-        args=(spec, espec, nodes, lam),
-        jac=False,
-        # method='Nelder-Mead'
-        method='BFGS')['x']
-    cont = fit_loss(res, spec0, espec0, nodes, lam0, getModel=True)
+    ret = scipy.optimize.least_squares(fit_resid,
+                                       p0,
+                                       loss='soft_l1',
+                                       args=((nodes, lam0, spec0, espec0),
+                                             False))
+    cont = fit_resid(ret['x'], (nodes, lam0, spec0, espec0), True)
     return cont
 
 
-def fit_loss(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
-    """ Return the loss function (L1 norm) of the continuum fit_loss
-
-    Parameters
-    ----------
-
-    p: numpy array
-        Array with fit parameters
-    spec: numpy array
-        Spectrum that is being fitted
-    espec: numpy array
-        Error vector
-    nodes: numpy array
-        The location of the nodes of the spline fit
-    lam: numpy array
-        The wavelength vector
-    getModel: boolean, optional
-        If true return the bestfit model instead of the loss function
-
-    Returns
-    -------
-    loss: real
-        The loss function of the fit
-    model: numpy array (optional, depending on getModel parameter)
-        The evaluated model
-
-    """
-    II = scipy.interpolate.UnivariateSpline(nodes, p, s=0, k=2)
-    model = np.exp(II(lam))
+def fit_resid(p, args=None, getModel=False):
+    # residual of the fit for the fitting
+    nodes, lam, spec, espec = args
+    mod = np.exp(scipy.interpolate.UnivariateSpline(nodes, p, s=0, k=2)(lam))
     if getModel:
-        return model
-    res = (spec - model) / espec
-
-    val = np.abs(res).sum()
-
-    # I may need to mask outliers here...
-    if not np.isfinite(val):
-        return 1e30
-    return val
+        return mod
+    return (mod - spec) / espec
 
 
 def apodize(spec):
