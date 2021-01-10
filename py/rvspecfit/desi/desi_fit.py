@@ -459,7 +459,7 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
         List of specfit.SpecData objects
 
     """
-    large_error = 1e9
+    large_error = 1000
     sds = []
 
     for s in setups:
@@ -469,17 +469,19 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
         if medspec == 0:
             medspec = np.nanmedian(spec[spec > 0])
             if not np.isfinite(medspec):
-                medspec = 1
+                medspec = np.nanmedian(np.abs(spec))
         baddat = ~np.isfinite(spec + curivars)
-        badmask = (curivars <= 0) | (masks[s][seqid] > 0) | baddat
-        curivars[badmask] = medspec**2 / large_error**2
-        spec[baddat] = medspec
+        badmask = (masks[s][seqid] > 0)
+        baderr = curivars <= 0
+        badall = baddat | badmask | baderr
+        curivars[badall] = 1. / medspec**2 / large_error**2
+        spec[badall] = medspec
         espec = 1. / curivars**.5
         sd = spec_fit.SpecData('desi_%s' % s,
                                waves[s],
                                spec,
                                espec,
-                               badmask=badmask)
+                               badmask=badall)
         sds.append(sd)
     return sds
 
