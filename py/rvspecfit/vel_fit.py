@@ -71,6 +71,97 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
     return bestpar
 
 
+class VSiniMapper:
+    def __init__(self, min_vsini, max_vsini):
+        self.min_vsini = min_vsini
+        self.max_vsini = max_vsini
+
+    def forward(self, vsini):
+        return np.log(np.clip(vsini, self.min_vsini, self.max_vsini))
+
+    def inverse(self, x):
+        return np.clip(np.exp(x), self.min_vsini, self.max_vsini)
+
+
+class ParamMapper:
+    """
+    This class constructs the dictionary with human readable parameters
+    out of the vector, as well as taking into accoutnt which params are fixed
+"""
+    def __init__(self,
+                 specParams,
+                 paramDict0,
+                 fixParam,
+                 vsiniMapper,
+                 fitVsini=True):
+        """ Initializes the class
+        Parameters
+        ----------
+        specParams: list
+            The list of names of spec parameters
+        paramDict0: dict
+            Dictionary with starting parameters (must include all the required
+            model params)
+        fixParam: list
+            Which params to fix
+        vsiniMapper: class
+            Class that does the transformation from vsini to transformed
+            clipped vsini
+        fitVsini: bool
+            Whether vsini is among fitted params or not
+"""
+        self.specParams = specParams
+        self.paramDict0 = paramDict0
+        self.fixParam = fixParam
+        self.vsiniMapper = vsiniMapper
+        self.fitVsini = fitVsini
+
+    def forward(self, p0):
+        """ Convert a vector into param dictionary """
+        ret = {}
+        p0rev = list(p0)[::-1]
+        ret['vel'] = p0rev.pop()
+        if self.fitVsini:
+            vsini = self.vsiniMapper.inverse(p0rev.pop())
+            ret['vsini'] = vsini
+        else:
+            if 'vsini' in self.fixParam:
+                ret['vsini'] = self.paramDict0['vsini']
+            else:
+                ret['vsini'] = None
+        if ret['vsini'] is not None:
+            ret['rot_params'] = (ret['vsini'], )
+        else:
+            ret['rot_params'] = None
+        ret['params'] = []
+        for x in self.specParams:
+            if x in self.fixParam:
+                ret['params'].append(self.paramDict0[x])
+            else:
+                ret['params'].append(p0rev.pop())
+        assert (len(p0rev) == 0)
+        return ret
+
+
+def chisq_func(p, args):
+    """
+The function computes the chi-square of the fit
+This function is used for minimization
+"""
+    paramMapper = args['paramMapper']
+    pdict = paramMapper.forward(p)
+    if pdict['vel'] > args['max_vel'] or pdict['vel'] < args['min_vel']:
+        return 1e30
+    chisq = spec_fit.get_chisq(args['specdata'],
+                               pdict['vel'],
+                               pdict['params'],
+                               pdict['rot_params'],
+                               args['resolParams'],
+                               options=args['options'],
+                               config=args['config'])
+    return chisq
+
+
 def process(
     specdata,
     paramDict0,
@@ -115,7 +206,7 @@ def process(
 
     >>> ret = process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,
         'vsini':0}, fixParam = ('feh','vsini'),
-                config=config, resolParam = None)
+                config=config, resolParams = None)
 
     """
 
@@ -130,14 +221,6 @@ def process(
     min_vel_step = config['min_vel_step']
     second_minimizer = config['second_minimizer']
     options = options or {}
-
-    def mapVsini(vsini):
-        return np.log(np.clip(vsini, min_vsini, max_vsini))
-
-    def mapVsiniInv(x):
-        return np.clip(np.exp(x), min_vsini, max_vsini)
-
-    assert (np.allclose(mapVsiniInv(mapVsini(3)), 3))
 
     vels_grid = np.arange(min_vel, max_vel, vel_step0)
 
@@ -169,41 +252,15 @@ def process(
                              options=options)
     best_vel = res['best_vel']
 
-    def paramMapper(p0):
-        # construct relevant objects for fitting from a numpy array vectors
-        # taking into account which parameters are fixed
-        ret = {}
-        p0rev = list(p0)[::-1]
-        ret['vel'] = p0rev.pop()
-        if fitVsini:
-            vsini = mapVsiniInv(p0rev.pop())
-            ret['vsini'] = vsini
-        else:
-            if 'vsini' in fixParam:
-                ret['vsini'] = paramDict0['vsini']
-            else:
-                ret['vsini'] = None
-        if ret['vsini'] is not None:
-            ret['rot_params'] = (ret['vsini'], )
-        else:
-            ret['rot_params'] = None
-        ret['params'] = []
-        for x in specParams:
-            if x in fixParam:
-                ret['params'].append(paramDict0[x])
-            else:
-                ret['params'].append(p0rev.pop())
-        assert (len(p0rev) == 0)
-        return ret
-
     # std_vec is the vector of standard deviations used to create
     # a simplex for Nelder mead
+    startParam = [best_vel]
     std_vec = [5]
 
-    startParam = [best_vel]
+    vsiniMapper = VSiniMapper(min_vsini, max_vsini)
 
     if fitVsini:
-        startParam.append(mapVsini(paramDict0['vsini']))
+        startParam.append(vsiniMapper.forward(paramDict0['vsini']))
         std_vec.append(0.1)
 
     for x in specParams:
@@ -215,20 +272,8 @@ def process(
                 'feh': 0.5,
                 'alpha': 0.25
             }.get(x) or 0.5)
-    std_vec = np.array(std_vec)
 
-    def func(p):
-        pdict = paramMapper(p)
-        if pdict['vel'] > max_vel or pdict['vel'] < min_vel:
-            return 1e30
-        chisq = spec_fit.get_chisq(specdata,
-                                   pdict['vel'],
-                                   pdict['params'],
-                                   pdict['rot_params'],
-                                   resolParams,
-                                   options=options,
-                                   config=config)
-        return chisq
+    std_vec = np.array(std_vec)
 
     t1 = time.time()
     curval = np.array(startParam)
@@ -241,9 +286,22 @@ def process(
     simp[0, :] = curval
     simp[1:, :] = (curval[None, :] +
                    np.array(std_vec)[None, :] * R.normal(size=(ndim, ndim)))
+    paramMapper = ParamMapper(specParams,
+                              paramDict0,
+                              fixParam,
+                              vsiniMapper,
+                              fitVsini=fitVsini)
+    args = dict(min_vel=min_vel,
+                max_vel=max_vel,
+                resolParams=resolParams,
+                paramMapper=paramMapper,
+                specdata=specdata,
+                options=options,
+                config=config)
     while True:
-        res = scipy.optimize.minimize(func,
+        res = scipy.optimize.minimize(chisq_func,
                                       curval,
+                                      args=args,
                                       method='Nelder-Mead',
                                       options={
                                           'fatol': 1e-3,
@@ -264,9 +322,12 @@ def process(
 
     t2 = time.time()
     if second_minimizer:
-        res = scipy.optimize.minimize(func, res['x'], method='BFGS')
+        res = scipy.optimize.minimize(chisq_func,
+                                      res['x'],
+                                      method='BFGS',
+                                      args=args)
     t3 = time.time()
-    best_param = paramMapper(res['x'])
+    best_param = paramMapper.forward(res['x'])
     ret = {}
     ret['param'] = dict(zip(specParams, best_param['params']))
     if fitVsini:
