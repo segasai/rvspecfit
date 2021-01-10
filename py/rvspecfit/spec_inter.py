@@ -26,6 +26,8 @@ class TriInterp:
         self.triang = triang
         self.dats = dats
         self.exp = exp
+        self.ndim = self.triang.ndim
+        self.b1 = np.empty(self.ndim + 1, dtype=self.dats.dtype)
 
     def __call__(self, p):
         """ Compute the interpolated spectrum at parameter vector p
@@ -37,13 +39,14 @@ class TriInterp:
 
         """
         p = np.asarray(p)
-        ndim = self.triang.ndim
         xid = self.triang.find_simplex(p)
         if xid == -1:
             return np.nan
-        b = self.triang.transform[xid, :ndim, :].dot(
+        b1 = self.b1
+        ndim = self.ndim
+        b1[:ndim] = self.triang.transform[xid, :ndim, :].dot(
             p - self.triang.transform[xid, ndim, :])
-        b1 = np.r_[b, [1 - b.sum()]]
+        b1[ndim] = 1 - b1[:ndim].sum()
         spec = (self.dats[self.triang.simplices[xid], :] *
                 b1[:, None]).sum(axis=0)
         if self.exp:
