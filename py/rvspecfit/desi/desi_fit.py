@@ -10,6 +10,7 @@ import itertools  # noqa: E402
 import traceback  # noqa: E402
 import importlib  # noqa: E402
 import logging  # noqa: E402
+import enum  # noqa: E402
 import concurrent.futures  # noqa: E402
 import astropy.table as atpy  # noqa: E402
 import astropy.io.fits as pyfits  # noqa: E402
@@ -19,6 +20,29 @@ import scipy.stats  # noqa: E402
 import rvspecfit  # noqa: E402
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, \
     spec_inter  # noqa: E402
+
+
+class ProcessStatus(enum.Enum):
+    SUCCESS = 0
+    FAILURE = 1
+
+    def __str__(self):
+        return self.name
+
+
+def update_process_status_file(status_fname,
+                               processed_file,
+                               status,
+                               nobjects,
+                               start=False):
+    if start:
+        with open(status_fname, 'w') as fp:
+            pass
+        if processed_file is None:
+            return
+    with open(status_fname, 'a') as fp:
+        print(f'{processed_file} {status} {nobjects}', file=fp)
+    return
 
 
 def get_dep_versions():
@@ -558,7 +582,7 @@ def proc_desi(fname,
     valid, glued = valid_file(fname)
     if not valid:
         logging.error('Not valid file: %s' % (fname))
-        return 0
+        return -1
 
     if glued:
         setups = ['brz']
@@ -578,7 +602,7 @@ def proc_desi(fname,
                 'WARNING the size of the data in arm %s' +
                 'does not match the size of the fibermap; file %s; skipping...'
             ) % (_, fname))
-            return 0
+            return -1
     targetid = fibermap['TARGETID']
 
     subset = select_fibers_to_fit(fibermap,
@@ -777,9 +801,14 @@ def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
 
 
 def proc_desi_wrapper(*args, **kwargs):
+    status = ProcessStatus.SUCCESS
+    status_file = kwargs['process_status_file']
+    del kwargs['process_status_file']
+    nfit = 0
     try:
-        proc_desi(*args, **kwargs)
-    except Exception as e:  # noqa F841
+        nfit = proc_desi(*args, **kwargs)
+    except:  # noqa F841
+        status = ProcessStatus.FAILURE
         logging.exception('failed with these arguments' + str(args) +
                           str(kwargs))
         pid = os.getpid()
@@ -789,6 +818,16 @@ def proc_desi_wrapper(*args, **kwargs):
             traceback.print_exc(file=fd)
         # I decided not to just fail, proceed instead after
         # writing a bug report
+    finally:
+        if status_file is not None:
+            if nfit < 0:
+                status = ProcessStatus.FAILURE
+                nfit = 0
+            update_process_status_file(status_file,
+                                       args[0],
+                                       status,
+                                       nfit,
+                                       start=False)
 
 
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
@@ -812,23 +851,26 @@ class FakeExecutor:
         return FakeFuture(f(*args, **kw))
 
 
-def proc_many(files,
-              output_dir,
-              output_tab_prefix,
-              output_mod_prefix,
-              fig_prefix,
-              config_fname=None,
-              nthreads=1,
-              combine=False,
-              fit_targetid=None,
-              mwonly=True,
-              minsn=-1e9,
-              doplot=True,
-              expid_range=None,
-              overwrite=False,
-              skipexisting=False,
-              fitarm=None,
-              cmdline=None):
+def proc_many(
+    files,
+    output_dir,
+    output_tab_prefix,
+    output_mod_prefix,
+    fig_prefix,
+    config_fname=None,
+    nthreads=1,
+    combine=False,
+    fit_targetid=None,
+    mwonly=True,
+    minsn=-1e9,
+    doplot=True,
+    expid_range=None,
+    overwrite=False,
+    skipexisting=False,
+    fitarm=None,
+    cmdline=None,
+    process_status_file=None,
+):
     """
     Process many spectral files
 
@@ -860,6 +902,8 @@ def proc_many(files,
         if True do not process anything if output files exist
     fitarm: list
         the list of arms/spec configurations to fit (can be None)
+    process_status_file: str
+        The filename where we'll put status of the fitting
     """
     config = utils.read_config(config_fname)
     assert (config is not None)
@@ -868,7 +912,12 @@ def proc_many(files,
         parallel = True
     else:
         parallel = False
-
+    if process_status_file is not None:
+        update_process_status_file(process_status_file,
+                                   None,
+                                   None,
+                                   None,
+                                   start=True)
     if parallel:
         poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
     else:
@@ -900,7 +949,8 @@ def proc_many(files,
                       overwrite=overwrite,
                       poolex=poolEx,
                       fitarm=fitarm,
-                      cmdline=cmdline)
+                      cmdline=cmdline,
+                      process_status_file=process_status_file)
         proc_desi_wrapper(*args, **kwargs)
 
     if parallel:
@@ -1001,6 +1051,12 @@ def main(args):
                         help='DEBUG/INFO/WARNING/ERROR/CRITICAL',
                         type=str,
                         default='WARNING',
+                        required=False)
+    parser.add_argument('--process_status_file',
+                        help='The name of the file where I put the names of' +
+                        ' successfully processed files',
+                        type=str,
+                        default=None,
                         required=False)
     parser.add_argument(
         '--overwrite',
@@ -1111,6 +1167,7 @@ but not both of them simulatenously''')
               mwonly=mwonly,
               doplot=doplot,
               minsn=minsn,
+              process_status_file=args.process_status_file,
               expid_range=(minexpid, maxexpid),
               skipexisting=args.skipexisting,
               overwrite=args.overwrite,
