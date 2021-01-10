@@ -118,7 +118,8 @@ def fit(specdata, config):
         vels[spec_setup] = ((np.arange(lspec) + off[spec_setup]) % lspec -
                             off[spec_setup]) * velstep[spec_setup]
         vels[spec_setup] = -np.roll(vels[spec_setup], off[spec_setup])
-        subind[spec_setup] = np.abs(vels[spec_setup]) < maxvel
+        subind[spec_setup] = np.abs(
+            vels[spec_setup]) < maxvel + velstep[spec_setup]
 
     max_ccf = -np.inf
     best_id = -1
@@ -130,12 +131,13 @@ def fit(specdata, config):
         curccf = {}
         for spec_setup in setups:
             curf = ccf_dats[spec_setup][cur_id, :]
-            ccf = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
-            ccf = np.roll(ccf, off[spec_setup])
-            curccf[spec_setup] = ccf[subind[spec_setup]]
-            curccf[spec_setup] = scipy.interpolate.CubicSpline(
+            curccf0 = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
+            curccf0 = np.roll(curccf0, off[spec_setup])
+            curccf0 = curccf0[subind[spec_setup]]
+            curccf[spec_setup] = scipy.interpolate.interp1d(
                 vels[spec_setup][subind[spec_setup]][::-1],
-                curccf[spec_setup][::-1])(vel_grid)
+                curccf0[::-1],
+            )(vel_grid)
 
         allccf = ccf_combiner([curccf[_] for _ in setups])
         if allccf.max() > max_ccf:
