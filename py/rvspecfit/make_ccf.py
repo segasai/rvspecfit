@@ -109,7 +109,8 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
 def fit_resid(p, args=None, getModel=False):
     # residual of the fit for the fitting
     nodes, lam, spec, espec = args
-    mod = np.exp(scipy.interpolate.UnivariateSpline(nodes, p, s=0, k=2)(lam))
+    mod = np.logaddexp(
+        scipy.interpolate.UnivariateSpline(nodes, p, s=0, k=2)(lam), 0)
     if getModel:
         return mod
     return (mod - spec) / espec
