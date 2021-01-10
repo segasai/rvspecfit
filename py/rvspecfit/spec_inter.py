@@ -271,8 +271,7 @@ def getInterpolator(HR, config, warmup_cache=True):
             # triangulation based interpolation
             (triang, extraflags) = (fd['triang'], fd['extraflags'])
             interper, extraper = (TriInterp(triang, dats, exp=expFlag),
-                                  scipy.interpolate.LinearNDInterpolator(
-                                      triang, extraflags))
+                                  TriInterp(triang, extraflags, exp=False))
         elif 'regular' in fd:
             # regular grid interpolation
             uvecs, idgrid = (fd['uvecs'], fd['idgrid'])
