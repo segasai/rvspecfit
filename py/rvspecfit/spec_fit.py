@@ -190,7 +190,8 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
         If true return the coefficients of polynomials
     espec: numpy (optional)
         If specified, this is the error vector. If not specified, then it is
-        assumed that spectrum and template are already divided by the uncertainty
+        assumed that spectrum and template are already divided by the
+        uncertainty
 
     Returns
     --------

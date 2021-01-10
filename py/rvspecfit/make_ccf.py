@@ -10,7 +10,6 @@ import logging
 
 from rvspecfit import spec_fit
 from rvspecfit import make_interpol
-from rvspecfit import utils
 import rvspecfit
 git_rev = rvspecfit.__version__
 
@@ -33,14 +32,15 @@ class CCFConfig:
         Parameters
         ----------
         logl0: float
-             The natural logarithm of the wavelength of the beginning of the CCF
+            The natural logarithm of the wavelength of the beginning of
+            the CCF
         logl1: float
-             The natural logarithm of the wavelength of the end of the CCF
+            The natural logarithm of the wavelength of the end of the CCF
         npoints: integer
-             The number of points in the cross correlation functions
+            The number of points in the cross correlation functions
         splinestep: float, optional
-             The stepsize in km/s that determine the smoothness of the continuum
-             fit
+            The stepsize in km/s that determines the smoothness of the
+            continuum fit
         maxcontpts: integer, optional
              The maximum number of points used for the continuum fit
         """
@@ -68,8 +68,8 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     ccfconf: CCFConfig object
         The CCF configuration object
     bin: integer, optional
-        The input spectrum will be binned by median filter by this number before
-        the fit
+        The input spectrum will be binned by median filter by this number
+        before the fit
 
     Returns
     -------
@@ -162,13 +162,13 @@ def apodize(spec):
         The input numpy array
     """
     frac = 0.15
-    l = len(spec)
-    x = np.arange(l) * 1.
+    lspec = len(spec)
+    x = np.arange(lspec) * 1.
     mask = 1 + 0 * x
-    ind = x < (frac * l)
-    mask[ind] = (1 - np.cos(x[ind] / frac / l * np.pi)) * .5
-    ind = (x - l + 1) > (-frac * l)
-    mask[ind] = (1 - np.cos((l - x - 1)[ind] / frac / l * np.pi)) * .5
+    ind = x < (frac * lspec)
+    mask[ind] = (1 - np.cos(x[ind] / frac / lspec * np.pi)) * .5
+    ind = (x - lspec + 1) > (-frac * lspec)
+    mask[ind] = (1 - np.cos((lspec - x - 1)[ind] / frac / lspec * np.pi)) * .5
     return mask * spec
 
 
@@ -190,17 +190,16 @@ def pad(x, y):
     y2: numpy array
         New spectrum vector
     """
-    l = len(y)
-    l1 = int(2**np.ceil(np.log(l) / np.log(2)))
-    delta1 = int((l1 - l) / 2)  # extra pixels on the left
-    delta2 = int((l1 - l) - delta1)  # extra pixels on the right
+    lspec = len(y)
+    l1 = int(2**np.ceil(np.log(lspec) / np.log(2)))
+    delta1 = int((l1 - lspec) / 2)  # extra pixels on the left
+    delta2 = int((l1 - lspec) - delta1)  # extra pixels on the right
     y2 = np.concatenate((np.zeros(delta1), y, np.zeros(delta2)))
     deltax = x[1] - x[0]
     if np.allclose(np.diff(x), deltax):
         x2 = np.concatenate((np.arange(-delta1, 0) * deltax + x[0], x,
                              x[-1] + deltax * (1 + np.arange(delta2))))
     elif np.allclose(np.diff(np.log(x)), np.log(x[1] / x[0])):
-        ratx = x[1] / x[0]
         x2 = np.concatenate(deltax**(np.arange(-delta1, 0) * x[0], x,
                                      x[-1] * deltax**(1 + np.arange(delta2))))
     else:
@@ -257,8 +256,8 @@ def preprocess_model(logl,
     std = (cpa_model**2).sum()**.5
     if std > 1e5:
         logging.warning(
-            'WARNING something went wrong with the spectrum ormalization, model ',
-            modid)
+            'WARNING something went wrong with the spectrum normalization, ' +
+            'model %d' % modid)
     cpa_model /= std
     return xlogl, cpa_model
 
@@ -270,12 +269,14 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     ----------
 
     lammodels: numpy array
-        The array of wavelengths of the models (assumed to be the same for all models)
+        The array of wavelengths of the models
+        (assumed to be the same for all models)
     models: numpy array
         The 2D array of modell with the shape [number_of_models, len_of_model]
     params: numpy array
-        The 2D array of template parameters (i.e. stellar atmospheric parameters
-        ) with the shape [number_of_models,length_of_parameter_vector]
+        The 2D array of template parameters (i.e. stellar atmospheric
+        parameters) with the shape
+        [number_of_models,length_of_parameter_vector]
     ccfconf: CCFConfig object
         CCF configuration
     vsinis: list of floats
@@ -285,12 +286,11 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     Returns
     -------
     ret: tuple
-         **FILL/CHECK ME** 
+         **FILL/CHECK ME**
          1) log wavelenghts
-         2) processed spectra, 
+         2) processed spectra,
          3) spectral params
-         4) list of vsini 
-         
+         4) list of vsini
     """
     nthreads = 16
     logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
@@ -307,7 +307,7 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
             q.append(
                 pool.apply_async(preprocess_model,
                                  (logl, lammodels, m0, vsini, ccfconf,
-                                  (params[imodel]))))
+                                  params[imodel], imodel)))
             vsinisList.append(vsini)
 
     for ii, curx in enumerate(q):
@@ -320,7 +320,7 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
 
 
 def interp_masker(lam, spec, badmask):
-    """ 
+    """
     Fill the gaps spectrum by interpolating across a badmask.
     The gaps are filled by linear interpolation. The edges are just
     using the value of the closest valid pixel.
@@ -455,8 +455,6 @@ def ccf_executor(spec_setup,
         vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D[
             'parnames']
         del D
-
-    ndim = len(vec[:, 0])
 
     specs = specs[::every, :]
     vec = vec.T[::every, :]
