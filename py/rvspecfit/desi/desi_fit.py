@@ -465,7 +465,8 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
     """
     large_error = 1000
     sds = []
-
+    minerr_frac = 0.3  # if the error is smaller than this times median error
+    # clamp the uncertainty
     for s in setups:
         spec = fluxes[s][seqid] * 1
         curivars = ivars[s][seqid] * 1
@@ -481,6 +482,17 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
         curivars[badall] = 1. / medspec**2 / large_error**2
         spec[badall] = medspec
         espec = 1. / curivars**.5
+        if badall.all():
+            logging.warning('The whole spectrum was masked...')
+        else:
+            goodespec = espec[~badall]
+            goodespec_thresh = np.median(goodespec) * minerr_frac
+            replace_idx = (espec < goodespec_thresh) & (~badall)
+            if replace_idx.sum() / (~badall).sum() > .1:
+                logging.warning(
+                    'More than 10% of spectra had the uncertainty clamped')
+            logging.debug("Clamped error on %d pixels" % (replace_idx.sum()))
+            espec[replace_idx] = goodespec_thresh
         sd = spec_fit.SpecData('desi_%s' % s,
                                waves[s],
                                spec,
