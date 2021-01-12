@@ -154,7 +154,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)
     np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
-            np.asfortranarray(specs))
+            np.ascontiguousarray(specs))
 
 
 def main(args):
