@@ -399,8 +399,17 @@ def process(
                                   full_output=True)
         return 0.5 * outp['chisq']
 
-    hess_step = np.maximum(
-        1e-4 * np.abs(np.array([ret['param'][_] for _ in specParams])), 1e-4)
+    # hess_step = np.maximum(
+    #    1e-4 * np.abs(np.array([ret['param'][_] for _ in specParams])), 1e-4)
+    hess_step = [{
+        'vsini': 10,
+        'logg': 1,
+        'feh': 0.1,
+        'alpha': 1,
+        'teff': 100,
+        'vrad': 10,
+    }[_] for _ in specParams]
+    hess_step = ndf.MinStepGenerator(base_step=hess_step, step_ratio=10)
     hessian = ndf.Hessian(
         hess_func, step=hess_step)([ret['param'][_] for _ in specParams])
     try:
