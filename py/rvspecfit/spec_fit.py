@@ -217,7 +217,8 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     det = np.prod(s)**2
     # matrix1 = u @ np.diag(s**2) @ u.T
     # matrix1 is the M^T M matrix
-    v2 = u @ np.diag(1. / s**2) @ u.T @ vector1  # this is matrix1^(-1) vector1
+    v2 = u @ (
+        (1. / s**2)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
 
     chisq = -vector1.T @ v2 + \
         0.5 * np.log(det)
