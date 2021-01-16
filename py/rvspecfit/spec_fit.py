@@ -213,12 +213,16 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     # M
     vector1 = polys1 @ normspec
     # M^T S
-    u, s, v = scipy.linalg.svd(polys1, full_matrices=False, check_finite=False)
-    det = np.prod(s)**2
+
+    matrix1 = np.dot(polys1, polys1.T)
+    u, s, v = scipy.linalg.svd(matrix1, check_finite=False)
+    det = np.prod(s)
+    # matrix1 = usv
     # matrix1 = u @ np.diag(s**2) @ u.T
     # matrix1 is the M^T M matrix
-    v2 = u @ (
-        (1. / s**2)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
+
+    v2 = v.T @ (
+        (1. / s)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
 
     chisq = -vector1.T @ v2 + \
         0.5 * np.log(det)
