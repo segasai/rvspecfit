@@ -46,9 +46,8 @@ def get_ccf_info(spec_setup, config):
 def ccf_combiner(ccfs):
     # combine ccfs from multiple filters
     # since ccf^2 is -chisq
-    ret = 0
-    for curc in ccfs:
-        ret = ret + np.sign(curc) * curc**2
+    # we assume ccfs is 2d array shaped like Nfilters, nvelocities
+    ret = (np.sign(ccfs) * ccfs**2).sum(axis=0)
     return ret
 
 
@@ -74,7 +73,7 @@ def fit(specdata, config):
 
     maxvel = config.get('max_vel') or 1000
     # only search for CCF peaks from -maxvel to maxvel
-    nvelgrid = int(2 * maxvel / (config.get('vel_step0') or 2))
+    nvelgrid = 2 * int(maxvel * 1. / (config.get('vel_step0') or 2)) + 1
     # number of points on the ccf in the specified velocity range
     vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
 
@@ -83,7 +82,6 @@ def fit(specdata, config):
     velstep = {}  # step in the ccf in velocity
     spec_fftconj = {}  # conjugated fft of the data
     vels = {}  # velocity grids
-    off = {}  # offsets (how much to offset to make the ccf centered
     subind = {}  # the range of the ccf covering the velocity range of interest
     ccf_dats = {}  # ffts of templates
     ccf_infos = {}  # ccf configurations
@@ -118,30 +116,47 @@ def fit(specdata, config):
         cur_step = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
         lspec = len(spec_fft)
         cur_off = lspec // 2
-        cur_vels = ((np.arange(lspec) + cur_off) % lspec - cur_off) * cur_step
-        cur_vels = -np.roll(cur_vels, cur_off)
+        # this is the wrapping point
+        cur_vels = -((np.arange(lspec) + cur_off) % lspec - cur_off) * cur_step
+        # now cur_vels[lspec-off] is the first positive velocity
+        # we need to np.roll(X,cur_off)  to make it continuous
+        # notice that it is decreasing and it corresponds to the velocity of
+        # the ccf pixels
+        cur_ind = (np.abs(cur_vels) < (maxvel + cur_step))
+        # boolean mask within the required velocity range
+        assert (cur_ind.sum() % 2 == 1)  # must be odd
+        cur_ind = np.roll(np.nonzero(cur_ind)[0], cur_ind.sum() // 2)
+        # these are indices that makes it monotonic
+        cur_ind = cur_ind[::-1]
+        # that provides indices that will go from negative
+        # to positive velocities
+        subind[spec_setup] = cur_ind
         velstep[spec_setup] = cur_step
-        off[spec_setup] = cur_off
-        vels[spec_setup] = cur_vels
-        subind[spec_setup] = np.abs(cur_vels) < maxvel + cur_step
+        vels[spec_setup] = cur_vels[cur_ind]
 
     max_ccf = -np.inf
     best_id = -1
 
+    # the logic is the following
+    # if array y is shifted by n pixels to the right side wrt x
+    # ifft(fft(x)*fft(y).conj) will peak at pixel N-n (0based)
+    # or if array is shifted to n pixels to the left it will peak at n (0based)
+
     nfft = ccf_dats[spec_setup].shape[0]
+    curccf = np.empty((len(setups), nvelgrid))
     for cur_id in range(nfft):
-        curccf = {}
-        for spec_setup in setups:
+
+        for ii, spec_setup in enumerate(setups):
             curf = ccf_dats[spec_setup][cur_id, :]
             curccf0 = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
-            curccf0 = np.roll(curccf0, off[spec_setup])
-            curccf0 = curccf0[subind[spec_setup]]
-            curccf[spec_setup] = scipy.interpolate.interp1d(
-                vels[spec_setup][subind[spec_setup]][::-1],
-                curccf0[::-1],
+            curccf[ii] = scipy.interpolate.interp1d(
+                vels[spec_setup],
+                curccf0[subind[spec_setup]],
             )(vel_grid)
+            # we interpolate all the ccf from every arm
+            # to the same velocity grid
 
-        allccf = ccf_combiner([curccf[_] for _ in setups])
+        allccf = ccf_combiner(curccf)
         if allccf.max() > max_ccf:
             max_ccf = allccf.max()
             best_id = cur_id
