@@ -322,7 +322,8 @@ def get_sns(data, ivars, masks):
         xsn[xind] = np.nan
         xsn[xind] = np.nan
         sns = np.nanmedian(xsn, axis=1)
-
+        sns[~np.isfinite(sns)] = -1e9  # set problematic spectrum sn to
+        # a very negative number
     return sns
 
 
@@ -337,7 +338,7 @@ def read_data(fname, glued, setups):
         True if BRZ format
     setups: list
         List of spectral configurations (i.e. ['b', 'r', 'z']
-    
+
     Returns
     -------
     fluxes: ndarray
@@ -419,7 +420,7 @@ def select_fibers_to_fit(fibermap,
 
 
 def get_unique_seqid_to_fit(targetid, subset, combine=False):
-    """ 
+    """
     Return the row ids of that needs to be processed
     The complexity here is dealing with the combine mode, in that
     case I return list of lists of integers
@@ -438,7 +439,7 @@ def get_unique_seqid_to_fit(targetid, subset, combine=False):
 
 def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
     """ Return the list of SpecDatas for one single object
-    
+
     Parameters
     ----------
 
@@ -460,7 +461,7 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
     Returns
     -------
     ret: list
-        List of specfit.SpecData objects
+        List of specfit.SpecData objects or None if failed
 
     """
     large_error = 1000
@@ -475,6 +476,10 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
             medspec = np.nanmedian(spec[spec > 0])
             if not np.isfinite(medspec):
                 medspec = np.nanmedian(np.abs(spec))
+        if not np.isfinite(medspec) or medspec == 0:
+            # bail out the spectrum is insane
+            # TODO make the logic clearer
+            return None
         baddat = ~np.isfinite(spec + curivars)
         badmask = (masks[s][seqid] > 0)
         baderr = curivars <= 0
@@ -493,6 +498,7 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
                     'More than 10% of spectra had the uncertainty clamped')
             logging.debug("Clamped error on %d pixels" % (replace_idx.sum()))
             espec[replace_idx] = goodespec_thresh
+
         sd = spec_fit.SpecData('desi_%s' % s,
                                waves[s],
                                spec,
@@ -595,7 +601,6 @@ def proc_desi(fname,
          it can be none
     poolex: Executor
          The executor that will run parallel processes
-    
     """
 
     options = {'npoly': 10}
@@ -658,6 +663,7 @@ def proc_desi(fname,
 
     seqid_to_fit = get_unique_seqid_to_fit(targetid, subset, combine=combine)
     rets = []
+    nfibers_good = 0
     for curseqid in seqid_to_fit:
         # collect data (if combining that means multiple spectra)
         if not combine:
@@ -670,7 +676,11 @@ def proc_desi(fname,
                 for _ in curseqid
             ], [])
             curFiberRow = fibermap[curseqid[0]]
-
+        if specdatas is None:
+            logging.warning(
+                f'Giving up on fitting spectra for row {curFiberRow}')
+            continue
+        nfibers_good += 1
         curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
         fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
                                                     curseqid)
@@ -679,7 +689,11 @@ def proc_desi(fname,
             (poolex.submit(proc_onespec, *(specdatas, setups, config, options),
                            **dict(fig_fname=fig_fname,
                                   doplot=doplot)), curFiberRow, curseqid))
-
+    if nfibers_good == 0:
+        logging.warning('In the end no spectra worth fitting...')
+        put_empty_file(tab_ofname)
+        put_empty_file(mod_ofname)
+        return 0
     for r in rets:
         outdict, curmodel = r[0].result()
         versions = outdict['versions']
