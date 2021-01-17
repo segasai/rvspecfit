@@ -3,6 +3,7 @@ import sys
 import astropy.io.fits as pyfits
 import mktemps
 
+
 def make_grid(prefix, wavefile):
     nt, nl, nf, na = 7, 7, 7, 7
     S0 = np.random.get_state()
@@ -17,7 +18,7 @@ def make_grid(prefix, wavefile):
         for iil in range(nl):
             for iif in range(nf):
                 for iia in range(na):
-                    spec = mktemps.getspec(lam, teffs[iit], loggs[iil], 
+                    spec = mktemps.getspec(lam, teffs[iit], loggs[iil],
                                            fehs[iif], alphas[iia])
                     hdr = dict(PHXLOGG=loggs[iil],
                                PHXALPHA=alphas[iia],

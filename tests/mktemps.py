@@ -26,12 +26,12 @@ def getspec(lam, teff, logg, met, alpha, wresol=0, energy=True):
              np.exp(-0.5 *
                     (lam[:, None] - lamcens[None, :])**2 / curw[None, :]**2))
 
-    ret =  np.prod(np.array(lines), axis=1) * cont
+    ret = np.prod(np.array(lines), axis=1) * cont
     if energy:
         ret = ret
     else:
-        # in photons 
-        ret = ret * lam 
+        # in photons
+        ret = ret * lam
     return ret
 
 

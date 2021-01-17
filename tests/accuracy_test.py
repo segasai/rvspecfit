@@ -11,11 +11,17 @@ import mktemps
 
 # this is the accuracy testing suite
 
+
 class si:
     fname = 'test.yaml'
     config = utils.read_config(fname)
 
-def doone(seed, sn=100, nlam=400, config_name='test.yaml', doplot=False,
+
+def doone(seed,
+          sn=100,
+          nlam=400,
+          config_name='test.yaml',
+          doplot=False,
           resol=1000):
 
     if config_name != si.fname:

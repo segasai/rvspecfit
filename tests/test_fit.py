@@ -39,8 +39,6 @@ res = vel_fit.process(specdata,
                       config=config,
                       options=options)
 
-
-
 options = {'npoly': 15}
 res = fitter_ccf.fit(specdata, config)
 paramDict0 = res['best_par']
