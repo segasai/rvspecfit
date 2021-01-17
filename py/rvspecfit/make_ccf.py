@@ -309,7 +309,10 @@ def interp_masker(lam, spec, badmask):
     spec1 = spec * 1
     xbad = np.nonzero(badmask)[0]
     xgood = np.nonzero(~badmask)[0]
-    assert (len(xgood) > 0)
+    if len(xgood) == 0:
+        logging.warning('All the pixels are masked for the ccf determination')
+        ret = spec1
+        ret[~np.isfinite(ret)] = 1
     xpos = np.searchsorted(xgood, xbad)
     leftedge = xpos == 0
     rightedge = xpos == len(xgood)
