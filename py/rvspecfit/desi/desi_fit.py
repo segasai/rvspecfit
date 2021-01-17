@@ -955,6 +955,7 @@ def proc_many(
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
         os.makedirs(folder_path, exist_ok=True)
+        logging.debug(f'Making folder {folder_path}')
         tab_ofname = folder_path + output_tab_prefix + '_' + fname
         mod_ofname = folder_path + output_mod_prefix + '_' + fname
 
@@ -983,6 +984,8 @@ def proc_many(
                 r.cancel()
             poolEx.shutdown(wait=False)
             raise
+    
+    logging.info("Successfully finished processing")
 
 
 def main(args):
