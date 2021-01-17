@@ -25,6 +25,7 @@ from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, \
 class ProcessStatus(enum.Enum):
     SUCCESS = 0
     FAILURE = 1
+    EXISTING = 2
 
     def __str__(self):
         return self.name
@@ -207,7 +208,6 @@ def proc_onespec(
         Dictionary with fit measurements
     yfit: list
         List of best-fit models
-  
     """
     chisqs = {}
     chisqs_c = {}
@@ -961,6 +961,9 @@ def proc_many(
 
         if (skipexisting) and os.path.exists(tab_ofname):
             logging.info('skipping, products already exist %s' % f)
+            update_process_status_file(process_status_file, f,
+                                       ProcessStatus.EXISTING, -1)
+
             continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config)
         kwargs = dict(fit_targetid=fit_targetid,
@@ -984,7 +987,7 @@ def proc_many(
                 r.cancel()
             poolEx.shutdown(wait=False)
             raise
-    
+
     logging.info("Successfully finished processing")
 
 
