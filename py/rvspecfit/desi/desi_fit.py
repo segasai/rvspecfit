@@ -641,7 +641,7 @@ def proc_desi(fname,
         put_empty_file(tab_ofname)
         put_empty_file(mod_ofname)
         return 0
-
+    logging.debug('Selected %d fibers to fit' % (subset.sum()))
     # if we are combining
 
     # columns to include in the RVTAB
