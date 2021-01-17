@@ -76,16 +76,19 @@ def fit(specdata, config):
     # only search for CCF peaks from -maxvel to maxvel
     nvelgrid = int(2 * maxvel / (config.get('vel_step0') or 2))
     # number of points on the ccf in the specified velocity range
+    vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
 
-    velstep = {}
-    spec_fftconj = {}
-    vels = {}
-    off = {}
-    subind = {}
-    ccf_dats = {}
-    ccf_infos = {}
-    ccf_mods = {}
-    proc_specs = {}
+    # these are the dictionaries storing information for all the configurations
+    # that we are fitting
+    velstep = {}  # step in the ccf in velocity
+    spec_fftconj = {}  # conjugated fft of the data
+    vels = {}  # velocity grids
+    off = {}  # offsets (how much to offset to make the ccf centered
+    subind = {}  # the range of the ccf covering the velocity range of interest
+    ccf_dats = {}  # ffts of templates
+    ccf_infos = {}  # ccf configurations
+    ccf_mods = {}  # the actual template models
+    proc_specs = {}  # actual data processed/continuum normalized etc
     setups = []
     for cursd in specdata:
         spec_setup = cursd.name
@@ -125,7 +128,6 @@ def fit(specdata, config):
     best_id = -1
 
     nfft = ccf_dats[spec_setup].shape[0]
-    vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
     for cur_id in range(nfft):
         curccf = {}
         for spec_setup in setups:
