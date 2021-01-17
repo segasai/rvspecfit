@@ -313,6 +313,7 @@ def interp_masker(lam, spec, badmask):
         logging.warning('All the pixels are masked for the ccf determination')
         ret = spec1
         ret[~np.isfinite(ret)] = 1
+        return ret
     xpos = np.searchsorted(xgood, xbad)
     leftedge = xpos == 0
     rightedge = xpos == len(xgood)
