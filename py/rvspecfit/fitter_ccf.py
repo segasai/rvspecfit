@@ -115,14 +115,15 @@ def fit(specdata, config):
         proc_specs[spec_setup] = proc_spec
         spec_fft = np.fft.fft(proc_spec)
         spec_fftconj[spec_setup] = spec_fft.conj()
-        velstep[spec_setup] = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
+        cur_step = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
         lspec = len(spec_fft)
-        off[spec_setup] = lspec // 2
-        vels[spec_setup] = ((np.arange(lspec) + off[spec_setup]) % lspec -
-                            off[spec_setup]) * velstep[spec_setup]
-        vels[spec_setup] = -np.roll(vels[spec_setup], off[spec_setup])
-        subind[spec_setup] = np.abs(
-            vels[spec_setup]) < maxvel + velstep[spec_setup]
+        cur_off = lspec // 2
+        cur_vels = ((np.arange(lspec) + cur_off) % lspec - cur_off) * cur_step
+        cur_vels = -np.roll(cur_vels, cur_off)
+        velstep[spec_setup] = cur_step
+        off[spec_setup] = cur_off
+        vels[spec_setup] = cur_vels
+        subind[spec_setup] = np.abs(cur_vels) < maxvel + cur_step
 
     max_ccf = -np.inf
     best_id = -1
