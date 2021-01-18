@@ -662,6 +662,11 @@ def proc_desi(fname,
         models['desi_%s' % curs] = []
 
     seqid_to_fit = get_unique_seqid_to_fit(targetid, subset, combine=combine)
+    subset_ret = subset.copy()
+    # returned subset to deal with the fact that
+    # I'll skip some spectra
+    # in the future I should instead fill things with nans
+    # TODO
     rets = []
     nfibers_good = 0
     for curseqid in seqid_to_fit:
@@ -679,6 +684,7 @@ def proc_desi(fname,
         if specdatas is None:
             logging.warning(
                 f'Giving up on fitting spectra for row {curFiberRow}')
+            subset_ret[curseqid] = False
             continue
         nfibers_good += 1
         curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
@@ -720,7 +726,7 @@ def proc_desi(fname,
         else:
             outdf1[k] = np.array([_[k] for _ in outdf])
     outtab = atpy.Table(outdf1)
-    fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
+    fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset_ret],
                                              name='FIBERMAP')
     outmod_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(
@@ -741,7 +747,7 @@ def proc_desi(fname,
     columnDesc = get_column_desc(setups)
 
     outmod_hdus += [fibermap_subset_hdu]
-
+    assert (len(fibermap_subset_hdu.data) == len(outtab))
     outtab_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(
             versions=versions, config=config, cmdline=cmdline)),
@@ -768,7 +774,7 @@ def proc_desi(fname,
                                             checksum=True)
 
     else:
-        refit_tab = atpy.Table(fibermap)[subset]
+        refit_tab = atpy.Table(fibermap)[subset_ret]
         # find a replacement subset
         refit_tab_pd = refit_tab.to_pandas()
         old_rvtab_pd = old_rvtab.to_pandas()
