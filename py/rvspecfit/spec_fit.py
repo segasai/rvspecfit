@@ -540,6 +540,7 @@ def get_chisq(specdata,
         for each of the fited spectra
         redchisq_array -- this is the array of reduced chi-squares
         models -- array of best fit models
+        raw_models -- array of models not corrected by the polynomial 
 
     """
     npoly = options.get('npoly') or 5
@@ -552,6 +553,7 @@ def get_chisq(specdata,
     atm_params = tuple(atm_params)
 
     models = []
+    raw_models = []
     chisq_array = []
     red_chisq_array = []
     # iterate over multiple datasets
@@ -605,6 +607,7 @@ def get_chisq(specdata,
         if full_output:
             curlogl, coeffs = curlogl
             curmodel = np.dot(coeffs, polys * evalTempl)
+            raw_models.append(evalTempl)
             models.append(curmodel)
             XCHISQ = (((curmodel - curdata.spec) / curdata.espec)**2).sum()
             chisq_array.append(XCHISQ)
@@ -620,6 +623,7 @@ def get_chisq(specdata,
         ret['chisq_array'] = chisq_array
         ret['red_chisq_array'] = red_chisq_array
         ret['models'] = models
+        ret['raw_models'] = raw_models
     else:
         ret = logl
     return ret

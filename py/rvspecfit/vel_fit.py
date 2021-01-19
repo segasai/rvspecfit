@@ -427,6 +427,7 @@ def process(
     ret['minimize_success'] = minimize_success
 
     ret['yfit'] = outp['models']
+    ret['raw_models'] = outp['raw_models']
     ret['chisq'] = outp['chisq']
     ret['chisq_array'] = outp['chisq_array']
     t6 = time.time()
