@@ -219,7 +219,7 @@ def process(
     max_vsini = config['max_vsini']
     min_vsini = config['min_vsini']
     min_vel_step = config['min_vel_step']
-    second_minimizer = config['second_minimizer']
+    second_minimizer = config.get('second_minimizer') or False
     options = options or {}
 
     vels_grid = np.arange(min_vel, max_vel, vel_step0)
