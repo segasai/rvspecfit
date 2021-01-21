@@ -395,12 +395,9 @@ def process(
                                   best_param['rot_params'],
                                   resolParams,
                                   options=options,
-                                  config=config,
-                                  full_output=True)
-        return 0.5 * outp['chisq']
+                                  config=config)
+        return 0.5 * outp
 
-    # hess_step = np.maximum(
-    #    1e-4 * np.abs(np.array([ret['param'][_] for _ in specParams])), 1e-4)
     hess_step = [{
         'vsini': 10,
         'logg': 1,
