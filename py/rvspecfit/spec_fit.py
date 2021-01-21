@@ -473,11 +473,12 @@ def get_chisq_continuum(specdata, options=None):
 
     '''
     npoly = options.get('npoly') or 5
+    rbf = options.get('rbf_continuum') or True
     ret = []
     ret1 = []
     for curdata in specdata:
         # name = curdata.name
-        polys = get_basis(curdata, npoly)
+        polys = get_basis(curdata, npoly, rbf=rbf)
         templ = np.ones(len(curdata.spec))
         curchisq, coeffs = get_chisq0(curdata.spec,
                                       templ,
@@ -544,6 +545,7 @@ def get_chisq(specdata,
 
     """
     npoly = options.get('npoly') or 5
+    rbf = options.get('rbf_continuum') or True
     logl = 0
     badchi = 1e6
     if rot_params is not None:
@@ -597,7 +599,7 @@ def get_chisq(specdata,
         if resol_params is not None:
             evalTempl = convolve_resol(evalTempl, resol_params[name])
 
-        polys = get_basis(curdata, npoly)
+        polys = get_basis(curdata, npoly, rbf=rbf)
 
         curlogl = get_chisq0(curdata.spec,
                              evalTempl,
