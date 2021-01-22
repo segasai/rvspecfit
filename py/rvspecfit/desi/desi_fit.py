@@ -808,9 +808,9 @@ def proc_desi(fname,
 
 
 def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
-    allowed = ['FIBERMAP', 'RVTAB'
-               ] + ['%s_MODEL' % _
-                    for _ in setups] + ['%s_WAVELENGTH' % _ for _ in setups]
+    allowed = ['FIBERMAP', 'RVTAB'] + [
+        '%s_MODEL' % _.upper() for _ in setups
+    ] + ['%s_WAVELENGTH' % _.upper() for _ in setups]
 
     for i in range(len(hdus)):
         if i == 0:
