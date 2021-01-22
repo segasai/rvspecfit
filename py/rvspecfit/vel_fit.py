@@ -145,13 +145,24 @@ class ParamMapper:
 
 
 def chisq_func0(pdict, args):
-    chisq = spec_fit.get_chisq(args['specdata'],
-                               pdict['vel'],
-                               pdict['params'],
-                               pdict['rot_params'],
-                               args['resolParams'],
-                               options=args['options'],
-                               config=args['config'])
+    # this is the generic function that returns
+    # chi-square + prior
+    # it is called by the
+    chisq = 0
+    if args.get('priors') is not None:
+        priors = args['priors']
+        for i, k in enumerate(args['paramMapper'].specParams):
+            if k in priors:
+                chisq += ((priors[k][0] - pdict['params'][i]) /
+                          priors[k][1])**2
+
+    chisq += spec_fit.get_chisq(args['specdata'],
+                                pdict['vel'],
+                                pdict['params'],
+                                pdict['rot_params'],
+                                args['resolParams'],
+                                options=args['options'],
+                                config=args['config'])
     return chisq
 
 
@@ -178,14 +189,13 @@ specParams is the list of names of parameters that we are varying
     return 0.5 * chisq_func0(pdict, args)
 
 
-def process(
-    specdata,
-    paramDict0,
-    fixParam=None,
-    options=None,
-    config=None,
-    resolParams=None,
-):
+def process(specdata,
+            paramDict0,
+            fixParam=None,
+            options=None,
+            config=None,
+            resolParams=None,
+            priors=None):
     """ Process spectra by doing maximum likelihood fit to spectral data
 
     Parameters
@@ -313,7 +323,8 @@ def process(
                 paramMapper=paramMapper,
                 specdata=specdata,
                 options=options,
-                config=config)
+                config=config,
+                priors=priors)
     while True:
         res = scipy.optimize.minimize(chisq_func,
                                       curval,
