@@ -407,7 +407,7 @@ def select_fibers_to_fit(fibermap,
         if maxe is None:
             maxe = np.inf
     if not glued:
-        if "EXPID" in fibermap.columns:
+        if "EXPID" in fibermap.columns.names:
             subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID']
                                                             <= maxe)
     if fit_targetid is not None:
@@ -708,7 +708,7 @@ def proc_desi(fname,
         curFiberRow, curseqid = r[1], r[2]
 
         for col in columnsCopy:
-            if col in fibermap:
+            if col in fibermap.columns.names:
                 outdict[col] = curFiberRow[col]
         for curs in setups:
             outdict['SN_%s' % curs.upper()] = sns[curs][curseqid]
