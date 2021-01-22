@@ -6,6 +6,7 @@ import numdifftools as ndf
 from rvspecfit import spec_fit
 from rvspecfit import spec_inter
 import logging
+import copy
 
 
 def firstguess(specdata, options=None, config=None, resolParams=None):
@@ -143,6 +144,17 @@ class ParamMapper:
         return ret
 
 
+def chisq_func0(pdict, args):
+    chisq = spec_fit.get_chisq(args['specdata'],
+                               pdict['vel'],
+                               pdict['params'],
+                               pdict['rot_params'],
+                               args['resolParams'],
+                               options=args['options'],
+                               config=args['config'])
+    return chisq
+
+
 def chisq_func(p, args):
     """
 The function computes the chi-square of the fit
@@ -152,14 +164,18 @@ This function is used for minimization
     pdict = paramMapper.forward(p)
     if pdict['vel'] > args['max_vel'] or pdict['vel'] < args['min_vel']:
         return 1e30
-    chisq = spec_fit.get_chisq(args['specdata'],
-                               pdict['vel'],
-                               pdict['params'],
-                               pdict['rot_params'],
-                               args['resolParams'],
-                               options=args['options'],
-                               config=args['config'])
-    return chisq
+    return chisq_func0(pdict, args)
+
+
+def hess_func(p, pdict, args):
+    """
+The function computes the 0.5*chi-square 
+and takes as input vector of parameters (not transofrmed)
+pdict is for fixedparameters
+specParams is the list of names of parameters that we are varying
+"""
+    pdict['params'][:] = p[:]
+    return 0.5 * chisq_func0(pdict, args)
 
 
 def process(
@@ -388,15 +404,10 @@ def process(
     t5 = time.time()
 
     # compute the uncertainty of stellar params
-    def hess_func(p):
-        outp = spec_fit.get_chisq(specdata,
-                                  best_vel,
-                                  p,
-                                  best_param['rot_params'],
-                                  resolParams,
-                                  options=options,
-                                  config=config)
-        return 0.5 * outp
+    best_param_TMP = copy.deepcopy(best_param)
+
+    def hess_func_wrap(p):
+        return hess_func(p, best_param_TMP, args)
 
     hess_step = [{
         'vsini': 10,
@@ -408,7 +419,7 @@ def process(
     }[_] for _ in specParams]
     hess_step = ndf.MinStepGenerator(base_step=hess_step, step_ratio=10)
     hessian = ndf.Hessian(
-        hess_func, step=hess_step)([ret['param'][_] for _ in specParams])
+        hess_func_wrap, step=hess_step)([ret['param'][_] for _ in specParams])
     try:
         hessian_inv = scipy.linalg.inv(hessian)
         diag_hess = np.array(np.diag(hessian_inv))
