@@ -407,9 +407,9 @@ def select_fibers_to_fit(fibermap,
         if maxe is None:
             maxe = np.inf
     if not glued:
-        if "EXPID"  in fibermap:
-            subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <=
-                                                        maxe)
+        if "EXPID" in fibermap.columns:
+            subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID']
+                                                            <= maxe)
     if fit_targetid is not None:
         subset = subset & np.in1d(fibermap['TARGETID'], fit_targetid)
     if minsn is not None:
