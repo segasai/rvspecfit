@@ -1,7 +1,8 @@
 #!/bin/bash -e
-DBFILE=files_config1.db
-PREF=tmp/
-PREF1=templ_data_test/
+DIR=`dirname $0`
+DBFILE=$DIR/files_config1.db
+PREF=$DIR/tmp/
+PREF1=$DIR/templ_data_test/
 CONF_NAME=config1
 STEP=1
 LAM1=4550
@@ -18,7 +19,7 @@ RVS_MAKE_CCF="$COV `command -v rvs_make_ccf`"
 mkdir -p $PREF/specs
 mkdir -p $PREF1
 rm -f $PREF/xx*fits
-python mktemps.py $PREF wave.fits 300
+python $DIR/mktemps.py $PREF wave.fits 300
 rm -f $DBFILE
 $RVS_READ_GRID  --prefix $PREF --templdb $DBFILE
 $RVS_MAKE_INTERPOL --templdb $DBFILE --wavefile $PREF/wave.fits --templprefix $PREF  --resol $RESOL --lambda0 $LAM1 --lambda1 $LAM2 --step $STEP --setup $CONF_NAME --oprefix $PREF1

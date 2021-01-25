@@ -4,18 +4,20 @@ import astropy.io.fits as pyfits
 import numpy as np
 import sys
 import time
+import pathlib
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from rvspecfit import spec_fit
 from rvspecfit import utils
+path = str(pathlib.Path(__file__).parent.absolute())
 
 
 def test_fits():
-    config = utils.read_config()
+    config = utils.read_config(path + '/config.yaml')
 
     # read data
-    dat = pyfits.getdata('./data/spec-0266-51602-0031.fits')
+    dat = pyfits.getdata(path + '/data/spec-0266-51602-0031.fits')
     err = dat['ivar']
     err = 1. / err**.5
     err[~np.isfinite(err)] = 1e40
@@ -66,7 +68,7 @@ def test_fits():
                              full_output=True)
     plt.plot(specdata[0].lam, specdata[0].spec, 'k')
     plt.plot(specdata[0].lam, ret['models'][0], 'r')
-    plt.savefig('plot_sdss_test1.png')
+    plt.savefig(path + '/plot_sdss_test1.png')
 
     # Test the fit with the resolution matrix
     rot_params = None
@@ -82,7 +84,7 @@ def test_fits():
                              full_output=True)
     plt.plot(specdata[0].lam, specdata[0].spec, 'k')
     plt.plot(specdata[0].lam, ret['models'][0], 'r')
-    plt.savefig('plot_sdss_test2.png')
+    plt.savefig(path + '/plot_sdss_test2.png')
 
 
 if __name__ == '__main__':

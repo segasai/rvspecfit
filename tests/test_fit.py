@@ -3,18 +3,20 @@ os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 import astropy.io.fits as pyfits
 import numpy as np
+import pathlib
 import matplotlib.pyplot as plt
 from rvspecfit import utils
 from rvspecfit import vel_fit
 from rvspecfit import spec_fit
 from rvspecfit import fitter_ccf
+path = str(pathlib.Path(__file__).parent.absolute())
 
 
 def test_fit():
-    config = utils.read_config()
+    config = utils.read_config(path + '/config.yaml')
 
     # read data
-    dat = pyfits.getdata('./data/spec-0266-51602-0031.fits')
+    dat = pyfits.getdata(path + '/data/spec-0266-51602-0031.fits')
     err = dat['ivar']
     err = 1. / err**.5
     err[~np.isfinite(err)] = 1e40
@@ -77,7 +79,7 @@ def test_fit():
     plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
     plt.plot(specdata[0].lam, res1['yfit'][0], 'r-')
     plt.tight_layout()
-    plt.savefig('plot_test_fit_sdss.png')
+    plt.savefig(path + '/plot_test_fit_sdss.png')
     res2 = vel_fit.process(specdata,
                            paramDict0,
                            fixParam=fixParam,

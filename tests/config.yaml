@@ -1,4 +1,4 @@
-template_lib: '../../templ_data/'
+template_lib: 'tests/templ_data/'
 min_vel: -1000
 max_vel: 1000
 min_vel_step: 0.2

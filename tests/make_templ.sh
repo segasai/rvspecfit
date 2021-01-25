@@ -1,7 +1,8 @@
-#!/bin/bash -e 
-PREFIX=./templ_data
-TEMPLPREF=small_phoenix/
-WAVEFILE=small_phoenix/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
+#!/bin/bash -e
+DIR=`dirname $0`
+PREFIX=$DIR//templ_data
+TEMPLPREF=$DIR/small_phoenix/
+WAVEFILE=$DIR/small_phoenix/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
 BLAM0=3500
 BLAM1=5900
 VSINIS=0,300

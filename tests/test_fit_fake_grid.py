@@ -7,12 +7,14 @@ import matplotlib.pyplot as plt
 from rvspecfit import utils
 from rvspecfit import vel_fit
 from rvspecfit import spec_fit
+import pathlib
 
 from mktemps import getspec
+path = str(pathlib.Path(__file__).parent.absolute())
 
 
 def test_fake_grid():
-    config = utils.read_config('test.yaml')
+    config = utils.read_config(path + '/test.yaml')
 
     # read data
     lam = np.linspace(4600, 5400, 800)
@@ -51,7 +53,7 @@ def test_fake_grid():
         plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
         plt.plot(specdata[0].lam, res['yfit'][0], 'r-')
         plt.tight_layout()
-        plt.savefig('plot_test_fit_fake_grid.png')
+        plt.savefig(path + '/plot_test_fit_fake_grid.png')
 
 
 if __name__ == '__main__':
