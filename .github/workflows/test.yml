@@ -38,7 +38,7 @@ jobs:
           tar xfz small_phoenix.tar.gz
           cat config.yaml |grep -v template_lib > copy.yaml
           cp copy.yaml config.yaml
-          echo \"template_lib: './templ_data/'\" >> config.yaml
+          echo template_lib: \'./templ_data/\' >> config.yaml
           python test_sdss.py
           python test_interp.py
           python test_fit.py
