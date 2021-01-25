@@ -154,7 +154,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
 
     """
     if os.path.exists(dbfile):
-        print('Overwriting the template database file {dbfile}')
+        print(f'Overwriting the template database file {dbfile}')
         os.unlink(dbfile)
     DB = sqlite3.connect(dbfile)
     id = 0
