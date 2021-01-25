@@ -615,8 +615,8 @@ def get_chisq(specdata,
             chisq_array.append(XCHISQ)
             red_chisq_array.append(XCHISQ / len(curdata.espec))
 
-        assert (np.isfinite(curlogl.item()))
-        logl += np.asscalar(curlogl.item())
+        assert (np.isfinite(float(curlogl)))
+        logl += float(curlogl)
 
     if full_output:
         ret = {}
