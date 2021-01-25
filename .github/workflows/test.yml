@@ -39,7 +39,7 @@ jobs:
           cd ..
       - name: Testing
         run: |
-          pytest --cov
+          pytest --cov=rvspecfit
       - name: Coveralls
         if: ${{ success() }}
         run: coveralls --service=github
