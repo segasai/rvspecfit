@@ -142,9 +142,7 @@ class ParamMapper:
         return np.array([10**vec[0], vec[1], vec[2], vec[3]])
 
 
-def makedb(
-    prefix='/PHOENIX-ACES-AGSS-COND-2011/',
-    dbfile='files.db'):
+def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
     """ Create an sqlite database of the templates
 
     Parameters
@@ -163,19 +161,27 @@ def makedb(
 
     mask = '*/*fits'
     fs = sorted(glob.glob(prefix + mask))
+    keywords = dict(teff='PHXTEFF',
+                    logg='PHXLOGG',
+                    alpha='PHXALPHA',
+                    met='PHXM_H')
+
     if len(fs) == 0:
         raise Exception(
             "No FITS templates found in the directory specified (using mask %s"
             % mask)
     for f in fs:
         hdr = pyfits.getheader(f)
-        teff = hdr['PHXTEFF']
-        logg = float(hdr['PHXLOGG'])
-        alpha = float(hdr['PHXALPHA'])
-        met = float(hdr['PHXM_H'])
+        curpar = {}
+        for param, curkey in keywords.items():
+            if curkey not in hdr:
+                raise Exception(
+                    f"Keyword for {param} {curkey} not found in {f}")
+            curpar[param] = hdr[curkey]
 
         DB.execute('insert into files  values (?, ? , ? , ? , ?, ? )',
-                   (f.replace(prefix, ''), teff, logg, met, alpha, id))
+                   (f.replace(prefix, ''), curpar['teff'], curpar['logg'],
+                    curpar['met'], curpar['alpha'], id))
         id += 1
     DB.commit()
 
