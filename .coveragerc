@@ -1,4 +1,3 @@
 [run]
 	source=py/rvspecfit
-	relative_files = True
 
