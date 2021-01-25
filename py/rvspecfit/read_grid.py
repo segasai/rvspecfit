@@ -1,12 +1,12 @@
 from __future__ import print_function
 import glob
 import sys
+import os
 import sqlite3
 import astropy.io.fits as pyfits
 import scipy.stats
 import scipy.sparse
 import numpy as np
-import astropy.wcs as pywcs
 import argparse
 
 
@@ -153,6 +153,9 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
         The output file with the sqlite DB
 
     """
+    if os.path.exists(dbfile):
+        print('Overwriting the template database file {dbfile}')
+        os.unlink(dbfile)
     DB = sqlite3.connect(dbfile)
     id = 0
     DB.execute(
