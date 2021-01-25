@@ -34,7 +34,6 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-#VERSIONPIP = '0.0.1'
 VERSIONPIP = read('version.txt').rstrip()
 print(get_revision())
 VERSION = VERSIONPIP + 'dev-' + get_revision()
@@ -46,10 +45,10 @@ setup(
     name="rvspecfit",
     version=VERSION,
     author="Sergey Koposov",
-    author_email="skoposov@cmu.edu",
-    description=("Radial velocity code."),
+    author_email="skoposov@ed.ac.uk",
+    description=("Radial velocity and stellar parameter measurement code."),
     license="BSD",
-    keywords="example documentation tutorial",
+    keywords="stellar spectra radial velocity",
     url="http://github.com/segasai/rvspecfit",
     packages=['rvspecfit', 'rvspecfit/desi', 'rvspecfit/weave'],
     scripts=[fname for fname in glob.glob(os.path.join('bin', '*'))],
