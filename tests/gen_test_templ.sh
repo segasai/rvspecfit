@@ -7,11 +7,12 @@ STEP=1
 LAM1=4550
 LAM2=5450
 RESOL=1000
+COV="coverage run --append --context=rvspecfit"
 
-RVS_READ_GRID="coverage run `command -v rvs_read_grid`"
-RVS_MAKE_INTERPOL="coverage run `command -v rvs_make_interpol`"
-RVS_MAKE_ND="coverage run `command -v rvs_make_nd`"
-RVS_MAKE_CCF="coverage run `command -v rvs_make_ccf`"
+RVS_READ_GRID="$COV `command -v rvs_read_grid`"
+RVS_MAKE_INTERPOL="$COV `command -v rvs_make_interpol`"
+RVS_MAKE_ND="$COV `command -v rvs_make_nd`"
+RVS_MAKE_CCF="$COV `command -v rvs_make_ccf`"
 
 
 mkdir -p $PREF/specs

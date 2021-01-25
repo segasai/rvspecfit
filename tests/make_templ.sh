@@ -9,10 +9,12 @@ RNAME=aat1_1700d
 BNAME=aat1_580v
 BSTEP=0.5
 BRESOL=1450
-RVS_READ_GRID="coverage run `command -v rvs_read_grid`"
-RVS_MAKE_INTERPOL="coverage run `command -v rvs_make_interpol`"
-RVS_MAKE_ND="coverage run `command -v rvs_make_nd`"
-RVS_MAKE_CCF="coverage run `command -v rvs_make_ccf`"
+COV="coverage run --append --context=rvspecfit"
+
+RVS_READ_GRID="$COV `command -v rvs_read_grid`"
+RVS_MAKE_INTERPOL="$COV `command -v rvs_make_interpol`"
+RVS_MAKE_ND="$COV `command -v rvs_make_nd`"
+RVS_MAKE_CCF="$COV `command -v rvs_make_ccf`"
 
 
 $RVS_READ_GRID --prefix $TEMPLPREF --templdb $PREFIX/files.db
