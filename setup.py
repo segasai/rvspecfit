@@ -36,7 +36,7 @@ def read(fname):
 
 VERSIONPIP = read('version.txt').rstrip()
 print(get_revision())
-VERSION = VERSIONPIP + 'dev-' + get_revision()
+VERSION = VERSIONPIP + '+dev' + get_revision()
 
 with open('py/rvspecfit/_version.py', 'w') as fp:
     print('version="%s"' % (VERSION), file=fp)
