@@ -1,5 +1,7 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
+
+# The noqa are to prevent warnings due to imports being not at the top
 import warnings  # noqa: E402
 import sys  # noqa: E402
 import argparse  # noqa: E402
@@ -7,16 +9,41 @@ import time  # noqa: E402
 import itertools  # noqa: E402
 import traceback  # noqa: E402
 import importlib  # noqa: E402
+import logging  # noqa: E402
+import enum  # noqa: E402
 import concurrent.futures  # noqa: E402
 import astropy.table as atpy  # noqa: E402
 import astropy.io.fits as pyfits  # noqa: E402
 import astropy.units as auni  # noqa: E402
 import numpy as np  # noqa: E402
 import scipy.stats  # noqa: E402
-
 import rvspecfit  # noqa: E402
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, \
     spec_inter  # noqa: E402
+
+
+class ProcessStatus(enum.Enum):
+    SUCCESS = 0
+    FAILURE = 1
+    EXISTING = 2
+
+    def __str__(self):
+        return self.name
+
+
+def update_process_status_file(status_fname,
+                               processed_file,
+                               status,
+                               nobjects,
+                               start=False):
+    if start:
+        with open(status_fname, 'w') as fp:
+            pass
+        if processed_file is None:
+            return
+    with open(status_fname, 'a') as fp:
+        print(f'{processed_file} {status} {nobjects}', file=fp)
+    return
 
 
 def get_dep_versions():
@@ -146,19 +173,20 @@ def valid_file(fname):
             if curn not in extnames:
                 missing_glued.append(curn)
         if len(missing_glued) > 0:
-            print('WARNING Extensions %s are missing' % (','.join(missing)))
+            logging.warning('Extensions %s are missing' % (','.join(missing)))
             return (False, True)
         return (True, True)
     return (True, False)
 
 
-def proc_onespec(specdata,
-                 setups,
-                 config,
-                 options,
-                 fig_fname='fig.png',
-                 doplot=True,
-                 verbose=False):
+def proc_onespec(
+    specdata,
+    setups,
+    config,
+    options,
+    fig_fname='fig.png',
+    doplot=True,
+):
     """Process one single Specdata object
 
     Parameters
@@ -173,8 +201,6 @@ def proc_onespec(specdata,
         Filename for the plot
     doplot: bool
         Do plotting or not
-    verbose: bool
-        Verbose output
 
     Returns
     -------
@@ -182,7 +208,6 @@ def proc_onespec(specdata,
         Dictionary with fit measurements
     yfit: list
         List of best-fit models
-  
     """
     chisqs = {}
     chisqs_c = {}
@@ -195,12 +220,13 @@ def proc_onespec(specdata,
         paramDict0['vsini'] = min(max(res['best_vsini'], config['min_vsini']),
                                   config['max_vsini'])
 
-    res1 = vel_fit.process(specdata,
-                           paramDict0,
-                           fixParam=fixParam,
-                           config=config,
-                           options=options,
-                           verbose=verbose)
+    res1 = vel_fit.process(
+        specdata,
+        paramDict0,
+        fixParam=fixParam,
+        config=config,
+        options=options,
+    )
     t3 = time.time()
     chisq_cont_array = spec_fit.get_chisq_continuum(
         specdata, options=options)['chisq_array']
@@ -214,6 +240,10 @@ def proc_onespec(specdata,
         TEFF=res1['param']['teff'] * auni.K,
         ALPHAFE=res1['param']['alpha'],
         FEH=res1['param']['feh'],
+        LOGG_ERR=res1['param_err']['logg'],
+        TEFF_ERR=res1['param_err']['teff'] * auni.K,
+        ALPHAFE_ERR=res1['param_err']['alpha'],
+        FEH_ERR=res1['param_err']['feh'],
         VSINI=res1['vsini'] * auni.km / auni.s,
         NEXP=len(specdata) // len(setups),
     )
@@ -277,8 +307,7 @@ def proc_onespec(specdata,
         versions[k] = dict(revision=v.revision,
                            creation_soft_version=v.creation_soft_version)
     outdict['versions'] = versions
-    if verbose:
-        print('Timing1: ', t2 - t1, t3 - t2, t4 - t3)
+    logging.debug('Timing: %.4f %.4f %.4f' % (t2 - t1, t3 - t2, t4 - t3))
     return outdict, res1['yfit']
 
 
@@ -293,7 +322,8 @@ def get_sns(data, ivars, masks):
         xsn[xind] = np.nan
         xsn[xind] = np.nan
         sns = np.nanmedian(xsn, axis=1)
-
+        sns[~np.isfinite(sns)] = -1e9  # set problematic spectrum sn to
+        # a very negative number
     return sns
 
 
@@ -308,7 +338,7 @@ def read_data(fname, glued, setups):
         True if BRZ format
     setups: list
         List of spectral configurations (i.e. ['b', 'r', 'z']
-    
+
     Returns
     -------
     fluxes: ndarray
@@ -377,8 +407,9 @@ def select_fibers_to_fit(fibermap,
         if maxe is None:
             maxe = np.inf
     if not glued:
-        subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <=
-                                                        maxe)
+        if "EXPID" in fibermap.columns.names:
+            subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID']
+                                                            <= maxe)
     if fit_targetid is not None:
         subset = subset & np.in1d(fibermap['TARGETID'], fit_targetid)
     if minsn is not None:
@@ -390,7 +421,7 @@ def select_fibers_to_fit(fibermap,
 
 
 def get_unique_seqid_to_fit(targetid, subset, combine=False):
-    """ 
+    """
     Return the row ids of that needs to be processed
     The complexity here is dealing with the combine mode, in that
     case I return list of lists of integers
@@ -409,7 +440,7 @@ def get_unique_seqid_to_fit(targetid, subset, combine=False):
 
 def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
     """ Return the list of SpecDatas for one single object
-    
+
     Parameters
     ----------
 
@@ -431,12 +462,13 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
     Returns
     -------
     ret: list
-        List of specfit.SpecData objects
+        List of specfit.SpecData objects or None if failed
 
     """
-    large_error = 1e9
+    large_error = 1000
     sds = []
-
+    minerr_frac = 0.3  # if the error is smaller than this times median error
+    # clamp the uncertainty
     for s in setups:
         spec = fluxes[s][seqid] * 1
         curivars = ivars[s][seqid] * 1
@@ -444,17 +476,35 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
         if medspec == 0:
             medspec = np.nanmedian(spec[spec > 0])
             if not np.isfinite(medspec):
-                medspec = 1
+                medspec = np.nanmedian(np.abs(spec))
+        if not np.isfinite(medspec) or medspec == 0:
+            # bail out the spectrum is insane
+            # TODO make the logic clearer
+            return None
         baddat = ~np.isfinite(spec + curivars)
-        badmask = (curivars <= 0) | (masks[s][seqid] > 0) | baddat
-        curivars[badmask] = medspec**2 / large_error**2
-        spec[baddat] = medspec
+        badmask = (masks[s][seqid] > 0)
+        baderr = curivars <= 0
+        badall = baddat | badmask | baderr
+        curivars[badall] = 1. / medspec**2 / large_error**2
+        spec[badall] = medspec
         espec = 1. / curivars**.5
+        if badall.all():
+            logging.warning('The whole spectrum was masked...')
+        else:
+            goodespec = espec[~badall]
+            goodespec_thresh = np.median(goodespec) * minerr_frac
+            replace_idx = (espec < goodespec_thresh) & (~badall)
+            if replace_idx.sum() / (~badall).sum() > .1:
+                logging.warning(
+                    'More than 10% of spectra had the uncertainty clamped')
+            logging.debug("Clamped error on %d pixels" % (replace_idx.sum()))
+            espec[replace_idx] = goodespec_thresh
+
         sd = spec_fit.SpecData('desi_%s' % s,
                                waves[s],
                                spec,
                                espec,
-                               badmask=badmask)
+                               badmask=badall)
         sds.append(sd)
     return sds
 
@@ -485,6 +535,10 @@ def get_column_desc(setups):
         ('LOGG', 'Log of surface gravity'), ('TEFF', 'Effective temperature'),
         ('FEH', '[Fe/H] from template fitting'),
         ('ALPHAFE', '[alpha/Fe] from template fitting'),
+        ('LOGG_ERR', 'Log of surface gravity uncertainty'),
+        ('TEFF_ERR', 'Effective temperature uncertainty'),
+        ('FEH_ERR', '[Fe/H] uncertainty from template fitting'),
+        ('ALPHAFE_ERR', '[alpha/Fe] uncertainty from template fitting'),
         ('CHISQ_TOT', 'Total chi-square for all arms'),
         ('CHISQ_C_TOT',
          'Total chi-square for all arms for polynomial only fit'),
@@ -512,7 +566,6 @@ def proc_desi(fname,
               mwonly=True,
               doplot=True,
               minsn=-1e9,
-              verbose=False,
               expid_range=None,
               overwrite=False,
               poolex=None,
@@ -537,8 +590,6 @@ def proc_desi(fname,
         Fit only MWS_TARGET or every object
     doplot: bool
         Produce plots
-    verbose: bool
-        Produce a bit more debug output
     minsn: real
         The slallest S/N for processing
     expid_range: tuple of ints
@@ -551,16 +602,15 @@ def proc_desi(fname,
          it can be none
     poolex: Executor
          The executor that will run parallel processes
-    
     """
 
     options = {'npoly': 10}
 
-    print('Processing', fname)
+    logging.info('Processing %s' % fname)
     valid, glued = valid_file(fname)
     if not valid:
-        print('Not valid file:', fname)
-        return 0
+        logging.error('Not valid file: %s' % (fname))
+        return -1
 
     if glued:
         setups = ['brz']
@@ -576,11 +626,11 @@ def proc_desi(fname,
 
     for _ in setups:
         if len(sns[_]) != len(fibermap):
-            print((
+            logging.warning((
                 'WARNING the size of the data in arm %s' +
                 'does not match the size of the fibermap; file %s; skipping...'
             ) % (_, fname))
-            return 0
+            return -1
     targetid = fibermap['TARGETID']
 
     subset = select_fibers_to_fit(fibermap,
@@ -593,11 +643,11 @@ def proc_desi(fname,
 
     # skip if no need to fit anything
     if not (subset.any()):
-        print('No fibers selected in file', fname)
+        logging.warning('No fibers selected in file %s' % (fname))
         put_empty_file(tab_ofname)
         put_empty_file(mod_ofname)
         return 0
-
+    logging.debug('Selected %d fibers to fit' % (subset.sum()))
     # if we are combining
 
     # columns to include in the RVTAB
@@ -613,7 +663,13 @@ def proc_desi(fname,
         models['desi_%s' % curs] = []
 
     seqid_to_fit = get_unique_seqid_to_fit(targetid, subset, combine=combine)
+    subset_ret = subset.copy()
+    # returned subset to deal with the fact that
+    # I'll skip some spectra
+    # in the future I should instead fill things with nans
+    # TODO
     rets = []
+    nfibers_good = 0
     for curseqid in seqid_to_fit:
         # collect data (if combining that means multiple spectra)
         if not combine:
@@ -626,16 +682,25 @@ def proc_desi(fname,
                 for _ in curseqid
             ], [])
             curFiberRow = fibermap[curseqid[0]]
-
+        if specdatas is None:
+            logging.warning(
+                f'Giving up on fitting spectra for row {curFiberRow}')
+            subset_ret[curseqid] = False
+            continue
+        nfibers_good += 1
         curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
         fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
                                                     curseqid)
 
-        rets.append((poolex.submit(
-            proc_onespec, *(specdatas, setups, config, options),
-            **dict(fig_fname=fig_fname, doplot=doplot,
-                   verbose=verbose)), curFiberRow, curseqid))
-
+        rets.append(
+            (poolex.submit(proc_onespec, *(specdatas, setups, config, options),
+                           **dict(fig_fname=fig_fname,
+                                  doplot=doplot)), curFiberRow, curseqid))
+    if nfibers_good == 0:
+        logging.warning('In the end no spectra worth fitting...')
+        put_empty_file(tab_ofname)
+        put_empty_file(mod_ofname)
+        return 0
     for r in rets:
         outdict, curmodel = r[0].result()
         versions = outdict['versions']
@@ -643,7 +708,8 @@ def proc_desi(fname,
         curFiberRow, curseqid = r[1], r[2]
 
         for col in columnsCopy:
-            outdict[col] = curFiberRow[col]
+            if col in fibermap.columns.names:
+                outdict[col] = curFiberRow[col]
         for curs in setups:
             outdict['SN_%s' % curs.upper()] = sns[curs][curseqid]
 
@@ -662,7 +728,7 @@ def proc_desi(fname,
         else:
             outdf1[k] = np.array([_[k] for _ in outdf])
     outtab = atpy.Table(outdf1)
-    fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
+    fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset_ret],
                                              name='FIBERMAP')
     outmod_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(
@@ -683,7 +749,7 @@ def proc_desi(fname,
     columnDesc = get_column_desc(setups)
 
     outmod_hdus += [fibermap_subset_hdu]
-
+    assert (len(fibermap_subset_hdu.data) == len(outtab))
     outtab_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(
             versions=versions, config=config, cmdline=cmdline)),
@@ -710,7 +776,7 @@ def proc_desi(fname,
                                             checksum=True)
 
     else:
-        refit_tab = atpy.Table(fibermap)[subset]
+        refit_tab = atpy.Table(fibermap)[subset_ret]
         # find a replacement subset
         refit_tab_pd = refit_tab.to_pandas()
         old_rvtab_pd = old_rvtab.to_pandas()
@@ -742,9 +808,9 @@ def proc_desi(fname,
 
 
 def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
-    allowed = ['FIBERMAP', 'RVTAB'
-               ] + ['%s_MODEL' % _
-                    for _ in setups] + ['%s_WAVELENGTH' % _ for _ in setups]
+    allowed = ['FIBERMAP', 'RVTAB'] + [
+        '%s_MODEL' % _.upper() for _ in setups
+    ] + ['%s_WAVELENGTH' % _.upper() for _ in setups]
 
     for i in range(len(hdus)):
         if i == 0:
@@ -779,11 +845,16 @@ def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
 
 
 def proc_desi_wrapper(*args, **kwargs):
+    status = ProcessStatus.SUCCESS
+    status_file = kwargs['process_status_file']
+    del kwargs['process_status_file']
+    nfit = 0
     try:
-        proc_desi(*args, **kwargs)
-    except Exception as e:  # noqa F841
-        print('failed with these arguments', args, kwargs)
-        traceback.print_exc()
+        nfit = proc_desi(*args, **kwargs)
+    except:  # noqa F841
+        status = ProcessStatus.FAILURE
+        logging.exception('failed with these arguments' + str(args) +
+                          str(kwargs))
         pid = os.getpid()
         logfname = 'crash_%d_%s.log' % (pid, time.ctime().replace(' ', ''))
         with open(logfname, 'w') as fd:
@@ -791,6 +862,16 @@ def proc_desi_wrapper(*args, **kwargs):
             traceback.print_exc(file=fd)
         # I decided not to just fail, proceed instead after
         # writing a bug report
+    finally:
+        if status_file is not None:
+            if nfit < 0:
+                status = ProcessStatus.FAILURE
+                nfit = 0
+            update_process_status_file(status_file,
+                                       args[0],
+                                       status,
+                                       nfit,
+                                       start=False)
 
 
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
@@ -814,24 +895,26 @@ class FakeExecutor:
         return FakeFuture(f(*args, **kw))
 
 
-def proc_many(files,
-              output_dir,
-              output_tab_prefix,
-              output_mod_prefix,
-              fig_prefix,
-              config_fname=None,
-              nthreads=1,
-              combine=False,
-              fit_targetid=None,
-              mwonly=True,
-              minsn=-1e9,
-              doplot=True,
-              verbose=False,
-              expid_range=None,
-              overwrite=False,
-              skipexisting=False,
-              fitarm=None,
-              cmdline=None):
+def proc_many(
+    files,
+    output_dir,
+    output_tab_prefix,
+    output_mod_prefix,
+    fig_prefix,
+    config_fname=None,
+    nthreads=1,
+    combine=False,
+    fit_targetid=None,
+    mwonly=True,
+    minsn=-1e9,
+    doplot=True,
+    expid_range=None,
+    overwrite=False,
+    skipexisting=False,
+    fitarm=None,
+    cmdline=None,
+    process_status_file=None,
+):
     """
     Process many spectral files
 
@@ -863,6 +946,8 @@ def proc_many(files,
         if True do not process anything if output files exist
     fitarm: list
         the list of arms/spec configurations to fit (can be None)
+    process_status_file: str
+        The filename where we'll put status of the fitting
     """
     config = utils.read_config(config_fname)
     assert (config is not None)
@@ -871,7 +956,12 @@ def proc_many(files,
         parallel = True
     else:
         parallel = False
-
+    if process_status_file is not None:
+        update_process_status_file(process_status_file,
+                                   None,
+                                   None,
+                                   None,
+                                   start=True)
     if parallel:
         poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
     else:
@@ -887,11 +977,15 @@ def proc_many(files,
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
         os.makedirs(folder_path, exist_ok=True)
+        logging.debug(f'Making folder {folder_path}')
         tab_ofname = folder_path + output_tab_prefix + '_' + fname
         mod_ofname = folder_path + output_mod_prefix + '_' + fname
 
         if (skipexisting) and os.path.exists(tab_ofname):
-            print('skipping, products already exist', f)
+            logging.info('skipping, products already exist %s' % f)
+            update_process_status_file(process_status_file, f,
+                                       ProcessStatus.EXISTING, -1)
+
             continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config)
         kwargs = dict(fit_targetid=fit_targetid,
@@ -899,12 +993,12 @@ def proc_many(files,
                       mwonly=mwonly,
                       doplot=doplot,
                       minsn=minsn,
-                      verbose=verbose,
                       expid_range=expid_range,
                       overwrite=overwrite,
                       poolex=poolEx,
                       fitarm=fitarm,
-                      cmdline=cmdline)
+                      cmdline=cmdline,
+                      process_status_file=process_status_file)
         proc_desi_wrapper(*args, **kwargs)
 
     if parallel:
@@ -915,6 +1009,8 @@ def proc_many(files,
                 r.cancel()
             poolEx.shutdown(wait=False)
             raise
+
+    logging.info("Successfully finished processing")
 
 
 def main(args):
@@ -996,6 +1092,22 @@ def main(args):
                         type=str,
                         default='fig',
                         required=False)
+    parser.add_argument('--log',
+                        help='Log filename',
+                        type=str,
+                        default=None,
+                        required=False)
+    parser.add_argument('--log_level',
+                        help='DEBUG/INFO/WARNING/ERROR/CRITICAL',
+                        type=str,
+                        default='WARNING',
+                        required=False)
+    parser.add_argument('--process_status_file',
+                        help='The name of the file where I put the names of' +
+                        ' successfully processed files',
+                        type=str,
+                        default=None,
+                        required=False)
     parser.add_argument(
         '--overwrite',
         help='''If enabled the code will overwrite the existing products,
@@ -1025,11 +1137,6 @@ def main(args):
         action='store_true',
         default=False)
 
-    parser.add_argument('--verbose',
-                        help='Verbose output',
-                        action='store_true',
-                        default=False)
-
     parser.add_argument('--allobjects',
                         help='Fit all objects not only MW_TARGET',
                         action='store_true',
@@ -1041,9 +1148,15 @@ def main(args):
         print(rvspecfit._version.version)
         sys.exit(0)
 
+    log_level = args.log_level
+
+    if args.log is not None:
+        logging.basicConfig(filename=args.log, level=log_level)
+    else:
+        logging.basicConfig(level=log_level)
+
     input_files = args.input_files
     input_file_from = args.input_file_from
-    verbose = args.verbose
     output_dir, output_tab_prefix, output_mod_prefix = (args.output_dir,
                                                         args.output_tab_prefix,
                                                         args.output_mod_prefix)
@@ -1104,7 +1217,7 @@ but not both of them simulatenously''')
               mwonly=mwonly,
               doplot=doplot,
               minsn=minsn,
-              verbose=verbose,
+              process_status_file=args.process_status_file,
               expid_range=(minexpid, maxexpid),
               skipexisting=args.skipexisting,
               overwrite=args.overwrite,

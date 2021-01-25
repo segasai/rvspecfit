@@ -6,10 +6,10 @@ import numpy as np
 import scipy.interpolate
 import scipy.stats
 import sys
+import logging
 
 from rvspecfit import spec_fit
 from rvspecfit import make_interpol
-from rvspecfit import utils
 import rvspecfit
 git_rev = rvspecfit.__version__
 
@@ -32,14 +32,15 @@ class CCFConfig:
         Parameters
         ----------
         logl0: float
-             The natural logarithm of the wavelength of the beginning of the CCF
+            The natural logarithm of the wavelength of the beginning of
+            the CCF
         logl1: float
-             The natural logarithm of the wavelength of the end of the CCF
+            The natural logarithm of the wavelength of the end of the CCF
         npoints: integer
-             The number of points in the cross correlation functions
+            The number of points in the cross correlation functions
         splinestep: float, optional
-             The stepsize in km/s that determine the smoothness of the continuum
-             fit
+            The stepsize in km/s that determines the smoothness of the
+            continuum fit
         maxcontpts: integer, optional
              The maximum number of points used for the continuum fit
         """
@@ -67,8 +68,8 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
     ccfconf: CCFConfig object
         The CCF configuration object
     bin: integer, optional
-        The input spectrum will be binned by median filter by this number before
-        the fit
+        The input spectrum will be binned by median filter by this number
+        before the fit
 
     Returns
     -------
@@ -90,65 +91,31 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
         medspec = np.abs(medspec)
         if medspec == 0:
             medspec = 1
-        print('WARNING the spectrum has a median that is non-positive...')
+        logging.warning('The spectrum has a median that is non-positive...')
 
     BS = scipy.stats.binned_statistic(lam0, spec0, 'median', bins=nodesedges)
     p0 = np.log(np.maximum(BS.statistic, 1e-3 * medspec))
     p0[~np.isfinite(p0)] = np.log(medspec)
 
-    lam, spec, espec = (lam0[::bin], scipy.signal.medfilt(spec0, bin)[::bin],
-                        scipy.signal.medfilt(espec0, bin)[::bin])
-
-    res = scipy.optimize.minimize(
-        fit_loss,
-        p0,
-        args=(spec, espec, nodes, lam),
-        jac=False,
-        # method='Nelder-Mead'
-        method='BFGS')['x']
-    cont = fit_loss(res, spec0, espec0, nodes, lam0, getModel=True)
+    ret = scipy.optimize.least_squares(fit_resid,
+                                       p0,
+                                       loss='soft_l1',
+                                       args=((nodes, lam0, spec0, espec0),
+                                             False))
+    cont = fit_resid(ret['x'], (nodes, lam0, spec0, espec0), True)
     return cont
 
 
-def fit_loss(p, spec=None, espec=None, nodes=None, lam=None, getModel=False):
-    """ Return the loss function (L1 norm) of the continuum fit_loss
-
-    Parameters
-    ----------
-
-    p: numpy array
-        Array with fit parameters
-    spec: numpy array
-        Spectrum that is being fitted
-    espec: numpy array
-        Error vector
-    nodes: numpy array
-        The location of the nodes of the spline fit
-    lam: numpy array
-        The wavelength vector
-    getModel: boolean, optional
-        If true return the bestfit model instead of the loss function
-
-    Returns
-    -------
-    loss: real
-        The loss function of the fit
-    model: numpy array (optional, depending on getModel parameter)
-        The evaluated model
-
-    """
-    II = scipy.interpolate.UnivariateSpline(nodes, p, s=0, k=2)
-    model = np.exp(II(lam))
+def fit_resid(p, args=None, getModel=False):
+    # residual of the fit for the fitting
+    nodes, lam, spec, espec = args
+    mod = np.exp(
+        np.clip(
+            scipy.interpolate.UnivariateSpline(nodes, p, s=0, k=2)(lam), -100,
+            100))
     if getModel:
-        return model
-    res = (spec - model) / espec
-
-    val = np.abs(res).sum()
-
-    # I may need to mask outliers here...
-    if not np.isfinite(val):
-        return 1e30
-    return val
+        return mod
+    return (mod - spec) / espec
 
 
 def apodize(spec):
@@ -161,13 +128,13 @@ def apodize(spec):
         The input numpy array
     """
     frac = 0.15
-    l = len(spec)
-    x = np.arange(l) * 1.
+    lspec = len(spec)
+    x = np.arange(lspec) * 1.
     mask = 1 + 0 * x
-    ind = x < (frac * l)
-    mask[ind] = (1 - np.cos(x[ind] / frac / l * np.pi)) * .5
-    ind = (x - l + 1) > (-frac * l)
-    mask[ind] = (1 - np.cos((l - x - 1)[ind] / frac / l * np.pi)) * .5
+    ind = x < (frac * lspec)
+    mask[ind] = (1 - np.cos(x[ind] / frac / lspec * np.pi)) * .5
+    ind = (x - lspec + 1) > (-frac * lspec)
+    mask[ind] = (1 - np.cos((lspec - x - 1)[ind] / frac / lspec * np.pi)) * .5
     return mask * spec
 
 
@@ -189,17 +156,16 @@ def pad(x, y):
     y2: numpy array
         New spectrum vector
     """
-    l = len(y)
-    l1 = int(2**np.ceil(np.log(l) / np.log(2)))
-    delta1 = int((l1 - l) / 2)  # extra pixels on the left
-    delta2 = int((l1 - l) - delta1)  # extra pixels on the right
+    lspec = len(y)
+    l1 = int(2**np.ceil(np.log(lspec) / np.log(2)))
+    delta1 = int((l1 - lspec) / 2)  # extra pixels on the left
+    delta2 = int((l1 - lspec) - delta1)  # extra pixels on the right
     y2 = np.concatenate((np.zeros(delta1), y, np.zeros(delta2)))
     deltax = x[1] - x[0]
     if np.allclose(np.diff(x), deltax):
         x2 = np.concatenate((np.arange(-delta1, 0) * deltax + x[0], x,
                              x[-1] + deltax * (1 + np.arange(delta2))))
     elif np.allclose(np.diff(np.log(x)), np.log(x[1] / x[0])):
-        ratx = x[1] / x[0]
         x2 = np.concatenate(deltax**(np.arange(-delta1, 0) * x[0], x,
                                      x[-1] * deltax**(1 + np.arange(delta2))))
     else:
@@ -255,9 +221,9 @@ def preprocess_model(logl,
     xlogl, cpa_model = pad(logl, ca_model)
     std = (cpa_model**2).sum()**.5
     if std > 1e5:
-        print(
-            'WARNING something went wrong with the spectrum ormalization, model ',
-            modid)
+        logging.warning(
+            'WARNING something went wrong with the spectrum normalization, ' +
+            'model %s' % modid)
     cpa_model /= std
     return xlogl, cpa_model
 
@@ -269,12 +235,14 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     ----------
 
     lammodels: numpy array
-        The array of wavelengths of the models (assumed to be the same for all models)
+        The array of wavelengths of the models
+        (assumed to be the same for all models)
     models: numpy array
         The 2D array of modell with the shape [number_of_models, len_of_model]
     params: numpy array
-        The 2D array of template parameters (i.e. stellar atmospheric parameters
-        ) with the shape [number_of_models,length_of_parameter_vector]
+        The 2D array of template parameters (i.e. stellar atmospheric
+        parameters) with the shape
+        [number_of_models,length_of_parameter_vector]
     ccfconf: CCFConfig object
         CCF configuration
     vsinis: list of floats
@@ -284,18 +252,16 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
     Returns
     -------
     ret: tuple
-         **FILL/CHECK ME** 
+         **FILL/CHECK ME**
          1) log wavelenghts
-         2) processed spectra, 
+         2) processed spectra,
          3) spectral params
-         4) list of vsini 
-         
+         4) list of vsini
     """
     nthreads = 16
     logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
     res = []
     retparams = []
-    norms = []
     if vsinis is None:
         vsinis = [None]
     vsinisList = []
@@ -305,13 +271,13 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
         for vsini in vsinis:
             retparams.append(params[imodel])
             q.append(
-                pool.apply_async(preprocess_model,
-                                 (logl, lammodels, m0, vsini, ccfconf,
-                                  (params[imodel]))))
+                pool.apply_async(
+                    preprocess_model,
+                    (logl, lammodels, m0, vsini, ccfconf, params[imodel])))
             vsinisList.append(vsini)
 
     for ii, curx in enumerate(q):
-        print(ii, '/', len(q))
+        print('Processing : %d / %d' % (ii, len(q)))
         xlogl, cpa_model = curx.get()
         res.append(cpa_model)
     pool.close()
@@ -320,7 +286,7 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
 
 
 def interp_masker(lam, spec, badmask):
-    """ 
+    """
     Fill the gaps spectrum by interpolating across a badmask.
     The gaps are filled by linear interpolation. The edges are just
     using the value of the closest valid pixel.
@@ -343,7 +309,11 @@ def interp_masker(lam, spec, badmask):
     spec1 = spec * 1
     xbad = np.nonzero(badmask)[0]
     xgood = np.nonzero(~badmask)[0]
-    assert (len(xgood) > 0)
+    if len(xgood) == 0:
+        logging.warning('All the pixels are masked for the ccf determination')
+        ret = spec1
+        ret[~np.isfinite(ret)] = 1
+        return ret
     xpos = np.searchsorted(xgood, xbad)
     leftedge = xpos == 0
     rightedge = xpos == len(xgood)
@@ -455,8 +425,6 @@ def ccf_executor(spec_setup,
         vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D[
             'parnames']
         del D
-
-    ndim = len(vec[:, 0])
 
     specs = specs[::every, :]
     vec = vec.T[::every, :]

@@ -1,5 +1,5 @@
 import os
-os.environ['OMP_NUM_THREADS']='1'
+os.environ['OMP_NUM_THREADS'] = '1'
 import multiprocessing as mp
 import numpy as np
 import sys
@@ -17,17 +17,17 @@ if __name__ == '__main__':
     nit = 1000
     xs = np.random.randint(0, int(1e9), size=nit)
 
-    if nthreads>1:
+    if nthreads > 1:
         poo = mp.Pool(nthreads)
     ret = []
     for i in xs:
         kw = dict(sn=sn, nlam=nlam, resol=resol)
-        args = (i,)
-        if nthreads>1:
-            ret.append(poo.apply_async(accuracy_test.doone,args, kw))
+        args = (i, )
+        if nthreads > 1:
+            ret.append(poo.apply_async(accuracy_test.doone, args, kw))
         else:
             ret.append(accuracy_test.doone(*args, **kw))
-    if nthreads>1:
+    if nthreads > 1:
         ret = [_.get() for _ in ret]
     v0, v1, err = np.array(ret).T
 

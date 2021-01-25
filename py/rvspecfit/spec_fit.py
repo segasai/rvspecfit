@@ -16,6 +16,7 @@ import collections
 from rvspecfit import frozendict
 from rvspecfit import utils
 from rvspecfit import spec_inter
+from rvspecfit import cubic
 
 
 class LRUDict:
@@ -156,11 +157,15 @@ def get_basis(specdata, npoly, rbf=True):
         nrbf = npoly - npoly0
         assert (npoly >= npoly0)
         if nrbf > 0:
-            sig = 2. / nrbf
+            sig = 1. / nrbf
+            # larger values lead to
+            # poorly conditioned matrices and noisy likelihood
+            # BE CAREFUL
             rbfcens = np.linspace(-1, 1, nrbf, True)
             for i in range(nrbf):
-                polys[npoly0 + i, :] = scipy.stats.norm(rbfcens[i],
-                                                        sig).pdf(normlam)
+                polys[npoly0 + i, :] = np.exp(
+                    -0.5 * (normlam - rbfcens[i])**2 / sig**2)
+
     return polys
 
 
@@ -185,7 +190,8 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
         If true return the coefficients of polynomials
     espec: numpy (optional)
         If specified, this is the error vector. If not specified, then it is
-        assumed that spectrum and template are already divided by the uncertainty
+        assumed that spectrum and template are already divided by the
+        uncertainty
 
     Returns
     --------
@@ -207,11 +213,16 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     # M
     vector1 = polys1 @ normspec
     # M^T S
-    u, s, v = scipy.linalg.svd(polys1, full_matrices=False, check_finite=False)
-    det = np.prod(s)**2
+
+    matrix1 = np.dot(polys1, polys1.T)
+    u, s, v = scipy.linalg.svd(matrix1, check_finite=False)
+    det = np.prod(s)
+    # matrix1 = usv
     # matrix1 = u @ np.diag(s**2) @ u.T
     # matrix1 is the M^T M matrix
-    v2 = u @ np.diag(1. / s**2) @ u.T @ vector1  # this is matrix1^(-1) vector1
+
+    v2 = v.T @ (
+        (1. / s)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
 
     chisq = -vector1.T @ v2 + \
         0.5 * np.log(det)
@@ -407,9 +418,7 @@ def getRVInterpol(lam_templ, templ):
         The object that can be used to evaluate template at any wavelength
     """
 
-    interpol = scipy.interpolate.CubicSpline(lam_templ,
-                                             templ,
-                                             extrapolate=False)
+    interpol = cubic.CubicSpline(lam_templ, templ, extrapolate=False)
     return interpol
 
 
@@ -464,11 +473,12 @@ def get_chisq_continuum(specdata, options=None):
 
     '''
     npoly = options.get('npoly') or 5
+    rbf = options.get('rbf_continuum') or True
     ret = []
     ret1 = []
     for curdata in specdata:
         # name = curdata.name
-        polys = get_basis(curdata, npoly)
+        polys = get_basis(curdata, npoly, rbf=rbf)
         templ = np.ones(len(curdata.spec))
         curchisq, coeffs = get_chisq0(curdata.spec,
                                       templ,
@@ -531,9 +541,11 @@ def get_chisq(specdata,
         for each of the fited spectra
         redchisq_array -- this is the array of reduced chi-squares
         models -- array of best fit models
+        raw_models -- array of models not corrected by the polynomial 
 
     """
     npoly = options.get('npoly') or 5
+    rbf = options.get('rbf_continuum') or True
     logl = 0
     badchi = 1e6
     if rot_params is not None:
@@ -543,6 +555,7 @@ def get_chisq(specdata,
     atm_params = tuple(atm_params)
 
     models = []
+    raw_models = []
     chisq_array = []
     red_chisq_array = []
     # iterate over multiple datasets
@@ -586,7 +599,7 @@ def get_chisq(specdata,
         if resol_params is not None:
             evalTempl = convolve_resol(evalTempl, resol_params[name])
 
-        polys = get_basis(curdata, npoly)
+        polys = get_basis(curdata, npoly, rbf=rbf)
 
         curlogl = get_chisq0(curdata.spec,
                              evalTempl,
@@ -596,6 +609,7 @@ def get_chisq(specdata,
         if full_output:
             curlogl, coeffs = curlogl
             curmodel = np.dot(coeffs, polys * evalTempl)
+            raw_models.append(evalTempl)
             models.append(curmodel)
             XCHISQ = (((curmodel - curdata.spec) / curdata.espec)**2).sum()
             chisq_array.append(XCHISQ)
@@ -611,6 +625,7 @@ def get_chisq(specdata,
         ret['chisq_array'] = chisq_array
         ret['red_chisq_array'] = red_chisq_array
         ret['models'] = models
+        ret['raw_models'] = raw_models
     else:
         ret = logl
     return ret

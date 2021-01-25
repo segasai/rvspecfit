@@ -39,8 +39,6 @@ res = vel_fit.process(specdata,
                       config=config,
                       options=options)
 
-
-
 options = {'npoly': 15}
 res = fitter_ccf.fit(specdata, config)
 paramDict0 = res['best_par']
@@ -58,3 +56,9 @@ plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
 plt.plot(specdata[0].lam, res1['yfit'][0], 'r-')
 plt.tight_layout()
 plt.savefig('plot_test_fit_sdss.png')
+res2 = vel_fit.process(specdata,
+                       paramDict0,
+                       fixParam=fixParam,
+                       config=config,
+                       options=options,
+                       priors={'teff': (9000, 50)})

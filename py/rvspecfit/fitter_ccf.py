@@ -1,11 +1,9 @@
-import sys
-import os
 import pickle
-import time
 import numpy as np
 import scipy.optimize
 import scipy.interpolate
 from rvspecfit import make_ccf
+import logging
 
 
 class CCFCache:
@@ -17,7 +15,8 @@ class CCFCache:
 
 def get_ccf_info(spec_setup, config):
     """
-    Returns the CCF info from the pickled file for a given spectroscopic spec_setup
+    Returns the CCF info from the pickled file for a given spectroscopic
+    setup
 
     Parameters
     -----------
@@ -47,9 +46,8 @@ def get_ccf_info(spec_setup, config):
 def ccf_combiner(ccfs):
     # combine ccfs from multiple filters
     # since ccf^2 is -chisq
-    ret = 0
-    for curc in ccfs:
-        ret = ret + np.sign(curc) * curc**2
+    # we assume ccfs is 2d array shaped like Nfilters, nvelocities
+    ret = (np.sign(ccfs) * ccfs**2).sum(axis=0)
     return ret
 
 
@@ -67,27 +65,28 @@ def fit(specdata, config):
 
     Returns
     results: dict
-        The dictionary with results such as best template parameters, best velocity
-        best vsini.
+        The dictionary with results such as best template parameters,
+        best velocity, best vsini.
 
     """
     # configuration parameters
 
     maxvel = config.get('max_vel') or 1000
     # only search for CCF peaks from -maxvel to maxvel
-    nvelgrid = int(2 * maxvel / (config.get('vel_step0') or 2))
+    nvelgrid = 2 * int(maxvel * 1. / (config.get('vel_step0') or 2)) + 1
     # number of points on the ccf in the specified velocity range
+    vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
 
-    loglam = {}
-    velstep = {}
-    spec_fftconj = {}
-    vels = {}
-    off = {}
-    subind = {}
-    ccf_dats = {}
-    ccf_infos = {}
-    ccf_mods = {}
-    proc_specs = {}
+    # these are the dictionaries storing information for all the configurations
+    # that we are fitting
+    velstep = {}  # step in the ccf in velocity
+    spec_fftconj = {}  # conjugated fft of the data
+    vels = {}  # velocity grids
+    subind = {}  # the range of the ccf covering the velocity range of interest
+    ccf_dats = {}  # ffts of templates
+    ccf_infos = {}  # ccf configurations
+    ccf_mods = {}  # the actual template models
+    proc_specs = {}  # actual data processed/continuum normalized etc
     setups = []
     for cursd in specdata:
         spec_setup = cursd.name
@@ -109,63 +108,78 @@ def fit(specdata, config):
         proc_spec_std = proc_spec.std()
         if proc_spec_std == 0:
             proc_spec_std = 1
-            print('WARNING spectrum looks like a constant...')
+            logging.warning('Spectrum looks like a constant...')
         proc_spec /= proc_spec_std
         proc_specs[spec_setup] = proc_spec
         spec_fft = np.fft.fft(proc_spec)
         spec_fftconj[spec_setup] = spec_fft.conj()
-        velstep[spec_setup] = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
-        l = len(spec_fft)
-        off[spec_setup] = l // 2
-        vels[spec_setup] = ((np.arange(l) + off[spec_setup]) % l -
-                            off[spec_setup]) * velstep[spec_setup]
-        vels[spec_setup] = -np.roll(vels[spec_setup], off[spec_setup])
-        subind[spec_setup] = np.abs(vels[spec_setup]) < maxvel
+        cur_step = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
+        lspec = len(spec_fft)
+        cur_off = lspec // 2
+        # this is the wrapping point
+        cur_vels = -((np.arange(lspec) + cur_off) % lspec - cur_off) * cur_step
+        # now cur_vels[lspec-off] is the first positive velocity
+        # we need to np.roll(X,cur_off)  to make it continuous
+        # notice that it is decreasing and it corresponds to the velocity of
+        # the ccf pixels
+        cur_ind = (np.abs(cur_vels) < (maxvel + cur_step))
+        # boolean mask within the required velocity range
+        assert (cur_ind.sum() % 2 == 1)  # must be odd
+        cur_ind = np.roll(np.nonzero(cur_ind)[0], cur_ind.sum() // 2)
+        # these are indices that makes it monotonic
+        cur_ind = cur_ind[::-1]
+        # that provides indices that will go from negative
+        # to positive velocities
+        subind[spec_setup] = cur_ind
+        velstep[spec_setup] = cur_step
+        vels[spec_setup] = cur_vels[cur_ind]
 
-    maxv = -1e20
-    best_id = -90
-    best_v = -777
+    max_ccf = -np.inf
+    best_id = -1
+
+    # the logic is the following
+    # if array y is shifted by n pixels to the right side wrt x
+    # ifft(fft(x)*fft(y).conj) will peak at pixel N-n (0based)
+    # or if array is shifted to n pixels to the left it will peak at n (0based)
 
     nfft = ccf_dats[spec_setup].shape[0]
-    vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
-    best_ccf = vel_grid * 0
-    for id in range(nfft):
-        curccf = {}
-        for spec_setup in setups:
-            curf = ccf_dats[spec_setup][id, :]
-            ccf = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
-            ccf = np.roll(ccf, off[spec_setup])
-            curccf[spec_setup] = ccf[subind[spec_setup]]
-            curccf[spec_setup] = scipy.interpolate.UnivariateSpline(
-                vels[spec_setup][subind[spec_setup]][::-1],
-                curccf[spec_setup][::-1],
-                s=0)(vel_grid)
+    curccf = np.empty((len(setups), nvelgrid))
+    for cur_id in range(nfft):
 
-        allccf = ccf_combiner([curccf[_] for _ in setups])
-        if allccf.max() > maxv:
-            maxv = allccf.max()
-            best_id = id
-            best_v = vel_grid[np.argmax(allccf)]
-            best_model = {}
-            for spec_setup in setups:
-                best_model[spec_setup] = np.roll(
-                    ccf_mods[spec_setup][id],
-                    int(best_v / velstep[spec_setup]))
+        for ii, spec_setup in enumerate(setups):
+            curf = ccf_dats[spec_setup][cur_id, :]
+            curccf0 = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
+            curccf[ii] = scipy.interpolate.interp1d(
+                vels[spec_setup],
+                curccf0[subind[spec_setup]],
+            )(vel_grid)
+            # we interpolate all the ccf from every arm
+            # to the same velocity grid
+
+        allccf = ccf_combiner(curccf)
+        if allccf.max() > max_ccf:
+            max_ccf = allccf.max()
+            best_id = cur_id
+            best_vel = vel_grid[np.argmax(allccf)]
             best_ccf = allccf
-    try:
-        assert (best_id >= 0)
-    except:
-        raise Exception('Cross-correlation step failed')
+
+    if best_id < 0:
+        logging.error('Cross-correlation failed')
+        raise RuntimeError('Cross-correlation step failed')
+
+    best_model = {}
+    for spec_setup in setups:
+        best_model[spec_setup] = np.roll(ccf_mods[spec_setup][best_id],
+                                         int(best_vel / velstep[spec_setup]))
     best_par = ccf_infos[setups[0]]['params'][best_id]
     best_par = dict(zip(ccf_infos[setups[0]]['parnames'], best_par))
-
     best_vsini = ccf_infos[setups[0]]['vsinis'][best_id]
 
-    result = {}
-    result['best_par'] = best_par
-    result['best_vel'] = best_v
-    result['best_ccf'] = best_ccf
-    result['best_vsini'] = best_vsini
-    result['best_model'] = best_model
-    result['proc_spec'] = proc_specs
+    result = dict(best_par=best_par,
+                  best_vel=best_vel,
+                  best_ccf=best_ccf,
+                  best_vsini=best_vsini,
+                  best_model=best_model,
+                  proc_spec=proc_specs)
+
     return result

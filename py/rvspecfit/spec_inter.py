@@ -26,6 +26,8 @@ class TriInterp:
         self.triang = triang
         self.dats = dats
         self.exp = exp
+        self.ndim = self.triang.ndim
+        self.b1 = np.empty(self.ndim + 1, dtype=self.dats.dtype)
 
     def __call__(self, p):
         """ Compute the interpolated spectrum at parameter vector p
@@ -37,13 +39,14 @@ class TriInterp:
 
         """
         p = np.asarray(p)
-        ndim = self.triang.ndim
         xid = self.triang.find_simplex(p)
         if xid == -1:
             return np.nan
-        b = self.triang.transform[xid, :ndim, :].dot(
+        b1 = self.b1
+        ndim = self.ndim
+        b1[:ndim] = self.triang.transform[xid, :ndim, :].dot(
             p - self.triang.transform[xid, ndim, :])
-        b1 = np.r_[b, [1 - b.sum()]]
+        b1[ndim] = 1 - b1[:ndim].sum()
         spec = (self.dats[self.triang.simplices[xid], :] *
                 b1[:, None]).sum(axis=0)
         if self.exp:
@@ -66,10 +69,12 @@ class GridOutsideCheck:
                                           balanced_tree=False)
 
     def __call__(self, p):
-        ## ATM that doesn't return something that tells us how far away
-        ## we are
-        pos = np.array(
-            [np.searchsorted(self.uvecs[i], p[i], 'right') - 1 for i in range(self.ndim)])
+        # ATM that doesn't return something that tells us how far away
+        # we are
+        pos = np.array([
+            np.searchsorted(self.uvecs[i], p[i], 'right') - 1
+            for i in range(self.ndim)
+        ])
         outside = False
         if np.any((pos < 0) | (pos >= self.lens - 1)):
             outside = True
@@ -124,11 +129,11 @@ class GridInterp:
         p = np.asarray(p)
         ndim = self.ndim
 
-        ### wrapper to exponentiate when needed
+        # wrapper to exponentiate when needed
         if self.exp:
-            FF = lambda x: np.exp(x)
+            FF = np.exp
         else:
-            FF = lambda x: (x)
+            FF = lambda x: x
 
         # gridlocs
         pos = np.array(
@@ -140,7 +145,7 @@ class GridInterp:
         coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
                            (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
                            for i in range(ndim)])  # from 0 to 1
-        ## ndim  vec
+        # ndim  vec
         coeffs2 = np.zeros((2**ndim, self.ndim))
         pos2 = np.zeros(2**ndim, dtype=int)
         coeffs2 = coeffs[None, :]**self.edges * (1 - coeffs[None, :])**(
@@ -148,7 +153,7 @@ class GridInterp:
         pos2 = self.idgrid[tuple((pos[None, :] + self.edges).T)]
         coeffs2 = np.prod(coeffs2, axis=1)
         if np.any(pos2 < 0):
-            ## outside boundary
+            # outside boundary
             ret = self.get_nearest(p)
             return FF(self.dats[ret])
         spec = (np.dot(coeffs2, self.dats[pos2, :]))
@@ -180,7 +185,8 @@ class SpecInterpolator:
         lam: ndarray
             Wavelength vector
         mapper: function
-            Function that does the mapping from scaled box parameters to proper values
+            Function that does the mapping from scaled box parameters to 
+            proper values
         parnames: tuple
             The list of parameter names ('logg', 'teff' ,.. ) etc
         revision: str
@@ -269,8 +275,7 @@ def getInterpolator(HR, config, warmup_cache=True):
             # triangulation based interpolation
             (triang, extraflags) = (fd['triang'], fd['extraflags'])
             interper, extraper = (TriInterp(triang, dats, exp=expFlag),
-                                  scipy.interpolate.LinearNDInterpolator(
-                                      triang, extraflags))
+                                  TriInterp(triang, extraflags, exp=False))
         elif 'regular' in fd:
             # regular grid interpolation
             uvecs, idgrid = (fd['uvecs'], fd['idgrid'])

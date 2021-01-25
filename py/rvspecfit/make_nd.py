@@ -5,7 +5,6 @@ import numpy as np
 import numpy.random
 import scipy.spatial
 
-from rvspecfit import utils
 from rvspecfit import make_interpol
 import rvspecfit
 git_rev = rvspecfit.__version__
@@ -31,7 +30,8 @@ def getedgevertices(vec):
         The returned array of surrounding points
     """
 
-    pad = 0.2  # pad each dimension by this amount (relative to the dimension width)
+    pad = 0.2  # pad each dimension by this amount
+    # (relative to the dimension width)
     ndim = len(vec[:, 0])
     span = vec.ptp(axis=1)
     lspans = vec.min(axis=1) - pad * span
@@ -64,9 +64,9 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         be stored
     perturb: boolean
         Boolean flag whether to perturb a little bit the points before doing a
-        triangulation. This prevents issues with degenerate vertices and stability
-        of triangulation. Without perturbation find_simplex for example may revert
-        to brute force search.
+        triangulation. This prevents issues with degenerate vertices and
+        stability of triangulation. Without perturbation find_simplex for
+        example may revert to brute force search.
 
     Returns
     -------
@@ -96,8 +96,9 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
             state = np.random.get_state()
             # Make it deterministic
             np.random.seed(1)
-            vec = vec + np.random.uniform(
-                -perturbation_amplitude, perturbation_amplitude, size=vec.shape)
+            vec = vec + np.random.uniform(-perturbation_amplitude,
+                                          perturbation_amplitude,
+                                          size=vec.shape)
             np.random.set_state(state)
 
         # get the positions that are outside the existing grid
@@ -109,7 +110,6 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         vec = np.hstack((vec, edgepositions))
 
         nspec, lenspec = specs.shape
-        fakespec = np.ones(lenspec)
 
         # add nearest neighbor sectra to the grid at the edge locations
         specs = np.append(specs, np.array([specs[_] for _ in nearnei]), axis=0)
@@ -118,7 +118,6 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         # our grid the flag should be 0)
         extraflags = np.concatenate((np.zeros(nspec), np.ones(nedgepos)))
 
- 
         lognorms = np.concatenate((lognorms, np.zeros(nedgepos)))
         vec = vec.astype(np.float64)
         extraflags = extraflags.astype(np.float64)
@@ -130,14 +129,16 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         ret_dict['extraflags'] = extraflags
 
     else:
-        uvecs = [np.unique(vec[i,:],return_inverse=True) for i in range(ndim) ]
-        vecids = [_[1] for _ in  uvecs]
-        uvecs = [_[0] for _ in  uvecs]
+        uvecs = [
+            np.unique(vec[i, :], return_inverse=True) for i in range(ndim)
+        ]
+        vecids = [_[1] for _ in uvecs]
+        uvecs = [_[0] for _ in uvecs]
         lens = [len(_) for _ in uvecs]
-        idgrid = np.zeros(lens,dtype=int)-1
-        idgrid[tuple(vecids)]=np.arange(vec.shape[1])
+        idgrid = np.zeros(lens, dtype=int) - 1
+        idgrid[tuple(vecids)] = np.arange(vec.shape[1])
         ret_dict['uvecs'] = uvecs
-        ret_dict['regular']=True
+        ret_dict['regular'] = True
         ret_dict['idgrid'] = idgrid
 
     savefile = ('%s/' + INTERPOL_PKL_NAME) % (prefix, spec_setup)
@@ -153,7 +154,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     with open(savefile, 'wb') as fp:
         pickle.dump(ret_dict, fp)
     np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
-            np.asfortranarray(specs))
+            np.ascontiguousarray(specs))
 
 
 def main(args):
@@ -178,8 +179,10 @@ def main(args):
                         required=False)
 
     args = parser.parse_args(args)
-    execute(args.setup, prefix=args.prefix, revision=args.revision, regular=
-            args.regulargrid)
+    execute(args.setup,
+            prefix=args.prefix,
+            revision=args.revision,
+            regular=args.regulargrid)
 
 
 if __name__ == '__main__':
