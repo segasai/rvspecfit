@@ -27,7 +27,7 @@ jobs:
           pip install pytest-cov
           pip install coveralls
           pip install .
-      - name: Test
+      - name: Fetching data
         run: |
           cd tests
           mkdir templ_data
@@ -37,6 +37,8 @@ jobs:
           cd ..
           tar xfz small_phoenix.tar.gz
           cd ..
+      - name: Testing
+        run: |
           pytest --cov=rvspecfit
       - name: Coveralls
         if: ${{ success() }}
