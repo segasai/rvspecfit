@@ -1,2 +1,4 @@
 [run]
-source=py/rvspecfit
+	source=py/rvspecfit
+	relative_files = True
+
