@@ -8,7 +8,7 @@ STEP=1
 LAM1=4550
 LAM2=5450
 RESOL=1000
-COV="coverage run --append --context=rvspecfit"
+COV="echo"
 
 RVS_READ_GRID="$COV `command -v rvs_read_grid`"
 RVS_MAKE_INTERPOL="$COV `command -v rvs_make_interpol`"

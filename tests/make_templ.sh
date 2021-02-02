@@ -10,7 +10,7 @@ RNAME=aat1_1700d
 BNAME=aat1_580v
 BSTEP=0.5
 BRESOL=1450
-COV="coverage run --append --context=rvspecfit"
+COV="echo"
 
 RVS_READ_GRID="$COV `command -v rvs_read_grid`"
 RVS_MAKE_INTERPOL="$COV `command -v rvs_make_interpol`"
