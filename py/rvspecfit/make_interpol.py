@@ -54,6 +54,11 @@ class si:
     lamgrid = None
 
 
+def initialize_matrix_cache(mat, lamgrid):
+    si.mat = mat
+    si.lamgrid = lamgrid
+
+
 def extract_spectrum(logg,
                      teff,
                      feh,
@@ -183,9 +188,7 @@ def process_all(setupInfo,
 
     specs = []
     lognorms = np.zeros(nspec)
-    si.mat = mat
-    si.lamgrid = lamgrid
-    pool = mp.Pool(nthreads)
+    pool = mp.Pool(nthreads, initialize_matrix_cache, (mat, lamgrid))
     for curteff, curlogg, curfeh, curalpha in vec.T:
         i += 1
         print(i)
