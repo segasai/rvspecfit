@@ -3,6 +3,7 @@
 
 Automated spectroscopic pipeline to determine radial velocities and 
 stellar atmospheric parameters
+
 Author: Sergey Koposov skoposov _AT_ ed _DOT_ ac _DOT uk, 
 University of Edinburgh
 
@@ -17,8 +18,8 @@ To get started you will need to
 
 * Install rvspecfit 
 * Download PHOENIX library 
-* Create various PHOENIX processed files (such as spectra convolved to the 
-resolution of your instrument, interpolation files)
+* Create PHOENIX processed files for your spectral configuration (such as spectra convolved to the 
+resolution of your instrument and interpolation files)
 * Run the code 
 
 
@@ -38,16 +39,19 @@ The library is avialable here  ftp://phoenix.astro.physik.uni-goettingen.de/HiRe
 
 ## Preparation of PHOENIX library
 
-The preparation requires several steps
+The preparation requires several steps (you can see other examples of these steps in the surveys/sdss/make_sdss.sh script 
+in the repo)>
 
-* Creating a PHOENIX file sqlite database that will be used in the processing.
+* Creating a PHOENIX file sqlite database that will be used in the processing (you only need to do this 
+step once)
 
 This is done with 
 ```
 $ rvs_read_grid --prefix $PATH/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
 ```
 
-* Making interpolated spectra
+* Making interpolated spectra for your spectral configuration (if your instrument has multiple arms, 
+you may need to run this many times for each arm)
 ```
 $ rvs_make_interpol --setup myconf --lambda0 4000 --lambda1 5000 \
     --resol_func '1000+2*x' --step 0.5 --templdb ${PREFIX}/files.db \
