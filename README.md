@@ -20,6 +20,7 @@ To get started you will need to
 * Download PHOENIX library 
 * Create PHOENIX processed files for your spectral configuration (such as spectra convolved to the 
 resolution of your instrument and interpolation files)
+* Create a configuration file 
 * Run the code 
 
 
@@ -80,8 +81,23 @@ That creates a list of Fourier transformed templates for the CCF. IN this
 case this list will have every 30-th spectra from the database. It also uses a 
 list of Vsini's  of  0,10,300 when creating CCF templates.
 
+* The very last step is creating of the configuration file config.yaml with contents like this
+```yaml
+template_lib : '/home/username/template_data/'
+min_vel: -1500
+max_vel: 1500
+min_vel_step: 0.2
+vel_step0: 5
+min_vsini: 0.01
+max_vsini: 500
+second_minimizer: 1
+```
+where the only important parameter is the template_lib path which points at the location where all
+the processed template files are.
 
 After that you should be able to use rvspecfit. 
+
+
 
 ## Code example
 
@@ -102,8 +118,7 @@ badmask = tab['badmask']
 
 
 # This constructs the specData object from wavelength, spectrum and error
-spectrum arrays .
-The rvspecfit works on arrays of SpecData's
+# spectrum arrays. The rvspecfit works on arrays of SpecData's
 
 sd = spec_fit.SpecData('myconf',
                                wavelength,
@@ -135,7 +150,7 @@ If your have multiple spectra, from multiple instrument arms, from multiple
 exposures, fitting them is easy. 
 
 If you have multiple instrument arms, you
-will need to prepare the spectral intermpolators for all the arms 
+will need to prepare the spectral interpolators for all the arms 
 and then combine the specdata objects from multiple arms in the list
 ```
 sd_blue = spec_fit.SpecData('blue',
@@ -155,7 +170,7 @@ res1 = vel_fit.process([sd_blue, sd_red],
                            options=options)
 ```
 If you just have multiple exposures, you can obviously use the 
-same spetral configuration for them and then combine the specdata objects for
+same spectral configuration for them and then combine the specdata objects for
 those
 
 ##  Likelihood function
