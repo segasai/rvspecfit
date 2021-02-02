@@ -49,11 +49,11 @@ $ rvs_read_grid --prefix $PATH/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-201
 * Making interpolated spectra
 ```
 $ rvs_make_interpol --setup myconf --lambda0 4000 --lambda1 5000 \
-    --resol_func '1000+2000*x' --step 0.5 --templdb ${PREFIX}/files.db \
+    --resol_func '1000+2*x' --step 0.5 --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $PATH/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits \
     --air --revision=v2020x
 ```
-That will create the spectral configuration called myconf for spectra with wavelength range of 4000 to 5000, step 0.5 angstrom and resolution being 1000+2000*wavelength. It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum. 
+That will create the spectral configuration called myconf for spectra with wavelength range of 4000 to 5000, step 0.5 angstrom and resolution being 1000+2*x (where x is wavelength in angstroms). It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum. 
 This step will take up to an hour. 
 
 
@@ -104,7 +104,7 @@ sd = spec_fit.SpecData('myconf',
                                wavelength,
                                spec,
                                espec,
-                               badmask=badmask)    
+                               badmask=badmask)
 
 # this tries to get a sensible guess for the stellar parameters/velocity
 res = fitter_ccf.fit(specdata, config)
@@ -124,13 +124,43 @@ res1 = vel_fit.process(specdata,
 print(res1)
 
 ```
+## Fitting multiple spectra simultaneously 
+
+If your have multiple spectra, from multiple instrument arms, from multiple 
+exposures, fitting them is easy. 
+
+If you have multiple instrument arms, you
+will need to prepare the spectral intermpolators for all the arms 
+and then combine the specdata objects from multiple arms in the list
+```
+sd_blue = spec_fit.SpecData('blue',
+                               wavelength1,
+                               spec1,
+                               espec1,
+                               badmask=badmask1)
+sd_red = spec_fit.SpecData('red',
+                               wavelength2,
+                               spec2,
+                               espec2,
+                               badmask=badmask2)
+res1 = vel_fit.process([sd_blue, sd_red],
+                           paramDict0,
+                           fixParam=fixParam,
+                           config=config,
+                           options=options)
+```
+If you just have multiple exposures, you can obviously use the 
+same spetral configuration for them and then combine the specdata objects for
+those
 
 ##  Likelihood function
 
 One advantage is that you can use rvspecfit as a part of larger inference framework. I.e. you can add the 
 spectral likelihood to other likelihood terms. 
 
-To do that you just need this call
+To do that you just need this call the get_chisq() function that will 
+return the -2*log(L) (or chi-square) of your spectral dataset given the 
+model parameters
 
 ```python
 vel=300
