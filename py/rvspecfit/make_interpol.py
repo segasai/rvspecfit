@@ -254,7 +254,7 @@ def main(args):
                         required=True)
     parser.add_argument('--resol',
                         type=float,
-                        help='Spectral resolution of the new grid')
+                        help='Constant spectral resolution of the new grid')
     parser.add_argument('--revision',
                         type=str,
                         help='The revision of the templates',
@@ -265,7 +265,7 @@ def main(args):
         '--resol_func',
         type=str,
         help=
-        'Spectral resolution function of the new grid. It is a string that should be a function of wavelength in angstrom, i.e. 1000+2*x ',
+        'Spectral resolution function of the new grid. It is a string that should be a function of wavelength in angstrom, i.e. 1000+2*x. This option is incompatible with --resol',
     )
     parser.add_argument('--step',
                         type=float,

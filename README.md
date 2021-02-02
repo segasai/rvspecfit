@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/segasai/rvspecfit.svg?branch=master)](https://travis-ci.org/segasai/rvspecfit)
+[![Coverage Status](https://coveralls.io/repos/github/segasai/rvspecfit/badge.svg?branch=master)](https://coveralls.io/github/segasai/rvspecfit?branch=master)
 
 Automated spectroscopic pipeline to determine radial velocities and 
 stellar atmospheric parameters
