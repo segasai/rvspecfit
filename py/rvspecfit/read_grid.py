@@ -414,7 +414,7 @@ def main(args):
         help=
         'The filename where the SQLite database describing the template library will be stored'
     )
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     makedb(args.prefix, dbfile=args.templdb)
 
 
