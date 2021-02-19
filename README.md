@@ -7,6 +7,12 @@ stellar atmospheric parameters
 Author: Sergey Koposov skoposov _AT_ ed _DOT_ ac _DOT uk, 
 University of Edinburgh
 
+Citation: If you use it, please cite
+https://ui.adsabs.harvard.edu/abs/2019ascl.soft07013K/abstract
+and https://ui.adsabs.harvard.edu/abs/2011ApJ...736..146K/abstract
+
+If something doesn't quite work, I'm happy to help
+
 Dependencies: 
 numpy, scipy, astropy, pyyaml, matplotlib, numdifftools, pandas
 
@@ -135,7 +141,7 @@ if res['best_vsini'] is not None:
 
 options = {'npoly':10}
 
-# this does the actual fitting performing the maximum like-lihood fitting of the data
+# this does the actual fitting performing the maximum likelihood fitting of the data
 res1 = vel_fit.process(specdata,
                            paramDict0,
                            fixParam=fixParam,
@@ -152,7 +158,8 @@ exposures, fitting them is easy.
 If you have multiple instrument arms, you
 will need to prepare the spectral interpolators for all the arms 
 and then combine the specdata objects from multiple arms in the list
-```
+
+```python
 sd_blue = spec_fit.SpecData('blue',
                                wavelength1,
                                spec1,
@@ -175,24 +182,26 @@ those
 
 ##  Likelihood function
 
-One advantage is that you can use rvspecfit as a part of larger inference framework. I.e. you can add the 
-spectral likelihood to other likelihood terms. 
+One advantage of rvspecfit is that you can use it as  part of larger inference framework. 
+I.e. you can add the  spectral likelihood to other likelihood terms. 
 
 To do that you just need this call the get_chisq() function that will 
 return the -2*log(L) (or chi-square) of your spectral dataset given the 
 model parameters
 
 ```python
+loglike = 0 
 vel=300
-atm_params = [4000,4, -2.5, 0.6] # 'teff', 'logg', 'feh', 'alpha'
+atm_params = [4100,4, -2.5, 0.6] # 'teff', 'logg', 'feh', 'alpha'
 spec_chisq  = spec_fit.get_chisq(specdata,
                              vel,
                              atm_params,
                              None,
-                             None,
                              config=config, options = dict(npoly=10))
+loglike += -0.5 * spec_chisq
 ```                            
-That will compute the chi-square of the spectrum for a given template and radial velocity. That will also use
+That will compute the chi-square of the spectrum for a given template parameters
+and radial velocity. That will also use
 the 10 order polynomial as multiplicative continuum . 
 The resulting chi-square can be then multiplied by (-0.5) and added to your log-likelihood if needed.
 
@@ -201,3 +210,13 @@ The resulting chi-square can be then multiplied by (-0.5) and added to your log-
 
 To run on DESI data use rvs_desi_fit or rvs_weave_fit
 
+## Interpolation methods 
+
+By default rvspecfit uses the linear interpolation using Delaunay 
+triangulation. It also support using multilinear interpolatin if 
+the input grid is organized as a true n-D grid without gaps
+
+## Other template libraries
+
+By default the code only supports the PHOENIX library, but it could 
+be easily adapted for other libraries.
