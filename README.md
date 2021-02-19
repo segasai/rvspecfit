@@ -212,8 +212,8 @@ To run on DESI data use rvs_desi_fit or rvs_weave_fit
 
 ## Interpolation methods 
 
-By default rvspecfit uses the linear interpolation using Delaunay 
-triangulation. It also support using multilinear interpolatin if 
+By default rvspecfit uses the multi-dimensional linear interpolation with Delaunay 
+triangulation. It also supports the multilinear interpolation if 
 the input grid is organized as a true n-D grid without gaps
 
 ## Other template libraries

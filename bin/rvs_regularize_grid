@@ -1,0 +1,5 @@
+import rvspecfit.regularize_grid
+import sys
+
+if __name__ == '__main__':
+   rvspecfit.regularize_grid.converter(sys.argv[1])
