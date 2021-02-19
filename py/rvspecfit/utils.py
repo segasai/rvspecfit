@@ -1,12 +1,12 @@
 import os
-import subprocess
 import yaml
+import logging
 from rvspecfit import frozendict
 
 
 def get_default_config():
     """Create a default parameter config ditctionary
-    
+
     Returns
     -------
     ret: dict
@@ -22,6 +22,7 @@ def get_default_config():
     D['min_vsini'] = 1e-2
     D['min_vel_step'] = 0.2
     D['second_minimizer'] = True
+    D['template_lib'] = 'templ_data/'
     return D
 
 
@@ -44,20 +45,31 @@ def read_config(fname=None):
     """
     if fname is None:
         fname = 'config.yaml'
-    with open(fname) as fp:
+    if os.path.exists(fname):
+        fp = open(fname, 'r')
         D = yaml.safe_load(fp)
         if D is None:
             D = {}
-        D0 = get_default_config()
-        for k in D0.keys():
-            if k not in D:
-                D[k] = D0[k]
-        D['config_file_path'] = os.path.abspath(fname)
-        return freezeDict(D)
+            logging.warning('Configuration file config.yaml is empty. ' +
+                            'Using default settings')
+        fp.close()
+    else:
+        logging.warning(
+            'Configuration file config.yaml not found. Using default settings')
+        D = {}
+    D0 = get_default_config()
+    for k in D0.keys():
+        if k not in D:
+            logging.debug(
+                'Keyword {} not found in configuration file. ' +
+                'Using default value {}', k, D0[k])
+            D[k] = D0[k]
+    D['config_file_path'] = os.path.abspath(fname)
+    return freezeDict(D)
 
 
 def freezeDict(d):
-    """ Take the input object and if it is a dictionary, 
+    """ Take the input object and if it is a dictionary,
     freeze it (i.e. return frozendict)
     If not, do nothing
 
