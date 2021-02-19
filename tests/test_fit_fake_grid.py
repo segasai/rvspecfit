@@ -44,8 +44,6 @@ def test_fake_grid():
                           config=config,
                           options=options)
 
-    #res = vel_fit.process(
-    #    specdata, paramDict0, fixParam=fixParam, config=config, options=options)
     print(res['vel'] - v0, res['vel_err'])
     print(res['param'])
     if True:
