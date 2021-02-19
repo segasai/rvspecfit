@@ -65,7 +65,8 @@ class SpecData:
     '''
     Class describing a single spectrocopic dataset
     '''
-    def __init__(self, name, lam, spec, espec, badmask=None):
+    def __init__(self, name, lam, spec, espec, badmask=None,
+                 resolution=None):
         '''
         Construct the spectroscopic dataset
 
@@ -81,12 +82,15 @@ class SpecData:
             Vector with the error spectrum (sigmas)
         badmask: numpy array (boolean, optional)
             The mask with bad pixels
+        resolution: ResolMatrix
+            The matrix describing the resolution of the dataset
         '''
         self.fd = {}
         self.fd['name'] = name
         self.fd['lam'] = lam
         self.fd['spec'] = spec
         self.fd['espec'] = espec
+        self.fd['resolution'] = resolution
         if badmask is None:
             badmask = np.zeros(len(spec), dtype=bool)
         self.fd['badmask'] = badmask
@@ -113,6 +117,10 @@ class SpecData:
     @property
     def badmask(self):
         return self.fd['badmask']
+
+    @property
+    def resolution(self):
+        return self.fd['resolution']
 
     def __hash__(self):
         return self.id
@@ -499,7 +507,7 @@ def get_chisq(specdata,
               vel,
               atm_params,
               rot_params,
-              resol_params,
+              resol_params=None,
               options=None,
               config=None,
               cache=None,
@@ -519,8 +527,9 @@ def get_chisq(specdata,
         The tuple with parameters of the star
     rot_parameters: tuple
         The tuple with parameters of the rotation (can be None)
-    resol_parameters: tuple
-        The parameters of the spectral resolution (can be None)
+    resol_parameters: dictionary
+        The dictionary with resollution matrices ResolMatrix (can be None)
+        The keys are names of spectral configurations
     options: dict
         The dictionary with fitting options (such as npoly for the degree of
         the polynomial)
@@ -596,8 +605,13 @@ def get_chisq(specdata,
         evalTempl = evalRV(curtemplI, vel, curdata.lam)
 
         # take into account the resolution
+        
         if resol_params is not None:
             evalTempl = convolve_resol(evalTempl, resol_params[name])
+        if curdata.resolution is not None:
+            if resol_params is not None:
+                raise ValueError('You are not allowed to set resol_param together with the resolution of each SpecData')
+            evalTempl = convolve_resol(evalTempl, curdata.resolution)
 
         polys = get_basis(curdata, npoly, rbf=rbf)
 
