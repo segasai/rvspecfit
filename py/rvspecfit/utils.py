@@ -46,6 +46,8 @@ def read_config(fname=None):
         fname = 'config.yaml'
     with open(fname) as fp:
         D = yaml.safe_load(fp)
+        if D is None:
+            D = {}
         D0 = get_default_config()
         for k in D0.keys():
             if k not in D:
