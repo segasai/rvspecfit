@@ -69,6 +69,9 @@ def test_fit():
     fixParam = []
     if res['best_vsini'] is not None:
         paramDict0['vsini'] = res['best_vsini']
+
+    xres0 = vel_fit.firstguess(specdata, config=config)
+
     res1 = vel_fit.process(specdata,
                            paramDict0,
                            fixParam=fixParam,
