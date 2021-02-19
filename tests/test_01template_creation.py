@@ -1,10 +1,10 @@
-import os
 import subprocess
 import pathlib
 import rvspecfit.make_nd
 import rvspecfit.read_grid
 import rvspecfit.make_ccf
 import rvspecfit.make_interpol
+import rvspecfit.regularize_grid
 
 path = str(pathlib.Path(__file__).parent.absolute())
 
@@ -23,9 +23,12 @@ def run_script(script):
             rvspecfit.make_ccf.main(args[1:])
         if script_name == 'rvs_read_grid':
             rvspecfit.read_grid.main(args[1:])
+        if script_name == 'rvs_regularize_grid':
+            rvspecfit.regularize_grid.main(args[1:])
 
 
 def test_scripts():
     run_script(path + '/make_templ.sh')
+    run_script(path + '/make_templ1.sh')
     run_script(path + '/gen_test_templ_grid.sh')
     run_script(path + '/gen_test_templ.sh')

@@ -1,4 +1,5 @@
 import pickle
+import sys
 import argparse
 import scipy.stats
 import scipy.interpolate
@@ -6,7 +7,10 @@ import numpy as np
 
 
 def findbestoverlaps(x, intervals):
-    # find the interval where the value is closer to the center
+    """find the interval where the value is closer to the center
+I.e. given intervals [0,10],[1,11],[2,12],[3,13],[4,14],[5,15],[6,16]
+and value of 8 it return [3,13]
+"""
     bestx = np.zeros(len(x)) + 1e10
     bestid = np.zeros(len(x), dtype=int)
     for i, curi in enumerate(intervals):
@@ -122,3 +126,7 @@ def main(args):
                         required=True)
     args = parser.parse_args(args)
     converter(args.input, args.output)
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
