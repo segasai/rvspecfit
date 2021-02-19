@@ -87,7 +87,10 @@ def test_fits():
     plt.savefig(path + '/plot_sdss_test2.png')
     resol_mat = spec_fit.construct_resol_mat(specdata[0].lam, 50)
     specdata = [
-        spec_fit.SpecData('sdss1', 10**dat['loglam'], dat['flux'], err,
+        spec_fit.SpecData('sdss1',
+                          10**dat['loglam'],
+                          dat['flux'],
+                          err,
                           resolution=resol_mat)
     ]
 
@@ -101,6 +104,7 @@ def test_fits():
     plt.plot(specdata[0].lam, specdata[0].spec, 'k')
     plt.plot(specdata[0].lam, ret['models'][0], 'r')
     plt.savefig(path + '/plot_sdss_test3.png')
+    ret = spec_fit.get_chisq_continuum(specdata, options=options)
 
 
 if __name__ == '__main__':

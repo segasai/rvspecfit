@@ -43,6 +43,8 @@ def test_fit():
         'vsini': 19
     }
     fixParam = ['vsini']
+
+    # fit with fixed vssini
     res = vel_fit.process(specdata,
                           paramDict0,
                           fixParam=fixParam,
@@ -56,6 +58,8 @@ def test_fit():
         'alpha': 0.2,
         'vsini': 19
     }
+
+    # fit witout fixin
     fixParam = []
     res = vel_fit.process(specdata,
                           paramDict0,
@@ -64,14 +68,16 @@ def test_fit():
                           options=options)
 
     options = {'npoly': 15}
+
+    # first guess fit
+    xres0 = vel_fit.firstguess(specdata, config=config)
+
+    # ccf
     res = fitter_ccf.fit(specdata, config)
     paramDict0 = res['best_par']
     fixParam = []
     if res['best_vsini'] is not None:
         paramDict0['vsini'] = res['best_vsini']
-
-    xres0 = vel_fit.firstguess(specdata, config=config)
-
     res1 = vel_fit.process(specdata,
                            paramDict0,
                            fixParam=fixParam,
@@ -83,9 +89,18 @@ def test_fit():
     plt.plot(specdata[0].lam, res1['yfit'][0], 'r-')
     plt.tight_layout()
     plt.savefig(path + '/plot_test_fit_sdss.png')
+
+    # test priors
     res2 = vel_fit.process(specdata,
                            paramDict0,
                            fixParam=fixParam,
                            config=config,
                            options=options,
                            priors={'teff': (9000, 50)})
+    # test rbf
+    options['rbf_continuum'] = False
+    res2 = vel_fit.process(specdata,
+                           paramDict0,
+                           fixParam=fixParam,
+                           config=config,
+                           options=options)
