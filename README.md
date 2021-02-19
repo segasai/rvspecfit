@@ -35,8 +35,8 @@ which will install the latest version
 
 ## PHOENIX library
 
-The library is avialable here  ftp://phoenix.astro.physik.uni-goettingen.de/HiResFITS/
-
+The library is avialable here ftp://phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/
+(Make sure you get the v2.0 one!)
 
 ## Preparation of PHOENIX library
 
