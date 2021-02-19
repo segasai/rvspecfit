@@ -9,7 +9,6 @@ import scipy.optimize
 import numpy as np
 import sqlite3
 from rvspecfit import read_grid
-from rvspecfit import utils
 import rvspecfit
 
 git_rev = rvspecfit.__version__
@@ -191,13 +190,13 @@ def process_all(setupInfo,
     pool = mp.Pool(nthreads, initialize_matrix_cache, (mat, lamgrid))
     for curteff, curlogg, curfeh, curalpha in vec.T:
         i += 1
-        print(i)
         specs.append(
             pool.apply_async(extract_spectrum,
                              (curlogg, curteff, curfeh, curalpha, dbfile,
                               prefix, wavefile, normalize)))
     lam = lamgrid
     for i in range(len(specs)):
+        print('%d/%d' % (i, len(specs)))
         specs[i], lognorms[i] = specs[i].get()
 
     pool.close()
@@ -264,8 +263,11 @@ def main(args):
     parser.add_argument(
         '--resol_func',
         type=str,
-        help=
-        'Spectral resolution function of the new grid. It is a string that should be a function of wavelength in angstrom, i.e. 1000+2*x. This option is incompatible with --resol',
+        help=(
+            'Spectral resolution function of the new grid. It is a string that '
+            +
+            'should be a function of wavelength in angstrom, i.e. 1000+2*x. ' +
+            'This option is incompatible with --resol'),
     )
     parser.add_argument(
         '--step',
@@ -319,9 +321,8 @@ def main(args):
         '--fixed_fwhm',
         action='store_true',
         default=False,
-        help=
-        'Use to make the fwhm of the LSF to be constant rather then R=lambda/dlambda'
-    )
+        help=('Use this option to make the FWHM of the LSF to be constant '
+              'rather then resolution R=lambda/dlambda'))
 
     args = parser.parse_args(args)
 
