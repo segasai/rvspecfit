@@ -267,10 +267,13 @@ def main(args):
         help=
         'Spectral resolution function of the new grid. It is a string that should be a function of wavelength in angstrom, i.e. 1000+2*x. This option is incompatible with --resol',
     )
-    parser.add_argument('--step',
-                        type=float,
-                        help='Pixel size in angstrom of the new grid',
-                        required=True)
+    parser.add_argument(
+        '--step',
+        type=float,
+        help=('Pixel size in angstrom of the templates in the grid ' +
+              'If log-spacing is requested (default) the pixel size would ' +
+              'correspond to the pixel size for smallest wavelengths'),
+        required=True)
     add_bool_arg(parser,
                  'log',
                  default=True,
