@@ -717,8 +717,9 @@ def proc_desi(fname,
 
         outdf.append(outdict)
 
-        for ii, curd in enumerate(specdatas):
-            models[curd.name].append(curmodel[ii])
+        for ii, curs in enumerate(setups):
+            # I assume all the setusp were fitted
+            models['desi_%s'%curs].append(curmodel[ii])
 
     outdf1 = {}
     for k in outdf[0].keys():
