@@ -9,9 +9,15 @@ import logging
 import copy
 
 
-def firstguess(specdata, options=None, config=None, resolParams=None):
-    """ Compute the starting point parameter by just going over a
-    small grid of templates
+def firstguess(specdata,
+               options=None,
+               config=None,
+               resolParams=None,
+               vsinigrid=(None, 10, 100),
+               paramsgrid=None):
+    """ Compute the starting point tempalte parameters and radial velocity
+    by brute force looping over small grid of templates and a grid of
+    radial velocities
 
     Parameters
     ----------
@@ -23,7 +29,18 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
     config: dict
         Optional dictionary config
     resolParams: tuple
-        Resultion parameters
+        Resolution parameters
+    paramsgrid: dictionary
+        (optional) dictionary of temlate parameters to iterate over
+        The default value is
+        paramsgrid = {
+            'logg': [1, 2, 3, 4, 5],
+            'teff': [3000, 5000, 8000, 10000],
+            'feh': [-2, -1, 0],
+            'alpha': [0]
+        } 
+    vsinigrid: tuple
+        (optional) list of vsinis to consider
 
     Returns
     -------
@@ -35,13 +52,13 @@ def firstguess(specdata, options=None, config=None, resolParams=None):
     max_vel = config['max_vel']
     vel_step0 = config['vel_step0']
     options = options or {}
-    paramsgrid = {
-        'logg': [1, 2, 3, 4, 5],
-        'teff': [3000, 5000, 8000, 10000],
-        'feh': [-2, -1, 0],
-        'alpha': [0]
-    }
-    vsinigrid = [None, 10, 100]
+    if paramsgrid is None:
+        paramsgrid = {
+            'logg': [1, 2, 3, 4, 5],
+            'teff': [3000, 5000, 8000, 10000],
+            'feh': [-2, -1, 0],
+            'alpha': [0]
+        }
     specParams = spec_inter.getSpecParams(specdata[0].name, config)
     params = []
     for x in itertools.product(*paramsgrid.values()):
