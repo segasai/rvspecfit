@@ -43,6 +43,7 @@ def read_config(fname=None):
         The dictionary with the configuration from a file
 
     """
+    fname_specified = fname is not None
     if fname is None:
         fname = 'config.yaml'
     if os.path.exists(fname):
@@ -54,9 +55,13 @@ def read_config(fname=None):
                             'Using default settings')
         fp.close()
     else:
-        logging.warning(
-            'Configuration file config.yaml not found. Using default settings')
-        D = {}
+        if fname_specified:
+            raise RuntimeError(f"Configuration file '{fname}' not found.")
+        else:
+            logging.warning(
+                f"Configuration file '{fname}' not found. Using default settings"
+            )
+            D = {}
     D0 = get_default_config()
     for k in D0.keys():
         if k not in D:
