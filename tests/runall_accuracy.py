@@ -3,7 +3,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 import multiprocessing as mp
 import numpy as np
 import sys
-import accuracy_test
+import accuracy
 
 if __name__ == '__main__':
     np.random.seed(1)
@@ -24,9 +24,9 @@ if __name__ == '__main__':
         kw = dict(sn=sn, nlam=nlam, resol=resol)
         args = (i, )
         if nthreads > 1:
-            ret.append(poo.apply_async(accuracy_test.doone, args, kw))
+            ret.append(poo.apply_async(accuracy.doone, args, kw))
         else:
-            ret.append(accuracy_test.doone(*args, **kw))
+            ret.append(accuracy.doone(*args, **kw))
     if nthreads > 1:
         ret = [_.get() for _ in ret]
     v0, v1, err = np.array(ret).T
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     #    print (v0[i],v1[i],err[i])
     dx = v1 - v0
     xind = (err < np.median(err))
-    print(np.median(dx), np.median(err), np.std(dx))
+    print(np.median(dx), np.median(err), np.std(dx), np.std(dx / err))
     print(np.median(dx[xind]), np.median(err[xind]), np.std(dx[xind]))
     poo.close()
     poo.join()

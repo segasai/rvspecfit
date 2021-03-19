@@ -13,14 +13,14 @@ import mktemps
 
 
 class si:
-    fname = 'test.yaml'
+    fname = 'tests/test.yaml'
     config = utils.read_config(fname)
 
 
 def doone(seed,
           sn=100,
           nlam=400,
-          config_name='test.yaml',
+          config_name='tests/test.yaml',
           doplot=False,
           resol=1000):
 
