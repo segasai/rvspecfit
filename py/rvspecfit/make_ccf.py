@@ -7,6 +7,8 @@ import scipy.interpolate
 import scipy.stats
 import sys
 import logging
+from typing import List, Set, Dict, Tuple, Optional  # noqa
+import numpy.typing as npt
 
 from rvspecfit import spec_fit
 from rvspecfit import make_interpol
@@ -18,14 +20,30 @@ CCF_DAT_NAME = 'ccfdat_%s.npy'
 CCF_MOD_NAME = 'ccfmod_%s.npy'
 
 
+class CCFModelInfo:
+    def __init__(self,
+                 params=None,
+                 ccfconf=None,
+                 loglambda=None,
+                 vsinis=None,
+                 parnames=None,
+                 revision=None):
+        self.params = params
+        self.ccfconf = ccfconf
+        self.loglambda = loglambda
+        self.vsinis = vsinis
+        self.parnames = parnames
+        self.revision = revision
+
+
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
     def __init__(self,
-                 logl0=None,
-                 logl1=None,
-                 npoints=None,
-                 splinestep=1000,
-                 maxcontpts=20):
+                 logl0: Optional[float] = None,
+                 logl1: Optional[float] = None,
+                 npoints: Optional[int] = None,
+                 splinestep: int = 1000,
+                 maxcontpts: int = 20):
         """
         Configure the cross-correlation
 
@@ -45,6 +63,8 @@ class CCFConfig:
              The maximum number of points used for the continuum fit
         """
 
+        if logl0 is None or logl1 is None or npoints is None:
+            raise ValueError('log0,logl1,npoints parameters are not specified')
         self.logl0 = logl0
         self.logl1 = logl1
         self.npoints = npoints
@@ -53,7 +73,11 @@ class CCFConfig:
             splinestep, 3e5 * (np.exp((logl1 - logl0) / self.maxcontpts) - 1))
 
 
-def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
+def get_continuum(lam0: npt.ArrayLike,
+                  spec0: npt.ArrayLike,
+                  espec0: npt.ArrayLike,
+                  ccfconf=None,
+                  bin=11):
     """Determine the continuum of the spectrum by fitting a spline
 
     Parameters
@@ -439,16 +463,15 @@ def ccf_executor(spec_setup,
     savefile = ('%s/' + CCF_PKL_NAME) % (oprefix, spec_setup)
     datsavefile = ('%s/' + CCF_DAT_NAME) % (oprefix, spec_setup)
     modsavefile = ('%s/' + CCF_MOD_NAME) % (oprefix, spec_setup)
-    dHash = {}
-    dHash['params'] = params
-    dHash['ccfconf'] = ccfconf
-    dHash['loglambda'] = xlogl
-    dHash['vsinis'] = vsinis
-    dHash['parnames'] = parnames
-    dHash['revision'] = revision
+    ccfmod_info = CCFModelInfo(params=params,
+                               ccfconf=ccfconf,
+                               loglambda=xlogl,
+                               vsinis=vsinis,
+                               parnames=parnames,
+                               revision=revision)
 
     with open(savefile, 'wb') as fp:
-        pickle.dump(dHash, fp)
+        pickle.dump(ccfmod_info, fp)
     np.save(datsavefile, np.array(ffts))
     np.save(modsavefile, np.array(models))
 

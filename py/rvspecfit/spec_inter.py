@@ -4,9 +4,19 @@ import scipy.interpolate
 import pickle
 import itertools
 from rvspecfit import make_nd
+from typing import List, Set, Dict, Tuple, Optional  # noqa
+import numpy.typing as npt
 
 
-class TriInterp:
+class InterpolatorSuper:
+    def __init__(self):
+        pass
+
+    def __call__(self, p):
+        pass
+
+
+class TriInterp(InterpolatorSuper):
     def __init__(self, triang, dats, exp=True):
         """
         Get the Interpolation object from the Delaunay triangulation
@@ -54,7 +64,7 @@ class TriInterp:
         return spec
 
 
-class GridOutsideCheck:
+class GridOutsideCheck(InterpolatorSuper):
     def __init__(self, uvecs, vecs, idgrid):
         self.uvecs = uvecs
         self.idgrid = idgrid
@@ -86,7 +96,7 @@ class GridOutsideCheck:
         return 0
 
 
-class GridInterp:
+class GridInterp(InterpolatorSuper):
     def __init__(self, uvecs, idgrid, vecs, dats, exp=True):
         """
         Get the Grid interpolation object
@@ -163,15 +173,15 @@ class GridInterp:
 class SpecInterpolator:
     """ Spectrum interpolator object """
     def __init__(self,
-                 name,
-                 interper,
-                 extraper,
-                 lam,
+                 name: str,
+                 interper: InterpolatorSuper,
+                 extraper: InterpolatorSuper,
+                 lam: npt.ArrayLike,
                  mapper,
-                 parnames,
-                 revision='',
-                 filename='',
-                 creation_soft_version=''):
+                 parnames: List[str],
+                 revision: str = '',
+                 filename: str = '',
+                 creation_soft_version: str = ''):
         """ Construct the interpolator object
 
         Parameters
@@ -185,7 +195,7 @@ class SpecInterpolator:
         lam: ndarray
             Wavelength vector
         mapper: function
-            Function that does the mapping from scaled box parameters to 
+            Function that does the mapping from scaled box parameters to
             proper values
         parnames: tuple
             The list of parameter names ('logg', 'teff' ,.. ) etc
@@ -208,7 +218,7 @@ class SpecInterpolator:
         self.filename = filename
         self.creation_soft_version = creation_soft_version
 
-    def outsideFlag(self, param0):
+    def outsideFlag(self, param0) -> bool:
         """Check if the point is outside the interpolation grid
 
         Parameters
@@ -224,7 +234,7 @@ class SpecInterpolator:
         param = self.mapper.forward(param0)
         return self.extraper(param)
 
-    def eval(self, param0):
+    def eval(self, param0) -> float:
         """ Evaluate the spectrum at a given parameter """
         if isinstance(param0, dict):
             param0 = [param0[_] for _ in self.parnames]
@@ -235,10 +245,10 @@ class SpecInterpolator:
 class interp_cache:
     """ Singleton object caching the interpolators
     """
-    interps = {}
+    interps: Dict[str, SpecInterpolator] = {}
 
 
-def getInterpolator(HR, config, warmup_cache=True):
+def getInterpolator(HR, config, warmup_cache=True) -> SpecInterpolator:
     """ Return the spectrum interpolation object for a given instrument
     setup HR and config. This function also checks the cache
 
@@ -270,12 +280,13 @@ def getInterpolator(HR, config, warmup_cache=True):
             fd = pickle.load(fd0)
         (templ_lam, vecs, mapper, parnames) = (fd['lam'], fd['vec'],
                                                fd['mapper'], fd['parnames'])
-
+        interper: InterpolatorSuper
+        extraper: InterpolatorSuper
         if 'triang' in fd:
             # triangulation based interpolation
             (triang, extraflags) = (fd['triang'], fd['extraflags'])
-            interper, extraper = (TriInterp(triang, dats, exp=expFlag),
-                                  TriInterp(triang, extraflags, exp=False))
+            (interper, extraper) = (TriInterp(triang, dats, exp=expFlag),
+                                    TriInterp(triang, extraflags, exp=False))
         elif 'regular' in fd:
             # regular grid interpolation
             uvecs, idgrid = (fd['uvecs'], fd['idgrid'])

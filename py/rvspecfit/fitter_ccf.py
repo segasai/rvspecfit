@@ -3,17 +3,22 @@ import numpy as np
 import scipy.optimize
 import scipy.interpolate
 from rvspecfit import make_ccf
+from rvspecfit import spec_fit
 import logging
+from typing import List, Set, Dict, Tuple, Optional  # noqa
+import numpy.typing as npt
 
 
 class CCFCache:
     """ Singleton caching CCF information """
-    ccf_info = {}
-    ccfs = {}
-    ccf_models = {}
+    ccf_info: Dict[str, make_ccf.CCFModelInfo] = {}
+    ccfs: Dict[str, npt.ArrayLike] = {}
+    ccf_models: Dict[str, npt.ArrayLike] = {}
 
 
-def get_ccf_info(spec_setup, config):
+def get_ccf_info(
+        spec_setup: str,
+        config) -> Tuple[npt.ArrayLike, npt.ArrayLike, make_ccf.CCFModelInfo]:
     """
     Returns the CCF info from the pickled file for a given spectroscopic
     setup
@@ -39,11 +44,11 @@ def get_ccf_info(spec_setup, config):
         CCFCache.ccf_info[spec_setup] = pickle.load(open(ccf_info_fname, 'rb'))
         CCFCache.ccfs[spec_setup] = np.load(ccf_dat_fname, mmap_mode='r')
         CCFCache.ccf_models[spec_setup] = np.load(ccf_mod_fname, mmap_mode='r')
-    return CCFCache.ccfs[spec_setup], CCFCache.ccf_models[
-        spec_setup], CCFCache.ccf_info[spec_setup]
+    return (CCFCache.ccfs[spec_setup], CCFCache.ccf_models[spec_setup],
+            CCFCache.ccf_info[spec_setup])
 
 
-def ccf_combiner(ccfs):
+def ccf_combiner(ccfs: npt.ArrayLike) -> npt.ArrayLike:
     # combine ccfs from multiple filters
     # since ccf^2 is -chisq
     # we assume ccfs is 2d array shaped like Nfilters, nvelocities
@@ -51,7 +56,7 @@ def ccf_combiner(ccfs):
     return ret
 
 
-def fit(specdata, config):
+def fit(specdata: List[spec_fit.SpecData], config):
     """
     Process the data by doing cross-correlation with templates
 
@@ -96,7 +101,7 @@ def fit(specdata, config):
         espec = cursd.espec
         ccf_dats[spec_setup], ccf_mods[spec_setup], ccf_infos[
             spec_setup] = get_ccf_info(spec_setup, config)
-        ccfconf = ccf_infos[spec_setup]['ccfconf']
+        ccfconf = ccf_infos[spec_setup].ccfconf
         logl0 = ccfconf.logl0
         logl1 = ccfconf.logl1
         npoints = ccfconf.npoints
@@ -171,9 +176,9 @@ def fit(specdata, config):
     for spec_setup in setups:
         best_model[spec_setup] = np.roll(ccf_mods[spec_setup][best_id],
                                          int(best_vel / velstep[spec_setup]))
-    best_par = ccf_infos[setups[0]]['params'][best_id]
-    best_par = dict(zip(ccf_infos[setups[0]]['parnames'], best_par))
-    best_vsini = ccf_infos[setups[0]]['vsinis'][best_id]
+    best_par = ccf_infos[setups[0]].params[best_id]
+    best_par = dict(zip(ccf_infos[setups[0]].parnames, best_par))
+    best_vsini = ccf_infos[setups[0]].vsinis[best_id]
 
     result = dict(best_par=best_par,
                   best_vel=best_vel,
