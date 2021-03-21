@@ -26,6 +26,7 @@ jobs:
           pip install pytest
           pip install pytest-cov
           pip install coveralls
+          pip install mypy
           pip install .
       - name: Fetching data
         run: |
@@ -40,6 +41,9 @@ jobs:
       - name: Testing
         run: |
           pytest --cov=rvspecfit
+      - name: Mypy
+        run: |
+          mypy --ignore-missing-imports py/rvspecfit/*.py  py/rvspecfit/*/*py
       - name: Coveralls
         if: ${{ success() }}
         run: coveralls --service=github
