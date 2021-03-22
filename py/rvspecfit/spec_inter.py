@@ -5,7 +5,7 @@ import pickle
 import itertools
 from rvspecfit import make_nd
 from typing import List, Set, Dict, Tuple, Optional  # noqa
-import numpy.typing as npt
+# import numpy.typing as npt
 
 
 class InterpolatorSuper:
@@ -176,7 +176,7 @@ class SpecInterpolator:
                  name: str,
                  interper: InterpolatorSuper,
                  extraper: InterpolatorSuper,
-                 lam: npt.ArrayLike,
+                 lam,
                  mapper,
                  parnames: List[str],
                  revision: str = '',

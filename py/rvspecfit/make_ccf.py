@@ -6,16 +6,18 @@ import numpy as np
 import scipy.interpolate
 import scipy.stats
 import sys
+import ast
 import logging
 from typing import List, Set, Dict, Tuple, Optional  # noqa
-import numpy.typing as npt
+# import numpy.typing as npt
+import astropy.io.fits as pyfits
 
 from rvspecfit import spec_fit
 from rvspecfit import make_interpol
 import rvspecfit
 git_rev = rvspecfit.__version__
 
-CCF_PKL_NAME = 'ccf_%s.pkl'
+CCF_INFO_NAME = 'ccfinfo_%s.fits'
 CCF_DAT_NAME = 'ccfdat_%s.npy'
 CCF_MOD_NAME = 'ccfmod_%s.npy'
 
@@ -34,6 +36,41 @@ class CCFModelInfo:
         self.vsinis = vsinis
         self.parnames = parnames
         self.revision = revision
+
+    def save(self, fname):
+        head = pyfits.Header()
+        head['REVISION'] = self.revision
+        head['LOGL0'] = self.ccfconf.logl0
+        head['LOGL1'] = self.ccfconf.logl1
+        head['NPOINTS'] = self.ccfconf.logl0
+        head['SPLINESTEP'] = self.ccfconf.splinestep
+        head['MAXCONTPTS'] = self.ccfconf.maxcontpts
+        head['PARNAMES'] = str(self.parnames)
+        head['VSINIS'] = str(self.vsinis)
+        paramsHDU = pyfits.ImageHDU(self.params, name='params')
+        loglambdaHDU = pyfits.ImageHDU(self.loglambda, name='loglambda')
+        pyfits.HDUList(
+            [pyfits.PrimaryHDU(header=head), paramsHDU,
+             loglambdaHDU]).writeto(fname)
+
+    def restore(fname):
+        head = pyfits.getheader(fname)
+        revision = head['REVISION']
+        ccfconf = CCFConfig(logl0=head['LOGL0'],
+                            logl1=head['LOGL1'],
+                            npoints=head['NPOINTS'],
+                            splinestep=head['SPLINESTEP'],
+                            maxcontpts=head['MAXCONTPTS'])
+        parnames = ast.literal_eval(head['PARNAMES'])
+        vsinis = ast.literal_eval(head['VSINIS'])
+        params = pyfits.getdata(fname, 'params')
+        loglambda = pyfits.getdata(fname, 'loglambda')
+        return CCFModelInfo(revision=revision,
+                            ccfconf=ccfconf,
+                            params=params,
+                            parnames=parnames,
+                            loglambda=loglambda,
+                            vsinis=vsinis)
 
 
 class CCFConfig:
@@ -73,11 +110,12 @@ class CCFConfig:
             splinestep, 3e5 * (np.exp((logl1 - logl0) / self.maxcontpts) - 1))
 
 
-def get_continuum(lam0: npt.ArrayLike,
-                  spec0: npt.ArrayLike,
-                  espec0: npt.ArrayLike,
-                  ccfconf=None,
-                  bin=11):
+def get_continuum(
+        lam0,  # : npt.ArrayLike,
+        spec0,  #: npt.ArrayLike,
+        espec0,  #: npt.ArrayLike,
+        ccfconf=None,
+        bin=11):
     """Determine the continuum of the spectrum by fitting a spline
 
     Parameters
@@ -460,7 +498,7 @@ def ccf_executor(spec_setup,
                                                           ccfconf,
                                                           vsinis=vsinis)
     ffts = np.array([np.fft.fft(x) for x in models])
-    savefile = ('%s/' + CCF_PKL_NAME) % (oprefix, spec_setup)
+    savefile = ('%s/' + CCF_INFO_NAME) % (oprefix, spec_setup)
     datsavefile = ('%s/' + CCF_DAT_NAME) % (oprefix, spec_setup)
     modsavefile = ('%s/' + CCF_MOD_NAME) % (oprefix, spec_setup)
     ccfmod_info = CCFModelInfo(params=params,
@@ -470,8 +508,7 @@ def ccf_executor(spec_setup,
                                parnames=parnames,
                                revision=revision)
 
-    with open(savefile, 'wb') as fp:
-        pickle.dump(ccfmod_info, fp)
+    ccfmod_info.save(savefile)
     np.save(datsavefile, np.array(ffts))
     np.save(modsavefile, np.array(models))
 

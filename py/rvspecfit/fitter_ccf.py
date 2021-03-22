@@ -5,20 +5,19 @@ import scipy.interpolate
 from rvspecfit import make_ccf
 from rvspecfit import spec_fit
 import logging
-from typing import List, Set, Dict, Tuple, Optional  # noqa
-import numpy.typing as npt
+from typing import List, Set, Any, Dict, Tuple, Optional  # noqa
+# import numpy.typing as npt
 
 
 class CCFCache:
     """ Singleton caching CCF information """
     ccf_info: Dict[str, make_ccf.CCFModelInfo] = {}
-    ccfs: Dict[str, npt.ArrayLike] = {}
-    ccf_models: Dict[str, npt.ArrayLike] = {}
+    ccfs: Dict[str, Any] = {}
+    ccf_models: Dict[str, Any] = {}
 
 
-def get_ccf_info(
-        spec_setup: str,
-        config) -> Tuple[npt.ArrayLike, npt.ArrayLike, make_ccf.CCFModelInfo]:
+def get_ccf_info(spec_setup: str,
+                 config) -> Tuple[Any, Any, make_ccf.CCFModelInfo]:
     """
     Returns the CCF info from the pickled file for a given spectroscopic
     setup
@@ -38,17 +37,18 @@ def get_ccf_info(
     """
     if spec_setup not in CCFCache.ccfs:
         prefix = config['template_lib']
-        ccf_info_fname = prefix + make_ccf.CCF_PKL_NAME % spec_setup
+        ccf_info_fname = prefix + make_ccf.CCF_INFO_NAME % spec_setup
         ccf_dat_fname = prefix + make_ccf.CCF_DAT_NAME % spec_setup
         ccf_mod_fname = prefix + make_ccf.CCF_MOD_NAME % spec_setup
-        CCFCache.ccf_info[spec_setup] = pickle.load(open(ccf_info_fname, 'rb'))
+        CCFCache.ccf_info[spec_setup] = make_ccf.CCFModelInfo.restore(
+            ccf_info_fname)
         CCFCache.ccfs[spec_setup] = np.load(ccf_dat_fname, mmap_mode='r')
         CCFCache.ccf_models[spec_setup] = np.load(ccf_mod_fname, mmap_mode='r')
     return (CCFCache.ccfs[spec_setup], CCFCache.ccf_models[spec_setup],
             CCFCache.ccf_info[spec_setup])
 
 
-def ccf_combiner(ccfs: npt.ArrayLike) -> npt.ArrayLike:
+def ccf_combiner(ccfs):  # : npt.ArrayLike) -> npt.ArrayLike:
     # combine ccfs from multiple filters
     # since ccf^2 is -chisq
     # we assume ccfs is 2d array shaped like Nfilters, nvelocities
