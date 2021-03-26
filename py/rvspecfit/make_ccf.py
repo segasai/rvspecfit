@@ -23,6 +23,10 @@ CCF_MOD_NAME = 'ccfmod_%s.npy'
 
 
 class CCFModelInfo:
+    FORMAT_VERSION = 1
+
+    # change me if the file format changed
+
     def __init__(self,
                  params=None,
                  ccfconf=None,
@@ -47,6 +51,7 @@ class CCFModelInfo:
         head['MAXCONTPTS'] = self.ccfconf.maxcontpts
         head['PARNAMES'] = str(self.parnames)
         head['VSINIS'] = str(self.vsinis)
+        head['FORMVER'] = self.FORMAT_VERSION
         paramsHDU = pyfits.ImageHDU(self.params, name='params')
         loglambdaHDU = pyfits.ImageHDU(self.loglambda, name='loglambda')
         pyfits.HDUList(
@@ -57,6 +62,12 @@ class CCFModelInfo:
     def restore(fname):
         head = pyfits.getheader(fname)
         revision = head['REVISION']
+        if head.get('FORMVER') != CCFModelInfo.FORMAT_VERSION:
+            raise RuntimeError(
+                '''Cannot read CCF info file, as it was generated in an
+incompatible format. You may need to regenerate the files
+''')
+
         ccfconf = CCFConfig(logl0=head['LOGL0'],
                             logl1=head['LOGL1'],
                             npoints=head['NPOINTS'],

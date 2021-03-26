@@ -18,6 +18,8 @@ SPEC_FITS_NAME = 'specs_%s.fits'
 
 
 class SpecsStore:
+    FORMAT_VERSION = 1
+
     def __init__(self,
                  specs=None,
                  vec=None,
@@ -45,6 +47,7 @@ class SpecsStore:
         hdr['MAPPER_NPARAMS'] = int(self.mapper.nparams)
         hdr['MAPPER_LOGS'] = str(self.mapper.logs)
         hdr['PARNAMES'] = str(self.parnames)
+        hdr['FORMVER'] = SpecsStore.FORMAT_VERSION
         vecHDU = pyfits.ImageHDU(self.vec, name='VEC')
         specHDU = pyfits.ImageHDU(self.specs, name='SPECS')
         lognormsHDU = pyfits.ImageHDU(self.lognorms, name='LOGNORMS')
@@ -56,6 +59,11 @@ class SpecsStore:
     @staticmethod
     def load(fname):
         hdr = pyfits.getheader(fname)
+        if hdr.get('FORMVER') != SpecsStore.FORMAT_VERSION:
+            raise RuntimeError(
+                """The spectrum store file is in incompatible format.
+You may need to regenerate it""")
+
         mapper_nparams = hdr['MAPPER_NPARAMS']
         parnames = hdr['PARNAMES']
         mapper_logs = ast.literal_eval(hdr['MAPPER_LOGS'])

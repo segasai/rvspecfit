@@ -58,6 +58,8 @@ class GridInfo(InterpParentInfo):
 
 
 class InterpolInfo:
+    FORMAT_VERSION = 1
+
     def __init__(self,
                  lam=None,
                  vec=None,
@@ -83,6 +85,7 @@ class InterpolInfo:
         hdr['PARNAMES'] = str(self.parnames)
         hdr['MAPPER_LOGS'] = str(self.mapper.logs)
         hdr['MAPPER_NPARAMS'] = str(self.mapper.nparams)
+        hdr['FORMVER'] = InterpolInfo.FORMAT_VERSION
         lamHDU = pyfits.ImageHDU(self.lam, name='LAM')
         vecHDU = pyfits.ImageHDU(self.vec, name='VEC')
         lognormsHDU = pyfits.ImageHDU(self.lognorms, name='LOGNORMS')
@@ -99,6 +102,10 @@ class InterpolInfo:
         vec = pyfits.getdata(fname, 'VEC')
         lognorms = pyfits.getdata(fname, 'LOGNORMS')
         hdr = pyfits.getheader(fname)
+        if hdr.get('FORMVER') != InterpolInfo.FORMAT_VERSION:
+            raise RuntimeError(
+                '''The interpolation info file is in incompatible format.
+You may need to regenerate it''')
         revision = hdr['REVISION']
         git_rev = hdr['GIT_REV']
         parnames = ast.literal_eval(hdr['PARNAMES'])
