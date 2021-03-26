@@ -42,7 +42,7 @@ class SpecsStore:
         hdr = pyfits.Header()
         hdr['GIT_REV'] = self.git_rev
         hdr['REVISION'] = self.revision
-        hdr['MAPPER_NPARAMS'] = self.mapper.nparams
+        hdr['MAPPER_NPARAMS'] = int(self.mapper.nparams)
         hdr['MAPPER_LOGS'] = str(self.mapper.logs)
         hdr['PARNAMES'] = str(self.parnames)
         vecHDU = pyfits.ImageHDU(self.vec, name='VEC')

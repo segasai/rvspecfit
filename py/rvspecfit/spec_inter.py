@@ -279,7 +279,6 @@ def getInterpolator(HR, config, warmup_cache=True) -> SpecInterpolator:
         ii = make_nd.InterpolInfo.load(savefile)
         (templ_lam, vecs, mapper, parnames) = (ii.lam, ii.vec, ii.mapper,
                                                ii.parnames)
-        del ii
         interper: InterpolatorSuper
         extraper: InterpolatorSuper
         if ii.detailInfo.triang:
@@ -288,7 +287,7 @@ def getInterpolator(HR, config, warmup_cache=True) -> SpecInterpolator:
             extraflags = ii.detailInfo.extraflags
             (interper, extraper) = (TriInterp(triang, dats, exp=expFlag),
                                     TriInterp(triang, extraflags, exp=False))
-        if ii.detailInfo.regular:
+        elif ii.detailInfo.regular:
             # regular grid interpolation
             uvecs, idgrid = ii.detailInfo.uvecs, ii.detailInfo.idgrid
             interper = GridInterp(uvecs, idgrid, vecs, dats, exp=expFlag)
@@ -297,6 +296,7 @@ def getInterpolator(HR, config, warmup_cache=True) -> SpecInterpolator:
             raise RuntimeError('Unrecognized interpolation file')
         revision = ii.revision
         creation_soft_version = ii.git_rev
+        del ii
         interpObj = SpecInterpolator(
             HR,
             interper,

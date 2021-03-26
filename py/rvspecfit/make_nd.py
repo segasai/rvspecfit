@@ -9,6 +9,7 @@ import astropy.io.fits as pyfits
 from rvspecfit import read_grid
 from rvspecfit import make_interpol
 import rvspecfit
+
 git_rev = rvspecfit.__version__
 
 INTERPOL_FITS_NAME = 'interp_%s.fits'
@@ -101,14 +102,14 @@ class InterpolInfo:
         revision = hdr['REVISION']
         git_rev = hdr['GIT_REV']
         parnames = ast.literal_eval(hdr['PARNAMES'])
-        mapper_nparams = hdr['MAPPER_NPARAMS']
+        mapper_nparams = int(hdr['MAPPER_NPARAMS'])
         mapper_logs = ast.literal_eval(hdr['MAPPER_LOGS'])
         mapper = read_grid.ParamMapper(nparams=mapper_nparams,
                                        logs=mapper_logs)
-        if hdr['TRIANG']:
+        if bool(hdr['TRIANG']):
             detailInfo = TriangInfo(
                 extraflags=pyfits.getdata(fname, 'extraflags'))
-        elif hdr['REGULAR']:
+        elif bool(hdr['REGULAR']):
             detailInfo = GridInfo(uvecs=pyfits.getdata(fname, 'uvecs'),
                                   idgrid=pyfits.getdata(fname, 'idgrid'))
         ii = InterpolInfo(lam=lam,

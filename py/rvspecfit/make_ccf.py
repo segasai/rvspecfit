@@ -1,5 +1,4 @@
 from __future__ import print_function
-import pickle
 import argparse
 import multiprocessing as mp
 import numpy as np
@@ -15,6 +14,7 @@ import astropy.io.fits as pyfits
 from rvspecfit import spec_fit
 from rvspecfit import make_interpol
 import rvspecfit
+
 git_rev = rvspecfit.__version__
 
 CCF_INFO_NAME = 'ccfinfo_%s.fits'
@@ -42,7 +42,7 @@ class CCFModelInfo:
         head['REVISION'] = self.revision
         head['LOGL0'] = self.ccfconf.logl0
         head['LOGL1'] = self.ccfconf.logl1
-        head['NPOINTS'] = self.ccfconf.logl0
+        head['NPOINTS'] = self.ccfconf.npoints
         head['SPLINESTEP'] = self.ccfconf.splinestep
         head['MAXCONTPTS'] = self.ccfconf.maxcontpts
         head['PARNAMES'] = str(self.parnames)
