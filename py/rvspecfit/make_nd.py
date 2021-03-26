@@ -74,14 +74,11 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
 
     """
 
-    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
-              'rb') as fp:
-        D = pickle.load(fp)
-        vec, specs, lam, parnames, mapper, lognorms = (D['vec'], D['specs'],
-                                                       D['lam'], D['parnames'],
-                                                       D['mapper'],
-                                                       D['lognorms'])
-        del D
+    ss = make_interpol.SpecsStore.load(
+        ('%s/' + make_interpol.SPEC_FITS_NAME) % (prefix, spec_setup))
+    vec, specs, lam, parnames, mapper, lognorms = (ss.vec, ss.specs, ss.lam,
+                                                   ss.parnames, ss.mapper,
+                                                   ss.lognorms)
 
     vec = vec.astype(float)
     vec = mapper.forward(vec)

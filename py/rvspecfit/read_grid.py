@@ -104,8 +104,22 @@ class ParamMapper:
     Class used to map stellar atmospheric parameters into more manageable grid
     used for interpolation
     """
-    def __init__(self):
-        pass
+    def __init__(self, nparams=4, logs=None):
+        self.nparams = nparams
+        if logs is None:
+            self.logs = [True, False, False, False]
+        else:
+            assert (len(logs) == nparams)
+            self.logs = logs
+        self.fmappers = []
+        self.bmappers = []
+        for f in self.logs:
+            if f:
+                self.fmappers.append(lambda x: np.log10(x))
+                self.bmappers.append(lambda x: 10**(x))
+            else:
+                self.fmappers.append(lambda x: (x))
+                self.bmappers.append(lambda x: (x))
 
     def forward(self, vec):
         """
@@ -122,7 +136,7 @@ class ParamMapper:
         ret: numpy array
             The vector of transformed parameters used in interpolation
         """
-        return np.array([np.log10(vec[0]), vec[1], vec[2], vec[3]])
+        return np.array([m(v) for m, v in zip(self.fmappers, vec)])
 
     def inverse(self, vec):
         """
@@ -139,7 +153,7 @@ class ParamMapper:
         ret: numpy array
             The vector of original atmospheric parameters.
     """
-        return np.array([10**vec[0], vec[1], vec[2], vec[3]])
+        return np.array([m(v) for m, v in zip(self.bmappers, vec)])
 
 
 def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):

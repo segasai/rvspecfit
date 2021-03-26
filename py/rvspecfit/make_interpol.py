@@ -3,17 +3,73 @@ import multiprocessing as mp
 import os
 import sys
 import argparse
-import pickle
+import ast
 import scipy.constants
 import scipy.optimize
 import numpy as np
 import sqlite3
+import astropy.io.fits as pyfits
 from rvspecfit import read_grid
 import rvspecfit
 
 git_rev = rvspecfit.__version__
 
-SPEC_PKL_NAME = 'specs_%s.pkl'
+SPEC_FITS_NAME = 'specs_%s.fits'
+
+
+class SpecsStore:
+    def __init__(self,
+                 specs=None,
+                 vec=None,
+                 lam=None,
+                 mapper=None,
+                 lognorms=None,
+                 git_rev=None,
+                 revision=None,
+                 parnames=None):
+        self.specs = specs
+        self.vec = vec
+        self.lam = self.lam
+        self.lognorms = lognorms
+
+        self.mapper = mapper
+
+        self.git_rev = git_rev
+        self.revision = revision
+        self.parnames = parnames
+
+    def save(self, fname):
+        hdr = pyfits.Header()
+        hdr['GIT_REV'] = self.git_rev
+        hdr['REVISION'] = self.revision
+        hdr['MAPPER_NPARAMS'] = self.mapper.nparams
+        hdr['MAPPER_LOGS'] = str(self.mapper.nparams)
+        hdr['PARNAMES'] = str(self.parnames)
+        vecHDU = pyfits.ImageHDU(self.vec, name='VEC')
+        specHDU = pyfits.ImageHDU(self.specs, name='SPECS')
+        lognormsHDU = pyfits.ImageHDU(self.lognorms, name='LOGNORMS')
+        lamHDU = pyfits.ImageHDU(self.lam, name='LAM')
+        pyfits.HDUList([
+            pyfits.PrimaryHDU(header=hdr), vecHDU, specHDU, lamHDU, lognormsHDU
+        ]).writeto(fname)
+
+    @staticmethod
+    def load(fname):
+        hdr = pyfits.getheader(fname)
+        mapper_nparams = hdr['MAPPER_NPARAMS']
+        parnames = hdr['PARNAMES']
+        mapper_logs = ast.literal_eval(hdr['MAPPER_LOGS'])
+        mapper = read_grid.ParamMapper(nparams=mapper_nparams,
+                                       logs=mapper_logs)
+        ret = SpecsStore(git_rev=hdr['GIT_REV'],
+                         revision=hdr["REVISION"],
+                         parnames=parnames,
+                         mapper=mapper,
+                         vec=pyfits.getdata(fname, 'VEC'),
+                         specs=pyfits.getdata(fname, 'SPECS'),
+                         lognorms=pyfits.getdata(fname, 'LOGNORMS'),
+                         lam=pyfits.getdata(fname, 'LAM'))
+        return ret
 
 
 def get_line_continuum(lam, spec):
@@ -212,16 +268,15 @@ def process_all(setupInfo,
         except:
             raise Exception('Failed to create output directory: %s' %
                             (oprefix, ))
-    with open(('%s/' + SPEC_PKL_NAME) % (oprefix, HR), 'wb') as fp:
-        pickle.dump(
-            dict(specs=specs,
-                 vec=vec,
-                 lam=lam,
-                 parnames=parnames,
-                 git_rev=git_rev,
-                 mapper=mapper,
-                 revision=revision,
-                 lognorms=lognorms), fp)
+    ss = SpecsStore(specs=specs,
+                    vec=vec,
+                    lam=lam,
+                    parnames=parnames,
+                    git_rev=git_rev,
+                    mapper=mapper,
+                    revision=revision,
+                    lognorms=lognorms)
+    ss.save(('%s/' + SPEC_FITS_NAME) % (oprefix, HR))
 
 
 def add_bool_arg(parser, name, default=False, help=None):

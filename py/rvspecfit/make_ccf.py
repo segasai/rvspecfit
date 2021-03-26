@@ -53,6 +53,7 @@ class CCFModelInfo:
             [pyfits.PrimaryHDU(header=head), paramsHDU,
              loglambdaHDU]).writeto(fname)
 
+    @staticmethod
     def restore(fname):
         head = pyfits.getheader(fname)
         revision = head['REVISION']
@@ -481,13 +482,10 @@ def ccf_executor(spec_setup,
 
     """
 
-    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
-              'rb') as fp:
-        D = pickle.load(fp)
-        vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D[
-            'parnames']
-        del D
-
+    ss = make_interpol.SpecsStore.load(
+        ('%s/' + make_interpol.SPEC_FITS_NAME) % (prefix, spec_setup))
+    vec, specs, lam, parnames = ss.vec, ss.specs, ss.lam, ss.parnames
+    del ss
     specs = specs[::every, :]
     vec = vec.T[::every, :]
     nspec, lenspec = specs.shape
