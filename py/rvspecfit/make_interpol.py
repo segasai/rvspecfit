@@ -29,7 +29,7 @@ class SpecsStore:
                  parnames=None):
         self.specs = specs
         self.vec = vec
-        self.lam = self.lam
+        self.lam = lam
         self.lognorms = lognorms
 
         self.mapper = mapper
@@ -43,7 +43,7 @@ class SpecsStore:
         hdr['GIT_REV'] = self.git_rev
         hdr['REVISION'] = self.revision
         hdr['MAPPER_NPARAMS'] = self.mapper.nparams
-        hdr['MAPPER_LOGS'] = str(self.mapper.nparams)
+        hdr['MAPPER_LOGS'] = str(self.mapper.logs)
         hdr['PARNAMES'] = str(self.parnames)
         vecHDU = pyfits.ImageHDU(self.vec, name='VEC')
         specHDU = pyfits.ImageHDU(self.specs, name='SPECS')
@@ -51,7 +51,7 @@ class SpecsStore:
         lamHDU = pyfits.ImageHDU(self.lam, name='LAM')
         pyfits.HDUList([
             pyfits.PrimaryHDU(header=hdr), vecHDU, specHDU, lamHDU, lognormsHDU
-        ]).writeto(fname)
+        ]).writeto(fname, overwrite=True)
 
     @staticmethod
     def load(fname):

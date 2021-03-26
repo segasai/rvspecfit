@@ -275,11 +275,11 @@ def getInterpolator(HR, config, warmup_cache=True) -> SpecInterpolator:
             # we read all the templates to put them in the memory cache
             dats.sum()
 
-        savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
-        with open(savefile, 'rb') as fd0:
-            fd = pickle.load(fd0)
-        (templ_lam, vecs, mapper, parnames) = (fd['lam'], fd['vec'],
-                                               fd['mapper'], fd['parnames'])
+        savefile = config['template_lib'] + make_nd.INTERPOL_FITS_NAME % HR
+        ii = make_nd.InterpolInfo.load(savefile)
+        (templ_lam, vecs, mapper, parnames) = (ii.lam, ii.vec, ii.mapper,
+                                               ii.parnames)
+        del ii
         interper: InterpolatorSuper
         extraper: InterpolatorSuper
         if 'triang' in fd:

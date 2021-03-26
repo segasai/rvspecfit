@@ -1,16 +1,75 @@
 import pickle
 import argparse
 import sys
+import ast
 import numpy as np
 import numpy.random
 import scipy.spatial
-
+import astropy.io.fits as pyfits
+from rvspecfit import read_grid
 from rvspecfit import make_interpol
 import rvspecfit
 git_rev = rvspecfit.__version__
 
-INTERPOL_PKL_NAME = 'interp_%s.pkl'
+INTERPOL_FITS_NAME = 'interp_%s.fits'
 INTERPOL_DAT_NAME = 'interpdat_%s.npy'
+
+
+class InterpolInfo:
+    def __init__(
+        self,
+        lam=None,
+        vec=None,
+        lognorms=None,
+        parnames=None,
+        mapper=None,
+        revision=None,
+        git_rev=None,
+    ):
+        self.lam = lam
+        self.vec = vec
+        self.lognorms = lognorms
+        self.mapper = mapper
+        self.parnames = parnames
+        self.revision = revision
+        self.git_rev = git_rev
+
+    def save(self, fname):
+        hdr = pyfits.Header()
+        hdr['REVISION'] = self.revision
+        hdr['GIT_REV'] = self.git_rev
+        hdr['PARNAMES'] = str(self.parnames)
+        hdr['MAPPER_LOGS'] = str(self.mapper.logs)
+        hdr['MAPPER_NPARAMS'] = str(self.mapper.nparams)
+        lamHDU = pyfits.ImageHDU(self.lam, name='LAM')
+        vecHDU = pyfits.ImageHDU(self.vec, name='VEC')
+        lognormsHDU = pyfits.ImageHDU(self.lognorms, name='LOGNORMS')
+        pyfits.HDUList(
+            [pyfits.PrimaryHDU(header=hdr), lamHDU, vecHDU,
+             lognormsHDU]).writeto(fname, overwrite=True)
+
+    @staticmethod
+    def load(fname):
+        lam = pyfits.getdata(fname, 'LAM')
+        vec = pyfits.getdata(fname, 'VEC')
+        lognorms = pyfits.getdata(fname, 'LOGNORMS')
+        hdr = pyfits.getheader(fname)
+        revision = hdr['REVISION']
+        git_rev = hdr['GIT_REV']
+        parnames = ast.literal_eval(hdr['PARNAMES'])
+        mapper_nparams = hdr['MAPPER_NPARAMS']
+        mapper_logs = ast.literal_eval(hdr['MAPPER_LOGS'])
+        mapper = read_grid.ParamMapper(nparams=mapper_nparams,
+                                       logs=mapper_logs)
+
+        ii = InterpolInfo(lam=lam,
+                          vec=vec,
+                          lognorms=lognorms,
+                          parnames=parnames,
+                          mapper=mapper,
+                          revision=revision,
+                          git_rev=git_rev)
+        return ii
 
 
 def getedgevertices(vec):
@@ -84,7 +143,6 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     vec = mapper.forward(vec)
     ndim = len(vec[:, 0])
     ret_dict = {}
-
     if not regular:
         perturbation_amplitude = 1e-6
         # It turn's out that Delaunay is sometimes unstable when dealing with
@@ -138,18 +196,17 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         ret_dict['regular'] = True
         ret_dict['idgrid'] = idgrid
 
-    savefile = ('%s/' + INTERPOL_PKL_NAME) % (prefix, spec_setup)
-    ret_dict['lam'] = lam
+    savefile = ('%s/' + INTERPOL_FITS_NAME) % (prefix, spec_setup)
+    ii = InterpolInfo(lam=lam,
+                      vec=vec,
+                      lognorms=lognorms,
+                      parnames=parnames,
+                      revision=revision,
+                      git_rev=git_rev,
+                      mapper=mapper)
+    ii.save(savefile)
+    del ii
 
-    ret_dict['vec'] = vec
-    ret_dict['parnames'] = parnames
-    ret_dict['mapper'] = mapper
-    ret_dict['revision'] = revision
-    ret_dict['lognorms'] = lognorms
-    ret_dict['git_rev'] = git_rev
-
-    with open(savefile, 'wb') as fp:
-        pickle.dump(ret_dict, fp)
     np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
             np.ascontiguousarray(specs))
 

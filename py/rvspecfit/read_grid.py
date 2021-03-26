@@ -109,21 +109,22 @@ class ParamMapper:
         if logs is None:
             self.logs = [True, False, False, False]
         else:
-            assert (len(logs) == nparams)
             self.logs = logs
+        assert (len(self.logs) == nparams)
         self.fmappers = []
         self.bmappers = []
         for f in self.logs:
             if f:
                 self.fmappers.append(lambda x: np.log10(x))
-                self.bmappers.append(lambda x: 10**(x))
+                self.bmappers.append(lambda x: 10**x)
             else:
-                self.fmappers.append(lambda x: (x))
-                self.bmappers.append(lambda x: (x))
+                self.fmappers.append(lambda x: x)
+                self.bmappers.append(lambda x: x)
 
     def forward(self, vec):
         """
-        Map atmospheric parameters into parameters used in the grid for Interpolation
+        Map atmospheric parameters into parameters used in the grid for
+        Interpolation
         That includes logarithming the teff
 
         Parameters
@@ -140,8 +141,9 @@ class ParamMapper:
 
     def inverse(self, vec):
         """
-        Map transformed parameters used in the grid for interpolation back into
-        the atmospheric parameters. That includes exponentiating the log10(teff)
+        Map transformed parameters used in the grid for interpolation back
+        into the atmospheric parameters. That includes exponentiating the
+        log10(teff)
 
         Parameters
         -----------
