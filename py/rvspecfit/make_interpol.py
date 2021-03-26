@@ -28,7 +28,8 @@ class SpecsStore:
                  lognorms=None,
                  git_rev=None,
                  revision=None,
-                 parnames=None):
+                 parnames=None,
+                 cmd=None):
         self.specs = specs
         self.vec = vec
         self.lam = lam
@@ -40,6 +41,8 @@ class SpecsStore:
         self.revision = revision
         self.parnames = parnames
 
+        self.cmd = cmd
+
     def save(self, fname):
         hdr = pyfits.Header()
         hdr['GIT_REV'] = self.git_rev
@@ -47,7 +50,11 @@ class SpecsStore:
         hdr['MAPPER_NPARAMS'] = int(self.mapper.nparams)
         hdr['MAPPER_LOGS'] = str(self.mapper.logs)
         hdr['PARNAMES'] = str(self.parnames)
+        # file  format version
         hdr['FORMVER'] = SpecsStore.FORMAT_VERSION
+        # cmd arguments used
+        hdr['CMD'] = self.cmd
+
         vecHDU = pyfits.ImageHDU(self.vec, name='VEC')
         specHDU = pyfits.ImageHDU(self.specs, name='SPECS')
         lognormsHDU = pyfits.ImageHDU(self.lognorms, name='LOGNORMS')
@@ -201,7 +208,6 @@ class Resolution:
 
 
 def process_all(setupInfo,
-                postf='',
                 dbfile='/tmp/files.db',
                 oprefix='psavs/',
                 prefix=None,
@@ -210,14 +216,29 @@ def process_all(setupInfo,
                 resolution0=None,
                 normalize=True,
                 revision='',
-                nthreads=None):
+                nthreads=None,
+                cmd=None):
+    """
+    Create interpolated rebinned resolution convolved templates
+
+    Parameters
+    ----------
+    setupInfo: tuple
+        Tuple with the information about the spectral configuration
+        HR, lamleft, lamright, resol_function, step, log
+    oprefix: string
+        Output directory
+    dbfile: string
+        Path to the template database
+    """
     if not os.path.exists(dbfile):
         raise Exception('The template database file %s does not exist' %
                         dbfile)
     conn = sqlite3.connect(dbfile)
     cur = conn.execute('select id, teff, logg, met, alpha from files')
     tab = np.rec.fromrecords(cur.fetchall())
-    tab_id, tab_teff, tab_logg, tab_met, tab_alpha = tab.f0, tab.f1, tab.f2, tab.f3, tab.f4
+    tab_id, tab_teff, tab_logg, tab_met, tab_alpha = (tab.f0, tab.f1, tab.f2,
+                                                      tab.f3, tab.f4)
     ids = (tab_id).astype(int)
     nspec = len(ids)
     vec = np.array((tab_teff, tab_logg, tab_met, tab_alpha))
@@ -275,7 +296,7 @@ def process_all(setupInfo,
     else:
         try:
             os.mkdir(oprefix)
-        except:
+        except IOError:
             raise Exception('Failed to create output directory: %s' %
                             (oprefix, ))
     ss = SpecsStore(specs=specs,
@@ -285,7 +306,8 @@ def process_all(setupInfo,
                     git_rev=git_rev,
                     mapper=mapper,
                     revision=revision,
-                    lognorms=lognorms)
+                    lognorms=lognorms,
+                    cmd=cmd)
     ss.save(('%s/' + SPEC_FITS_NAME) % (oprefix, HR))
 
 
@@ -301,6 +323,7 @@ def add_bool_arg(parser, name, default=False, help=None):
 
 
 def main(args):
+    cmd = ' '.join(args)
     parser = argparse.ArgumentParser(
         description=
         'Create interpolated and convolved spectra from the input grid.')
@@ -418,7 +441,8 @@ def main(args):
                 resolution0=args.resolution0,
                 normalize=args.normalize,
                 revision=args.revision,
-                nthreads=args.nthreads)
+                nthreads=args.nthreads,
+                cmd=cmd)
 
 
 if __name__ == '__main__':

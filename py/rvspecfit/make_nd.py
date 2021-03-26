@@ -68,7 +68,8 @@ class InterpolInfo:
                  mapper=None,
                  revision=None,
                  git_rev=None,
-                 detailInfo=None):
+                 detailInfo=None,
+                 cmd=None):
         self.lam = lam
         self.vec = vec
         self.lognorms = lognorms
@@ -77,6 +78,7 @@ class InterpolInfo:
         self.revision = revision
         self.git_rev = git_rev
         self.detailInfo = detailInfo
+        self.cmd = cmd
 
     def save(self, fname):
         hdr = pyfits.Header()
@@ -85,7 +87,11 @@ class InterpolInfo:
         hdr['PARNAMES'] = str(self.parnames)
         hdr['MAPPER_LOGS'] = str(self.mapper.logs)
         hdr['MAPPER_NPARAMS'] = str(self.mapper.nparams)
+        # file format
         hdr['FORMVER'] = InterpolInfo.FORMAT_VERSION
+        # command used to create the file
+        hdr['CMD'] = self.cmd
+
         lamHDU = pyfits.ImageHDU(self.lam, name='LAM')
         vecHDU = pyfits.ImageHDU(self.vec, name='VEC')
         lognormsHDU = pyfits.ImageHDU(self.lognorms, name='LOGNORMS')
@@ -167,7 +173,12 @@ def getedgevertices(vec):
     return positions
 
 
-def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
+def execute(spec_setup,
+            prefix=None,
+            regular=False,
+            perturb=True,
+            revision='',
+            cmd=None):
     """
     Prepare the triangulation objects for the set of spectral data for a given
     spec_setup.
@@ -184,6 +195,8 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         triangulation. This prevents issues with degenerate vertices and
         stability of triangulation. Without perturbation find_simplex for
         example may revert to brute force search.
+    cmd: string
+        Command line arguments used in the call
 
     Returns
     -------
@@ -258,7 +271,8 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
                       revision=revision,
                       git_rev=git_rev,
                       mapper=mapper,
-                      detailInfo=detailsInterp)
+                      detailInfo=detailsInterp,
+                      cmd=cmd)
     ii.save(savefile)
     del ii
 
@@ -267,6 +281,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
 
 
 def main(args):
+    cmd = ' '.join(args)
     parser = argparse.ArgumentParser(
         description='Create N-D spectral interpolation files')
     parser.add_argument(
@@ -291,7 +306,8 @@ def main(args):
     execute(args.setup,
             prefix=args.prefix,
             revision=args.revision,
-            regular=args.regulargrid)
+            regular=args.regulargrid,
+            cmd=cmd)
 
 
 if __name__ == '__main__':

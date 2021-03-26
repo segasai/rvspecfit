@@ -33,13 +33,15 @@ class CCFModelInfo:
                  loglambda=None,
                  vsinis=None,
                  parnames=None,
-                 revision=None):
+                 revision=None,
+                 cmd=None):
         self.params = params
         self.ccfconf = ccfconf
         self.loglambda = loglambda
         self.vsinis = vsinis
         self.parnames = parnames
         self.revision = revision
+        self.cmd = cmd
 
     def save(self, fname):
         head = pyfits.Header()
@@ -51,7 +53,12 @@ class CCFModelInfo:
         head['MAXCONTPTS'] = self.ccfconf.maxcontpts
         head['PARNAMES'] = str(self.parnames)
         head['VSINIS'] = str(self.vsinis)
+
+        # file format version
         head['FORMVER'] = self.FORMAT_VERSION
+        # cmd used to generate the file
+        head['CMD'] = self.cmd
+
         paramsHDU = pyfits.ImageHDU(self.params, name='params')
         loglambdaHDU = pyfits.ImageHDU(self.loglambda, name='loglambda')
         pyfits.HDUList(
@@ -465,7 +472,8 @@ def ccf_executor(spec_setup,
                  oprefix=None,
                  every=10,
                  vsinis=None,
-                 revision=''):
+                 revision='',
+                 cmd=None):
     """
     Prepare the FFT transformations for the CCF
 
@@ -515,7 +523,8 @@ def ccf_executor(spec_setup,
                                loglambda=xlogl,
                                vsinis=vsinis,
                                parnames=parnames,
-                               revision=revision)
+                               revision=revision,
+                               cmd=cmd)
 
     ccfmod_info.save(savefile)
     np.save(datsavefile, np.array(ffts))
@@ -523,6 +532,7 @@ def ccf_executor(spec_setup,
 
 
 def main(args):
+    cmd = ' '.join(args)
     parser = argparse.ArgumentParser(
         description='Create the Fourier transformed templates')
     parser.add_argument('--prefix',
@@ -580,7 +590,8 @@ def main(args):
                  args.oprefix,
                  args.every,
                  vsinis,
-                 revision=args.revision)
+                 revision=args.revision,
+                 cmd=cmd)
 
 
 if __name__ == '__main__':
