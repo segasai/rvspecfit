@@ -51,7 +51,7 @@ class CCFModelInfo:
         loglambdaHDU = pyfits.ImageHDU(self.loglambda, name='loglambda')
         pyfits.HDUList(
             [pyfits.PrimaryHDU(header=head), paramsHDU,
-             loglambdaHDU]).writeto(fname)
+             loglambdaHDU]).writeto(fname, overwrite=True)
 
     @staticmethod
     def restore(fname):

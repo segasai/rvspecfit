@@ -282,20 +282,21 @@ def getInterpolator(HR, config, warmup_cache=True) -> SpecInterpolator:
         del ii
         interper: InterpolatorSuper
         extraper: InterpolatorSuper
-        if 'triang' in fd:
+        if ii.detailInfo.triang:
             # triangulation based interpolation
-            (triang, extraflags) = (fd['triang'], fd['extraflags'])
+            triang = scipy.spatial.Delaunay(vecs.T)
+            extraflags = ii.detailInfo.extraflags
             (interper, extraper) = (TriInterp(triang, dats, exp=expFlag),
                                     TriInterp(triang, extraflags, exp=False))
-        elif 'regular' in fd:
+        if ii.detailInfo.regular:
             # regular grid interpolation
-            uvecs, idgrid = (fd['uvecs'], fd['idgrid'])
+            uvecs, idgrid = ii.detailInfo.uvecs, ii.detailInfo.idgrid
             interper = GridInterp(uvecs, idgrid, vecs, dats, exp=expFlag)
             extraper = GridOutsideCheck(uvecs, vecs, idgrid)
         else:
             raise RuntimeError('Unrecognized interpolation file')
-        revision = fd.get('revision') or ''
-        creation_soft_version = fd.get('git_rev') or ''
+        revision = ii.revision
+        creation_soft_version = ii.git_rev
         interpObj = SpecInterpolator(
             HR,
             interper,

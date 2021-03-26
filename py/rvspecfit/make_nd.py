@@ -15,17 +15,57 @@ INTERPOL_FITS_NAME = 'interp_%s.fits'
 INTERPOL_DAT_NAME = 'interpdat_%s.npy'
 
 
-class InterpolInfo:
+class InterpParentInfo:
+    def __init__(self):
+        pass
+
+
+class TriangInfo(InterpParentInfo):
     def __init__(
         self,
-        lam=None,
         vec=None,
-        lognorms=None,
-        parnames=None,
-        mapper=None,
-        revision=None,
-        git_rev=None,
+        extraflags=None,
     ):
+        self.triang = True
+        self.regular = False
+        self.vec = vec
+        self.extraflags = extraflags
+
+    def getHDUs(self):
+        return [
+            pyfits.ImageHDU(self.vec, name='VEC'),
+            pyfits.ImageHDU(self.extraflags, name='EXTRAFLAGS')
+        ]
+
+
+class GridInfo(InterpParentInfo):
+    def __init__(
+        self,
+        uvecs=None,
+        idgrid=None,
+    ):
+        self.regular = True
+        self.triang = False
+        self.uvecs = uvecs
+        self.idgrid = idgrid
+
+    def getHDUs(self):
+        return [
+            pyfits.ImageHDU(self.uvecs, name='UVECS'),
+            pyfits.ImageHDU(self.idgrid, name='IDGRID')
+        ]
+
+
+class InterpolInfo:
+    def __init__(self,
+                 lam=None,
+                 vec=None,
+                 lognorms=None,
+                 parnames=None,
+                 mapper=None,
+                 revision=None,
+                 git_rev=None,
+                 detailInfo=None):
         self.lam = lam
         self.vec = vec
         self.lognorms = lognorms
@@ -33,6 +73,7 @@ class InterpolInfo:
         self.parnames = parnames
         self.revision = revision
         self.git_rev = git_rev
+        self.detailInfo = detailInfo
 
     def save(self, fname):
         hdr = pyfits.Header()
@@ -44,9 +85,12 @@ class InterpolInfo:
         lamHDU = pyfits.ImageHDU(self.lam, name='LAM')
         vecHDU = pyfits.ImageHDU(self.vec, name='VEC')
         lognormsHDU = pyfits.ImageHDU(self.lognorms, name='LOGNORMS')
+        hdr['REGULAR'] = self.detailInfo.regular
+        hdr['TRIANG'] = self.detailInfo.triang
+        hdus = self.detailInfo.getHDUs()
         pyfits.HDUList(
-            [pyfits.PrimaryHDU(header=hdr), lamHDU, vecHDU,
-             lognormsHDU]).writeto(fname, overwrite=True)
+            [pyfits.PrimaryHDU(header=hdr), lamHDU, vecHDU, lognormsHDU] +
+            hdus).writeto(fname, overwrite=True)
 
     @staticmethod
     def load(fname):
@@ -61,14 +105,20 @@ class InterpolInfo:
         mapper_logs = ast.literal_eval(hdr['MAPPER_LOGS'])
         mapper = read_grid.ParamMapper(nparams=mapper_nparams,
                                        logs=mapper_logs)
-
+        if hdr['TRIANG']:
+            detailInfo = TriangInfo(
+                extraflags=pyfits.getdata(fname, 'extraflags'))
+        elif hdr['REGULAR']:
+            detailInfo = GridInfo(uvecs=pyfits.getdata(fname, 'uvecs'),
+                                  idgrid=pyfits.getdata(fname, 'idgrid'))
         ii = InterpolInfo(lam=lam,
                           vec=vec,
                           lognorms=lognorms,
                           parnames=parnames,
                           mapper=mapper,
                           revision=revision,
-                          git_rev=git_rev)
+                          git_rev=git_rev,
+                          detailInfo=detailInfo)
         return ii
 
 
@@ -142,7 +192,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     vec = vec.astype(float)
     vec = mapper.forward(vec)
     ndim = len(vec[:, 0])
-    ret_dict = {}
+
     if not regular:
         perturbation_amplitude = 1e-6
         # It turn's out that Delaunay is sometimes unstable when dealing with
@@ -179,9 +229,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         specs = specs.astype(np.float64)
         extraflags = extraflags[:, None]
 
-        triang = scipy.spatial.Delaunay(vec.T)
-        ret_dict['triang'] = triang
-        ret_dict['extraflags'] = extraflags
+        detailsInterp = TriangInfo(vec=vec, extraflags=extraflags)
 
     else:
         uvecs = [
@@ -192,9 +240,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         lens = [len(_) for _ in uvecs]
         idgrid = np.zeros(lens, dtype=int) - 1
         idgrid[tuple(vecids)] = np.arange(vec.shape[1])
-        ret_dict['uvecs'] = uvecs
-        ret_dict['regular'] = True
-        ret_dict['idgrid'] = idgrid
+        detailsInterp = GridInfo(uvecs=uvecs, idgrid=idgrid)
 
     savefile = ('%s/' + INTERPOL_FITS_NAME) % (prefix, spec_setup)
     ii = InterpolInfo(lam=lam,
@@ -203,7 +249,8 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
                       parnames=parnames,
                       revision=revision,
                       git_rev=git_rev,
-                      mapper=mapper)
+                      mapper=mapper,
+                      detailInfo=detailsInterp)
     ii.save(savefile)
     del ii
 
