@@ -321,7 +321,7 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
          3) spectral params
          4) list of vsini
     """
-    nthreads = 16
+    nthreads = mp.cpu_count()
     logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
     res = []
     retparams = []
