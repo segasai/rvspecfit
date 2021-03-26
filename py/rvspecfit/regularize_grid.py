@@ -1,9 +1,9 @@
-import pickle
 import sys
 import argparse
 import scipy.stats
 import scipy.interpolate
 import numpy as np
+import make_interpol
 
 
 def findbestoverlaps(x, intervals):
@@ -29,10 +29,10 @@ into the file with gaps filled and smaller step sizes
     newfehgrid = np.arange(-4, 1.25, .25)
     newalphagrid = np.arange(-0.4, 1.3, 0.2)
 
-    dat = pickle.load(open(path, 'rb'))
+    dat = make_interpol.SpecsStore.load(path)
 
-    vec = dat['vec']
-    specs = dat['specs']
+    vec = dat.vec
+    specs = dat.specs
     teff, logg, feh, alpha = vec
 
     uteff, teffid = np.unique(teff, return_inverse=True)
@@ -46,7 +46,7 @@ into the file with gaps filled and smaller step sizes
         for _ in [uteff, ulogg, ufeh, ualpha]
     ]
 
-    vec_map = [mappers[_](dat['vec'][_]) for _ in range(4)]
+    vec_map = [mappers[_](dat.vec[_]) for _ in range(4)]
     # ranks smoothly transformed into rank grid that I use to interpolate
 
     teff_grid2d, logg_grid2d = np.array(list(set(zip(teff, logg)))).T
@@ -106,24 +106,22 @@ into the file with gaps filled and smaller step sizes
 
     res_vec = np.concatenate(res_vec, axis=1)
     res_spec = np.concatenate(res_spec, axis=0)
-    dat['specs'] = res_spec
-    dat['vec'] = res_vec
-
-    with open(opath, 'wb') as fp:
-        pickle.dump(dat, fp, protocol=4)
+    dat1 = make_interpol.SpecsStore(specs=res_spec,
+                                    vec=res_vec,
+                                    lam=dat.lam,
+                                    mapper=dat.mapper,
+                                    lognorms=dat.lognorms,
+                                    git_rev=dat.git_rev,
+                                    revision=dat.revision,
+                                    parnames=dat.parnames)
+    dat1.save(opath)
 
 
 def main(args):
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--input',
-                        help='Input pickle',
-                        type=str,
-                        required=True)
-    parser.add_argument('--output',
-                        help='Input pickle',
-                        type=str,
-                        required=True)
+    parser.add_argument('--input', help='Input fits', type=str, required=True)
+    parser.add_argument('--output', help='Input fits', type=str, required=True)
     args = parser.parse_args(args)
     converter(args.input, args.output)
 
