@@ -202,7 +202,7 @@ def process_all(setupInfo,
                 resolution0=None,
                 normalize=True,
                 revision='',
-                nthreads=8):
+                nthreads=None):
     if not os.path.exists(dbfile):
         raise Exception('The template database file %s does not exist' %
                         dbfile)
@@ -243,6 +243,8 @@ def process_all(setupInfo,
 
     specs = []
     lognorms = np.zeros(nspec)
+    if nthreads is None:
+        nthreads = mp.cpu_count()
     pool = mp.Pool(nthreads, initialize_matrix_cache, (mat, lamgrid))
     for curteff, curlogg, curfeh, curalpha in vec.T:
         i += 1
@@ -370,7 +372,7 @@ def main(args):
                         help='The resolution of the input grid')
     parser.add_argument('--nthreads',
                         type=int,
-                        default=8,
+                        default=None,
                         help='The number of threads used')
     parser.add_argument(
         '--fixed_fwhm',
