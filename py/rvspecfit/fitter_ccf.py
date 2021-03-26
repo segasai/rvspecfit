@@ -1,4 +1,3 @@
-import pickle
 import numpy as np
 import scipy.optimize
 import scipy.interpolate
