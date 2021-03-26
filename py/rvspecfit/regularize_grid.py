@@ -3,7 +3,7 @@ import argparse
 import scipy.stats
 import scipy.interpolate
 import numpy as np
-import make_interpol
+from rvspecfit import make_interpol
 
 
 def findbestoverlaps(x, intervals):
