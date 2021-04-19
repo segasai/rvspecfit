@@ -1,6 +1,7 @@
 import os
 os.environ['OMP_NUM_THREADS'] = '1'
 import sys
+import pytest
 import astropy.io.fits as pyfits
 import numpy as np
 import pathlib
@@ -10,6 +11,12 @@ from rvspecfit import vel_fit
 from rvspecfit import spec_fit
 from rvspecfit import fitter_ccf
 path = str(pathlib.Path(__file__).parent.absolute())
+
+def test_config():
+    with pytest.raises(RuntimeError):
+        config = utils.read_config('xx.yaml')
+    os.chdir(path)
+    config = utils.read_config()
 
 
 def test_fit():
