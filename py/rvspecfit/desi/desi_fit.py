@@ -984,7 +984,8 @@ def proc_many(
 
         if (skipexisting) and os.path.exists(tab_ofname):
             logging.info('skipping, products already exist %s' % f)
-            update_process_status_file(process_status_file, f,
+            if process_status_file is not None:
+                update_process_status_file(process_status_file, f,
                                        ProcessStatus.EXISTING, -1)
 
             continue
