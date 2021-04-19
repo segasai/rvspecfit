@@ -3,6 +3,8 @@ DIR=`dirname $0`
 DBFILE=$DIR/files_config1.db
 PREF=$DIR/tmp/
 PREF1=$DIR/templ_data_test/
+PREF_TMP=$DIR/templ_data_tmp/
+
 CONF_NAME=config1
 STEP=1
 LAM1=4550
@@ -22,6 +24,11 @@ rm -f $PREF/xx*fits
 python $DIR/mktemps.py $PREF wave.fits 300
 rm -f $DBFILE
 $RVS_READ_GRID  --prefix $PREF --templdb $DBFILE
+
 $RVS_MAKE_INTERPOL --templdb $DBFILE --wavefile $PREF/wave.fits --templprefix $PREF  --resol $RESOL --lambda0 $LAM1 --lambda1 $LAM2 --step $STEP --setup $CONF_NAME --oprefix $PREF1
+
+# test the resolution function
+$RVS_MAKE_INTERPOL --templdb $DBFILE --wavefile $PREF/wave.fits --templprefix $PREF  --resol_func '1000+0.5*x' --lambda0 $LAM1 --lambda1 $LAM2 --step $STEP --setup $CONF_NAME --oprefix $PREF_TMP
+
 $RVS_MAKE_ND --setup $CONF_NAME --prefix $PREF1
 $RVS_MAKE_CCF --setup $CONF_NAME --prefix $PREF1 --lambda0 $LAM1 --lambda1 $LAM2 --step $STEP --every 2 --oprefix $PREF1
