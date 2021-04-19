@@ -15,9 +15,12 @@ path = str(pathlib.Path(__file__).parent.absolute())
 def test_config():
     with pytest.raises(RuntimeError):
         config = utils.read_config('xx.yaml')
+    cwd = os.getcwd()
     os.chdir(path)
-    config = utils.read_config()
-
+    try:
+        config = utils.read_config()
+    finally:
+        os.chdir(cwd)
 
 def test_fit():
     config = utils.read_config(path + '/config.yaml')
