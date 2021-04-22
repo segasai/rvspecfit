@@ -499,7 +499,7 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
             if replace_idx.sum() / (~badall).sum() > .1:
                 logging.warning(
                     'More than 10% of spectra had the uncertainty clamped')
-            logging.debug("Clamped error on %d pixels" % (replace_idx.sum()))
+            # logging.debug("Clamped error on %d pixels" % (replace_idx.sum()))
             espec[replace_idx] = goodespec_thresh
 
         sd = spec_fit.SpecData('desi_%s' % s,
@@ -607,7 +607,8 @@ def proc_desi(fname,
     """
 
     options = {'npoly': 10}
-
+    timers = []
+    timers.append(time.time())
     logging.info('Processing %s' % fname)
     valid, glued = valid_file(fname)
     if not valid:
@@ -670,6 +671,8 @@ def proc_desi(fname,
     # I'll skip some spectra
     # in the future I should instead fill things with nans
     # TODO
+
+    timers.append(time.time())
     rets = []
     nfibers_good = 0
     for curseqid in seqid_to_fit:
@@ -698,6 +701,7 @@ def proc_desi(fname,
             (poolex.submit(proc_onespec, *(specdatas, setups, config, options),
                            **dict(fig_fname=fig_fname,
                                   doplot=doplot)), curFiberRow, curseqid))
+    timers.append(time.time())
     if nfibers_good == 0:
         logging.warning('In the end no spectra worth fitting...')
         put_empty_file(tab_ofname)
@@ -722,7 +726,7 @@ def proc_desi(fname,
         for ii, curs in enumerate(setups):
             # I assume all the setusp were fitted
             models['desi_%s' % curs].append(curmodel[ii])
-
+    timers.append(time.time())
     outdf1 = {}
     for k in outdf[0].keys():
         # we can't just concatenate quantities easily
@@ -759,6 +763,7 @@ def proc_desi(fname,
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'), columnDesc),
         fibermap_subset_hdu
     ]
+    timers.append(time.time())
 
     old_rvtab = None
     if os.path.exists(tab_ofname):
@@ -807,6 +812,9 @@ def proc_desi(fname,
                    setups)
         merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc, glued,
                    setups)
+    timers.append(time.time())
+    logging.debug(
+        str.format('Global timing: {}', (np.diff(np.array(timers)), )))
     return len(seqid_to_fit)
 
 
