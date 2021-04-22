@@ -1,4 +1,5 @@
 import os
+
 os.environ['OMP_NUM_THREADS'] = '1'
 
 # The noqa are to prevent warnings due to imports being not at the top
@@ -35,6 +36,7 @@ def update_process_status_file(status_fname,
                                processed_file,
                                status,
                                nobjects,
+                               time_sec,
                                start=False):
     if start:
         with open(status_fname, 'w') as fp:
@@ -42,7 +44,7 @@ def update_process_status_file(status_fname,
         if processed_file is None:
             return
     with open(status_fname, 'a') as fp:
-        print(f'{processed_file} {status} {nobjects}', file=fp)
+        print(f'{processed_file} {status} {nobjects} {time_sec}', file=fp)
     return
 
 
@@ -719,7 +721,7 @@ def proc_desi(fname,
 
         for ii, curs in enumerate(setups):
             # I assume all the setusp were fitted
-            models['desi_%s'%curs].append(curmodel[ii])
+            models['desi_%s' % curs].append(curmodel[ii])
 
     outdf1 = {}
     for k in outdf[0].keys():
@@ -850,6 +852,7 @@ def proc_desi_wrapper(*args, **kwargs):
     status_file = kwargs['process_status_file']
     del kwargs['process_status_file']
     nfit = 0
+    t1 = time.time()
     try:
         nfit = proc_desi(*args, **kwargs)
     except:  # noqa F841
@@ -864,6 +867,7 @@ def proc_desi_wrapper(*args, **kwargs):
         # I decided not to just fail, proceed instead after
         # writing a bug report
     finally:
+        t2 = time.time()
         if status_file is not None:
             if nfit < 0:
                 status = ProcessStatus.FAILURE
@@ -872,6 +876,7 @@ def proc_desi_wrapper(*args, **kwargs):
                                        args[0],
                                        status,
                                        nfit,
+                                       t2 - t1,
                                        start=False)
 
 
@@ -962,6 +967,7 @@ def proc_many(
                                    None,
                                    None,
                                    None,
+                                   None,
                                    start=True)
     if parallel:
         poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
@@ -986,7 +992,7 @@ def proc_many(
             logging.info('skipping, products already exist %s' % f)
             if process_status_file is not None:
                 update_process_status_file(process_status_file, f,
-                                       ProcessStatus.EXISTING, -1)
+                                           ProcessStatus.EXISTING, -1, 0)
 
             continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config)
