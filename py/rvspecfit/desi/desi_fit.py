@@ -44,7 +44,7 @@ def update_process_status_file(status_fname,
         if processed_file is None:
             return
     with open(status_fname, 'a') as fp:
-        print(f'{processed_file} {status} {nobjects} {time_sec}', file=fp)
+        print(f'{processed_file} {status} {nobjects} {time_sec:.2f}', file=fp)
     return
 
 
