@@ -64,6 +64,22 @@ def get_dep_versions():
     return ret
 
 
+def get_zbest_fname(fname):
+    """ Get the zbest file for a given spectrum """
+    paths = fname.split('/')
+    fname_end = paths[-1]
+
+    f1 = fname_end.replace('coadd-', 'zbest-')
+    if f1 == fname_end:
+        f1 = fname_end.replace('spectra-', 'zbest-')
+        if f1 == fname_end:
+            return None
+    zbest_path = '/'.join(paths[:-1] + [f1])
+    if os.path.exists(zbest_path):
+        return zbest_path
+    return zbest_path
+
+
 def get_prim_header(versions={}, config=None, cmdline=None):
     """ Return the Primary HDU with various info in the header
 
@@ -367,11 +383,13 @@ def read_data(fname, glued, setups):
 
 def select_fibers_to_fit(fibermap,
                          sns,
+                         zbest_path=None,
                          minsn=None,
                          mwonly=True,
                          expid_range=None,
                          glued=False,
-                         fit_targetid=None):
+                         fit_targetid=None,
+                         zbest_select=False):
     """ Identify fibers to fit
     Currently that either uses MWS_TARGET or S/N cut
 
@@ -419,6 +437,15 @@ def select_fibers_to_fit(fibermap,
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             subset = subset & (maxsn > minsn)
+    if zbest_select:
+        if zbest_path is None:
+            warnings.warn(
+                'ZBest selection requested, but the zbest file not found')
+        else:
+            zb = atpy.Table().read(zbest_path, format='fits', hdu='ZBEST')
+            assert (len(zb) == len(subset))
+            subset = (((zb['SPECTYPE'] == 'STAR') |
+                       (np.abs(zb['Z']) < 2000 / 3e5))) & subset
     return subset
 
 
@@ -572,7 +599,8 @@ def proc_desi(fname,
               overwrite=False,
               poolex=None,
               fitarm=None,
-              cmdline=None):
+              cmdline=None,
+              zbest_select=False):
     """
     Process One single file with desi spectra
 
@@ -602,6 +630,8 @@ def proc_desi(fname,
     fitarm: list
          List of strings corresponding to configurations that need to be fit,
          it can be none
+    zbest_select: bool
+         If true then the zbest file is used to preselect targets
     poolex: Executor
          The executor that will run parallel processes
     """
@@ -635,14 +665,16 @@ def proc_desi(fname,
             ) % (_, fname))
             return -1
     targetid = fibermap['TARGETID']
-
+    zbest_path = get_zbest_fname(fname)
     subset = select_fibers_to_fit(fibermap,
                                   sns,
                                   minsn=minsn,
                                   mwonly=mwonly,
                                   expid_range=expid_range,
                                   glued=glued,
-                                  fit_targetid=fit_targetid)
+                                  fit_targetid=fit_targetid,
+                                  zbest_path=zbest_path,
+                                  zbest_select=zbest_select)
 
     # skip if no need to fit anything
     if not (subset.any()):
@@ -927,6 +959,7 @@ def proc_many(
     skipexisting=False,
     fitarm=None,
     cmdline=None,
+    zbest_select=False,
     process_status_file=None,
 ):
     """
@@ -1014,6 +1047,7 @@ def proc_many(
                       poolex=poolEx,
                       fitarm=fitarm,
                       cmdline=cmdline,
+                      zbest_select=zbest_select,
                       process_status_file=process_status_file)
         proc_desi_wrapper(*args, **kwargs)
 
@@ -1141,6 +1175,13 @@ def main(args):
                         action='store_true',
                         default=False)
 
+    parser.add_argument(
+        '--zbest_select',
+        help='''If enabled the code will try to use the zbest file to fit \
+only potentially interesting targets''',
+        action='store_true',
+        default=False)
+
     parser.add_argument('--doplot',
                         help='Make plots',
                         action='store_true',
@@ -1182,6 +1223,7 @@ def main(args):
     combine = args.combine
     mwonly = not args.allobjects
     doplot = args.doplot
+    zbest_select = args.zbest_select
     minsn = args.minsn
     minexpid = args.minexpid
     maxexpid = args.maxexpid
@@ -1238,7 +1280,8 @@ but not both of them simulatenously''')
               skipexisting=args.skipexisting,
               overwrite=args.overwrite,
               fitarm=fitarm,
-              cmdline=cmdline)
+              cmdline=cmdline,
+              zbest_select=zbest_select)
 
 
 if __name__ == '__main__':
