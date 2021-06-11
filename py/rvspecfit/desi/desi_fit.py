@@ -511,9 +511,10 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
             # TODO make the logic clearer
             return None
         baddat = ~np.isfinite(spec + curivars)
+        dicroicmask = (waves[s] > 4300) & (waves[s] < 4450)
         badmask = (masks[s][seqid] > 0)
         baderr = curivars <= 0
-        badall = baddat | badmask | baderr
+        badall = baddat | badmask | baderr | dicroicmask
         curivars[badall] = 1. / medspec**2 / large_error**2
         spec[badall] = medspec
         espec = 1. / curivars**.5
