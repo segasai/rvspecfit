@@ -69,9 +69,9 @@ def get_zbest_fname(fname):
     paths = fname.split('/')
     fname_end = paths[-1]
 
-    f1 = fname_end.replace('coadd-', 'zbest-')
+    f1 = fname_end.replace('coadd-', 'redrock-')
     if f1 == fname_end:
-        f1 = fname_end.replace('spectra-', 'zbest-')
+        f1 = fname_end.replace('spectra-', 'redrock-')
         if f1 == fname_end:
             return None
     zbest_path = '/'.join(paths[:-1] + [f1])
