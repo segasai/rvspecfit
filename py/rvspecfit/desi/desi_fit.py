@@ -438,14 +438,15 @@ def select_fibers_to_fit(fibermap,
             warnings.simplefilter('ignore')
             subset = subset & (maxsn > minsn)
     if zbest_select:
+        maxvel = 2000 # maximum velocity to consider a star
         if zbest_path is None:
             warnings.warn(
                 'ZBest selection requested, but the zbest file not found')
         else:
-            zb = atpy.Table().read(zbest_path, format='fits', hdu='ZBEST')
+            zb = atpy.Table().read(zbest_path, format='fits', hdu='REDSHIFTS')
             assert (len(zb) == len(subset))
             subset = (((zb['SPECTYPE'] == 'STAR') |
-                       (np.abs(zb['Z']) < 2000 / 3e5))) & subset
+                       (np.abs(zb['Z']) < maxvel / 3e5))) & subset
     return subset
 
 
