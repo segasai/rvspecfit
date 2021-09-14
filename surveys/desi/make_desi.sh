@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-PREFIX=../../templ_data
+PREFIX=../../..//templ_data/desi/
 TEMPLPREF=/home/skoposov/science/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/
 WAVEFILE=/home/skoposov/science/PHOENIX/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
 BLAM0=3500
@@ -19,7 +19,7 @@ ZRESOL='x/1.8'
 BRZLAM0=$BLAM0
 BRZLAM1=$ZLAM1
 VSINIS=0,300
-REVISION=v200304
+REVISION=v210607
 
 # B
 
@@ -28,7 +28,9 @@ rvs_make_interpol --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1 \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
     --revision=$REVISION --no-normalize
 
-rvs_make_nd --prefix ${PREFIX}/ --setup desi_b --revision=$REVISION
+rvs_regularize_grid --input ${PREFIX}/specs_desi_b.pkl --output ${PREFIX}/specs_desi_b.pkl
+
+rvs_make_nd --regular --prefix ${PREFIX}/ --setup desi_b --revision=$REVISION
 
 rvs_make_ccf --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1  --every 30 \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $BSTEP \
@@ -41,7 +43,9 @@ rvs_make_interpol --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
     --revision=$REVISION --no-normalize
 
-rvs_make_nd --prefix ${PREFIX}/ --setup desi_r --revision=$REVISION
+rvs_regularize_grid --input ${PREFIX}/specs_desi_r.pkl --output ${PREFIX}/specs_desi_r.pkl
+
+rvs_make_nd --prefix ${PREFIX}/ --regular --setup desi_r --revision=$REVISION
 
 rvs_make_ccf --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 --every 30 \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $RSTEP \
@@ -54,7 +58,9 @@ rvs_make_interpol --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1 \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
     --revision=$REVISION --no-normalize
 
-rvs_make_nd --prefix ${PREFIX}/ --setup desi_z --revision=$REVISION
+rvs_regularize_grid --input ${PREFIX}/specs_desi_z.pkl --output ${PREFIX}/specs_desi_z.pkl
+
+rvs_make_nd --prefix ${PREFIX}/ --regular --setup desi_z --revision=$REVISION
 
 rvs_make_ccf --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1  --every 30 \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $ZSTEP \
