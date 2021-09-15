@@ -791,6 +791,8 @@ def proc_desi(fname,
     outtab = atpy.Table(outdf1)
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset_ret],
                                              name='FIBERMAP')
+    scores_subset_hdu = pyfits.BinTableHDU(atpy.Table(scores)[subset_ret],
+                                           name='SCORES')
     outmod_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(
             versions=versions, config=config, cmdline=cmdline))
@@ -815,7 +817,7 @@ def proc_desi(fname,
         pyfits.PrimaryHDU(header=get_prim_header(
             versions=versions, config=config, cmdline=cmdline)),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'), columnDesc),
-        fibermap_subset_hdu
+        fibermap_subset_hdu, scores_subset_hdu
     ]
     timers.append(time.time())
 
