@@ -668,7 +668,15 @@ def proc_desi(fname,
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
     scores = pyfits.getdata(fname, 'SCORES')
     fluxes, ivars, masks, waves = read_data(fname, setups)
-    sns = dict([(_, scores['MEDIAN_CALIB_SNR_' + _.upper()]) for _ in setups])
+    if 'MEDIAN_CALIB_SNR_' + setups[0].upper() in scores.columns.names:
+        sns = dict([(_, scores['MEDIAN_CALIB_SNR_' + _.upper()])
+                    for _ in setups])
+    elif 'MEDIAN_COADD_SNR_' + setups[0].upper() in scores.columns.names:
+        sns = dict([(_, scores['MEDIAN_COADD_SNR_' + _.upper()])
+                    for _ in setups])
+    else:
+        sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_]))
+                    for _ in setups])
 
     for _ in setups:
         if len(sns[_]) != len(fibermap):
