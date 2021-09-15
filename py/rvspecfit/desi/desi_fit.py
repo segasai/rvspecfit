@@ -178,26 +178,18 @@ def valid_file(fname):
 
     names0 = []
     arms = ['B', 'R', 'Z']
-    arm_glued = 'BRZ'
     prefs = 'WAVELENGTH', 'FLUX', 'IVAR', 'MASK'
     reqnames = names0 + [
         '%s_%s' % (_, __) for _, __ in itertools.product(arms, prefs)
     ]
-    reqnames_glued = names0 + ['%s_%s' % (arm_glued, _) for _ in prefs]
     missing = []
     for curn in reqnames:
         if curn not in extnames:
             missing.append(curn)
     if len(missing) != 0:
-        missing_glued = []
-        for curn in reqnames_glued:
-            if curn not in extnames:
-                missing_glued.append(curn)
-        if len(missing_glued) > 0:
-            logging.warning('Extensions %s are missing' % (','.join(missing)))
-            return (False, True)
-        return (True, True)
-    return (True, False)
+        logging.warning('Extensions %s are missing' % (','.join(missing)))
+        return False
+    return True
 
 
 def proc_onespec(
@@ -348,15 +340,13 @@ def get_sns(data, ivars, masks):
     return sns
 
 
-def read_data(fname, glued, setups):
+def read_data(fname, setups):
     """ Read the data file
 
     Parameters
     ----------
     fname: str
         Filename
-    glued: bool
-        True if BRZ format
     setups: list
         List of spectral configurations (i.e. ['b', 'r', 'z']
 
@@ -443,7 +433,7 @@ def select_fibers_to_fit(fibermap,
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             subset = subset & (maxsn > minsn)
-    fibermapT =atpy.Table(fibermap)
+    fibermapT = atpy.Table(fibermap)
     types_subset = np.ones(len(fibermap), dtype=bool)
     if DT is not None and objtypes is not None:
         re_types = [re.compile(_) for _ in objtypes]
@@ -493,7 +483,7 @@ def get_unique_seqid_to_fit(targetid, subset, combine=False):
     return ret
 
 
-def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
+def get_specdata(waves, fluxes, ivars, masks, seqid, setups):
     """ Return the list of SpecDatas for one single object
 
     Parameters
@@ -509,8 +499,6 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, glued, setups):
         2d array of masks
     seqid: int
         Which spectral row to extract
-    glued: bool
-        If spectrum is in BRZ format
     setups: list
         List of configurations
 
@@ -667,22 +655,20 @@ def proc_desi(fname,
     timers = []
     timers.append(time.time())
     logging.info('Processing %s' % fname)
-    valid, glued = valid_file(fname)
+    valid = valid_file(fname)
     if not valid:
         logging.error('Not valid file: %s' % (fname))
         return -1
 
-    if glued:
-        setups = ['brz']
-    else:
-        setups = ['b', 'r', 'z']
+    setups = ['b', 'r', 'z']
     if fitarm is not None:
         setups = [_ for _ in setups if _ in fitarm]
         assert (len(setups) > 0)
 
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
-    fluxes, ivars, masks, waves = read_data(fname, glued, setups)
-    sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_])) for _ in setups])
+    scores = pyfits.getdata(fname, 'SCORES')
+    fluxes, ivars, masks, waves = read_data(fname, setups)
+    sns = dict([(_, scores['MEDIAN_CALIB_SNR_' + _.upper()]) for _ in setups])
 
     for _ in setups:
         if len(sns[_]) != len(fibermap):
@@ -712,9 +698,9 @@ def proc_desi(fname,
     # if we are combining
 
     # columns to include in the RVTAB
-    columnsCopy = ['FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID']
-    if not glued:
-        columnsCopy.append('EXPID')
+    columnsCopy = [
+        'FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID', 'EXPID'
+    ]
 
     outdf = []
 
@@ -737,11 +723,11 @@ def proc_desi(fname,
         # collect data (if combining that means multiple spectra)
         if not combine:
             specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid,
-                                     glued, setups)
+                                     setups)
             curFiberRow = fibermap[curseqid]
         else:
             specdatas = sum([
-                get_specdata(waves, fluxes, ivars, masks, _, glued, setups)
+                get_specdata(waves, fluxes, ivars, masks, _, setups)
                 for _ in curseqid
             ], [])
             curFiberRow = fibermap[curseqid[0]]
@@ -849,10 +835,7 @@ def proc_desi(fname,
         refit_tab_pd['rowid'] = np.arange(len(refit_tab), dtype=int)
         old_rvtab_pd['rowid'] = np.arange(len(old_rvtab), dtype=int)
 
-        if glued:
-            pkey = ['TARGETID']
-        else:
-            pkey = ['EXPID', 'TARGETID']
+        pkey = ['EXPID', 'TARGETID']
         merge = refit_tab_pd.merge(old_rvtab_pd,
                                    left_on=pkey,
                                    right_on=pkey,
@@ -866,17 +849,15 @@ def proc_desi(fname,
         keepmask[repid_old] = False
         # this is the subset of the old data that must
         # be kept
-        merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc, glued,
-                   setups)
-        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc, glued,
-                   setups)
+        merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc, setups)
+        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc, setups)
     timers.append(time.time())
     logging.debug(
         str.format('Global timing: {}', (np.diff(np.array(timers)), )))
     return len(seqid_to_fit)
 
 
-def merge_hdus(hdus, ofile, keepmask, columnDesc, glued, setups):
+def merge_hdus(hdus, ofile, keepmask, columnDesc, setups):
     allowed = ['FIBERMAP', 'RVTAB'] + [
         '%s_MODEL' % _.upper() for _ in setups
     ] + ['%s_WAVELENGTH' % _.upper() for _ in setups]
