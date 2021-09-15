@@ -383,7 +383,6 @@ def select_fibers_to_fit(fibermap,
                          fit_targetid=None,
                          zbest_select=False):
     """ Identify fibers to fit
-    Currently that either uses MWS_TARGET or S/N cut
 
     Parameters
     ----------
@@ -394,7 +393,7 @@ def select_fibers_to_fit(fibermap,
     minsn: float
         Threshold S/N
     objtypes: list of regular expressions
-           of DESI_TARGET or None
+           of DESI_TARGETs ['MWS_ANY,'STD_*'] or None
     expid_range: list
         The range of EXPID to consider
     fit_targetid: list of ints
@@ -433,6 +432,8 @@ def select_fibers_to_fit(fibermap,
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             subset = subset & (maxsn > minsn)
+
+    # compute the subset based on TARGET types
     fibermapT = atpy.Table(fibermap)
     types_subset = np.ones(len(fibermap), dtype=bool)
     if DT is not None and objtypes is not None:
@@ -450,6 +451,7 @@ def select_fibers_to_fit(fibermap,
 
             types_subset[i] = (currow[collist[0]] & bitmask) > 0
 
+    # select objects based on redrock velocity or type
     zbest_subset = np.zeros(len(fibermap), dtype=bool)
     if zbest_select:
         maxvel = 2000  # maximum velocity to consider a star
