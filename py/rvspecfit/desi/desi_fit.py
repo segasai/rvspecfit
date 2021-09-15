@@ -773,7 +773,7 @@ def proc_desi(fname,
         for curs in setups:
             outdict['SN_%s' % curs.upper()] = sns[curs][curseqid]
 
-        outdict['SUCCESS'] = True
+        outdict['SUCCESS'] = outdict['RVS_WARN'] == 0
 
         outdf.append(outdict)
 
