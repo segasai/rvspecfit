@@ -5,10 +5,13 @@ os.environ['OMP_NUM_THREADS'] = '1'
 # The noqa are to prevent warnings due to imports being not at the top
 import warnings  # noqa: E402
 import sys  # noqa: E402
+import re  # noqa: E402
 import argparse  # noqa: E402
 import time  # noqa: E402
 import itertools  # noqa: E402
 import traceback  # noqa: E402
+import functools  # noqa: E402
+import operator  # noqa: E402
 import importlib  # noqa: E402
 import logging  # noqa: E402
 import enum  # noqa: E402
@@ -385,9 +388,8 @@ def select_fibers_to_fit(fibermap,
                          sns,
                          zbest_path=None,
                          minsn=None,
-                         mwonly=True,
+                         objtypes=None,
                          expid_range=None,
-                         glued=False,
                          fit_targetid=None,
                          zbest_select=False):
     """ Identify fibers to fit
@@ -401,12 +403,10 @@ def select_fibers_to_fit(fibermap,
         Array of S/Ns
     minsn: float
         Threshold S/N
-    mwonly: bool
-        Only fit MWS
+    objtypes: list of regular expressions
+           of DESI_TARGET or None
     expid_range: list
         The range of EXPID to consider
-    glued: bool
-        If the data has been BRZ glued (deprecated)
     fit_targetid: list of ints
         Fit only specific TARGETIDs
 
@@ -416,37 +416,62 @@ def select_fibers_to_fit(fibermap,
         Array with True for selected spectra
 
     """
-    if mwonly:
-        subset = fibermap['MWS_TARGET'] != 0
-    else:
-        subset = np.ones(len(fibermap), dtype=bool)
+    try:
+        import desitarget as DT
+    except ImportError:
+        DT = None
+
+    subset = np.ones(len(fibermap), dtype=bool)
+
+    # Always apply EXPID range
     if expid_range is not None:
         mine, maxe = expid_range
         if mine is None:
             mine = -1
         if maxe is None:
             maxe = np.inf
-    if not glued:
-        if "EXPID" in fibermap.columns.names:
-            subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID']
-                                                            <= maxe)
+    if "EXPID" in fibermap.columns.names:
+        subset = (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <= maxe)
+
+    # Always apply TARGETID selection if provided
     if fit_targetid is not None:
         subset = subset & np.in1d(fibermap['TARGETID'], fit_targetid)
+
+    # Always apply SN cut if provided
     if minsn is not None:
         maxsn = np.max(np.array(list(sns.values())), axis=0)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             subset = subset & (maxsn > minsn)
+
+    types_subset = np.ones(len(fibermap), dtype=bool)
+    if DT is not None and objtypes is not None:
+        re_types = [re.compile(_) for _ in objtypes]
+        for i, currow in enumerate(fibermap):
+            collist, mask, _ = DT.targets.main_cmx_or_sv(currow)
+            objtypnames = list(mask[0].names())
+            objs = []
+            for curo in objtypnames:
+                for r in re_types:
+                    if r.match(curo) is not None:
+                        objs.append(curo)
+            bitmask = functools.reduce(operator.or_,
+                                       [mask.mask(_) for _ in objs])
+
+            types_subset[i] = (currow[collist[0]] & bitmask) > 0
+
+    zbest_subset = np.zeros(len(fibermap), dtype=bool)
     if zbest_select:
-        maxvel = 2000 # maximum velocity to consider a star
+        maxvel = 2000  # maximum velocity to consider a star
         if zbest_path is None:
             warnings.warn(
                 'ZBest selection requested, but the zbest file not found')
         else:
             zb = atpy.Table().read(zbest_path, format='fits', hdu='REDSHIFTS')
             assert (len(zb) == len(subset))
-            subset = (((zb['SPECTYPE'] == 'STAR') |
-                       (np.abs(zb['Z']) < maxvel / 3e5))) & subset
+            zbest_subset = (((zb['SPECTYPE'] == 'STAR') |
+                             (np.abs(zb['Z']) < maxvel / 3e5)))
+    subset = subset & (zbest_subset | types_subset)
     return subset
 
 
@@ -594,7 +619,7 @@ def proc_desi(fname,
               config,
               fit_targetid=None,
               combine=False,
-              mwonly=True,
+              objtypes=None,
               doplot=True,
               minsn=-1e9,
               expid_range=None,
@@ -618,8 +643,8 @@ def proc_desi(fname,
         The configuration dictionary
     fit_targetid: int
         The targetid to fit. If none fit all.
-    mwonly: bool
-        Fit only MWS_TARGET or every object
+    objtypes: list
+        The list of DESI_TARGET types
     doplot: bool
         Produce plots
     minsn: real
@@ -671,9 +696,8 @@ def proc_desi(fname,
     subset = select_fibers_to_fit(fibermap,
                                   sns,
                                   minsn=minsn,
-                                  mwonly=mwonly,
+                                  objtypes=objtypes,
                                   expid_range=expid_range,
-                                  glued=glued,
                                   fit_targetid=fit_targetid,
                                   zbest_path=zbest_path,
                                   zbest_select=zbest_select)
@@ -953,7 +977,7 @@ def proc_many(
     nthreads=1,
     combine=False,
     fit_targetid=None,
-    mwonly=True,
+    objtypes=None,
     minsn=-1e9,
     doplot=True,
     expid_range=None,
@@ -981,8 +1005,8 @@ def proc_many(
         Fit spectra of same targetid together
     fit_targetid: integer or None
         The targetid to fit (the rest will be ignored)
-    mwonly: bool
-        Only fit mws_target
+    objtypes: lists
+        list of DESI_TARGET regular expressions
     doplot: bool
         Plotting
     minsn: real
@@ -1041,7 +1065,7 @@ def proc_many(
         args = (f, tab_ofname, mod_ofname, fig_prefix, config)
         kwargs = dict(fit_targetid=fit_targetid,
                       combine=combine,
-                      mwonly=mwonly,
+                      objtypes=objtypes,
                       doplot=doplot,
                       minsn=minsn,
                       expid_range=expid_range,
@@ -1196,10 +1220,10 @@ only potentially interesting targets''',
         action='store_true',
         default=False)
 
-    parser.add_argument('--allobjects',
-                        help='Fit all objects not only MW_TARGET',
-                        action='store_true',
-                        default=False)
+    parser.add_argument('--objtypes',
+                        help='The list of targets MWS_ANY,SCND_ANY,STD_*',
+                        type=str,
+                        default=None)
 
     args = parser.parse_args(args)
 
@@ -1223,10 +1247,12 @@ only potentially interesting targets''',
     nthreads = args.nthreads
     config_fname = args.config
     combine = args.combine
-    mwonly = not args.allobjects
     doplot = args.doplot
     zbest_select = args.zbest_select
     minsn = args.minsn
+    objtypes = args.objtypes
+    if objtypes is not None:
+        objtypes = objtypes.split(',')
     minexpid = args.minexpid
     maxexpid = args.maxexpid
     targetid_file_from = args.targetid_file_from
@@ -1274,7 +1300,7 @@ but not both of them simulatenously''')
               config_fname=config_fname,
               fit_targetid=fit_targetid,
               combine=combine,
-              mwonly=mwonly,
+              objtypes=objtypes,
               doplot=doplot,
               minsn=minsn,
               process_status_file=args.process_status_file,
