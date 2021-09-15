@@ -417,7 +417,7 @@ def select_fibers_to_fit(fibermap,
 
     """
     try:
-        import desitarget as DT
+        import desitarget.targets as DT
     except ImportError:
         DT = None
 
@@ -443,12 +443,12 @@ def select_fibers_to_fit(fibermap,
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             subset = subset & (maxsn > minsn)
-
+    fibermapT =atpy.Table(fibermap)
     types_subset = np.ones(len(fibermap), dtype=bool)
     if DT is not None and objtypes is not None:
         re_types = [re.compile(_) for _ in objtypes]
-        for i, currow in enumerate(fibermap):
-            collist, mask, _ = DT.targets.main_cmx_or_sv(currow)
+        for i, currow in enumerate(fibermapT):
+            collist, mask, _ = DT.main_cmx_or_sv(currow)
             objtypnames = list(mask[0].names())
             objs = []
             for curo in objtypnames:
@@ -456,7 +456,7 @@ def select_fibers_to_fit(fibermap,
                     if r.match(curo) is not None:
                         objs.append(curo)
             bitmask = functools.reduce(operator.or_,
-                                       [mask.mask(_) for _ in objs])
+                                       [mask[0].mask(_) for _ in objs])
 
             types_subset[i] = (currow[collist[0]] & bitmask) > 0
 
