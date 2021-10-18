@@ -617,7 +617,8 @@ def proc_desi(fname,
               poolex=None,
               fitarm=None,
               cmdline=None,
-              zbest_select=False):
+              zbest_select=False,
+              npoly=10):
     """
     Process One single file with desi spectra
 
@@ -653,7 +654,9 @@ def proc_desi(fname,
          The executor that will run parallel processes
     """
 
-    options = {'npoly': 10}
+    if npoly is None:
+        npoly = 10
+    options = {'npoly': npoly}
     timers = []
     timers.append(time.time())
     logging.info('Processing %s' % fname)
@@ -960,27 +963,26 @@ class FakeExecutor:
         return FakeFuture(f(*args, **kw))
 
 
-def proc_many(
-    files,
-    output_dir,
-    output_tab_prefix,
-    output_mod_prefix,
-    fig_prefix,
-    config_fname=None,
-    nthreads=1,
-    combine=False,
-    fit_targetid=None,
-    objtypes=None,
-    minsn=-1e9,
-    doplot=True,
-    expid_range=None,
-    overwrite=False,
-    skipexisting=False,
-    fitarm=None,
-    cmdline=None,
-    zbest_select=False,
-    process_status_file=None,
-):
+def proc_many(files,
+              output_dir,
+              output_tab_prefix,
+              output_mod_prefix,
+              fig_prefix,
+              config_fname=None,
+              nthreads=1,
+              combine=False,
+              fit_targetid=None,
+              objtypes=None,
+              minsn=-1e9,
+              doplot=True,
+              expid_range=None,
+              overwrite=False,
+              skipexisting=False,
+              fitarm=None,
+              cmdline=None,
+              zbest_select=False,
+              process_status_file=None,
+              npoly=None):
     """
     Process many spectral files
 
@@ -1012,6 +1014,8 @@ def proc_many(
         if True do not process anything if output files exist
     fitarm: list
         the list of arms/spec configurations to fit (can be None)
+    npoly: integer 
+        the degree of the polynomial used for continuum
     process_status_file: str
         The filename where we'll put status of the fitting
     """
@@ -1067,7 +1071,8 @@ def proc_many(
                       fitarm=fitarm,
                       cmdline=cmdline,
                       zbest_select=zbest_select,
-                      process_status_file=process_status_file)
+                      process_status_file=process_status_file,
+                      npoly=npoly)
         proc_desi_wrapper(*args, **kwargs)
 
     if parallel:
@@ -1134,6 +1139,12 @@ def main(args):
                         required=False)
     parser.add_argument('--maxexpid',
                         help='Max expid',
+                        type=int,
+                        default=None,
+                        required=False)
+
+    parser.add_argument('--npoly',
+                        help='npoly',
                         type=int,
                         default=None,
                         required=False)
@@ -1250,7 +1261,7 @@ only potentially interesting targets''',
     maxexpid = args.maxexpid
     targetid_file_from = args.targetid_file_from
     targetid = args.targetid
-
+    npoly = args.npoly
     fitarm = args.fitarm
     if fitarm is not None:
         fitarm = fitarm.split(',')
@@ -1302,7 +1313,8 @@ but not both of them simulatenously''')
               overwrite=args.overwrite,
               fitarm=fitarm,
               cmdline=cmdline,
-              zbest_select=zbest_select)
+              zbest_select=zbest_select,
+              npoly=npoly)
 
 
 if __name__ == '__main__':
