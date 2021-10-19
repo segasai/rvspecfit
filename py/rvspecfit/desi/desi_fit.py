@@ -198,6 +198,7 @@ def proc_onespec(
     config,
     options,
     fig_fname='fig.png',
+    ccfinit=True,
     doplot=True,
 ):
     """Process one single Specdata object
@@ -214,6 +215,9 @@ def proc_onespec(
         Filename for the plot
     doplot: bool
         Do plotting or not
+    ccfinit: bool
+        If true, the starting point for the fit will be determined
+        through CCF rather than bruteforce grid search
 
     Returns
     -------
@@ -225,9 +229,14 @@ def proc_onespec(
     chisqs = {}
     chisqs_c = {}
     t1 = time.time()
-    res = fitter_ccf.fit(specdata, config)
+    if ccfinit:
+        res = fitter_ccf.fit(specdata, config)
+        paramDict0 = res['best_par']
+    else:
+        res = vel_fit.firstguess(specdata, config=config)
+        res['best_vsini'] = res.get('vsini')
+        paramDict0 = res
     t2 = time.time()
-    paramDict0 = res['best_par']
     fixParam = []
     if res['best_vsini'] is not None:
         paramDict0['vsini'] = min(max(res['best_vsini'], config['min_vsini']),
@@ -618,6 +627,7 @@ def proc_desi(fname,
               fitarm=None,
               cmdline=None,
               zbest_select=False,
+              ccfinit=True,
               npoly=10):
     """
     Process One single file with desi spectra
@@ -650,6 +660,9 @@ def proc_desi(fname,
          it can be none
     zbest_select: bool
          If true then the zbest file is used to preselect targets
+    ccfinit: bool
+         If true (default the starting point will be determined from 
+         crosscorrelation as opposed to bruteforce grid search
     poolex: Executor
          The executor that will run parallel processes
     """
@@ -754,10 +767,10 @@ def proc_desi(fname,
         fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
                                                     curseqid)
 
-        rets.append(
-            (poolex.submit(proc_onespec, *(specdatas, setups, config, options),
-                           **dict(fig_fname=fig_fname,
-                                  doplot=doplot)), curFiberRow, curseqid))
+        rets.append((poolex.submit(
+            proc_onespec, *(specdatas, setups, config, options),
+            **dict(fig_fname=fig_fname, doplot=doplot,
+                   ccfinit=ccfinit)), curFiberRow, curseqid))
     timers.append(time.time())
     if nfibers_good == 0:
         logging.warning('In the end no spectra worth fitting...')
@@ -981,6 +994,7 @@ def proc_many(files,
               fitarm=None,
               cmdline=None,
               zbest_select=False,
+              ccfinit=True,
               process_status_file=None,
               npoly=None):
     """
@@ -1072,7 +1086,8 @@ def proc_many(files,
                       cmdline=cmdline,
                       zbest_select=zbest_select,
                       process_status_file=process_status_file,
-                      npoly=npoly)
+                      npoly=npoly,
+                      ccfinit=ccfinit)
         proc_desi_wrapper(*args, **kwargs)
 
     if parallel:
@@ -1182,6 +1197,11 @@ def main(args):
                         type=str,
                         default='WARNING',
                         required=False)
+    parser.add_argument('--param_init',
+                        help='How the initial parameters/RV are initialized',
+                        type=str,
+                        default='CCF',
+                        required=False)
     parser.add_argument('--process_status_file',
                         help='The name of the file where I put the names of' +
                         ' successfully processed files',
@@ -1265,6 +1285,14 @@ only potentially interesting targets''',
     fitarm = args.fitarm
     if fitarm is not None:
         fitarm = fitarm.split(',')
+    if args.param_init == 'CCF':
+        ccfinit = True
+    elif args.param_init == 'bruteforce':
+        ccfinit = False
+    else:
+        raise ValueError(
+            'Unknown param_init value; only known ones are CCF and bruteforce')
+
     if input_files == [] and input_file_from is not None:
         raise Exception(
             '''You can only specify --input_files OR --input_file_from options
@@ -1314,6 +1342,7 @@ but not both of them simulatenously''')
               fitarm=fitarm,
               cmdline=cmdline,
               zbest_select=zbest_select,
+              ccfinit=ccfinit,
               npoly=npoly)
 
 
