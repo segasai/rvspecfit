@@ -725,7 +725,7 @@ def proc_desi(fname,
 
     # columns to include in the RVTAB
     columnsCopy = [
-        'FIBER', 'REF_ID', 'TARGET_RA', 'TARGET_DEC', 'TARGETID', 'EXPID'
+        'FIBER', 'REF_ID', 'REF_CAT', 'TARGET_RA', 'TARGET_DEC', 'TARGETID', 'EXPID'
     ]
 
     outdf = []
