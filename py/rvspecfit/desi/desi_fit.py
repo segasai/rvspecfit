@@ -692,6 +692,9 @@ def proc_desi(fname,
     elif 'MEDIAN_COADD_SNR_' + setups[0].upper() in scores.columns.names:
         sns = dict([(_, scores['MEDIAN_COADD_SNR_' + _.upper()])
                     for _ in setups])
+    elif 'MEDIAN_COADD_FLUX_SNR_' + setups[0].upper() in scores.columns.names:
+        sns = dict([(_, scores['MEDIAN_COADD_FLUX_SNR_' + _.upper()])
+                    for _ in setups])
     else:
         sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_]))
                     for _ in setups])
@@ -725,7 +728,8 @@ def proc_desi(fname,
 
     # columns to include in the RVTAB
     columnsCopy = [
-        'FIBER', 'REF_ID', 'REF_CAT', 'TARGET_RA', 'TARGET_DEC', 'TARGETID', 'EXPID'
+        'FIBER', 'REF_ID', 'REF_CAT', 'TARGET_RA', 'TARGET_DEC', 'TARGETID',
+        'EXPID'
     ]
 
     outdf = []
