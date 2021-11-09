@@ -414,6 +414,9 @@ def select_fibers_to_fit(fibermap,
         Array with True for selected spectra
 
     """
+    zbest_maxvel = 1500  # maximum velocity to consider a star
+    zbest_type = 'STAR'
+
     try:
         import desitarget.targets as DT
     except ImportError:
@@ -457,30 +460,40 @@ def select_fibers_to_fit(fibermap,
     if DT is not None and objtypes is not None:
         re_types = [re.compile(_) for _ in objtypes]
         for i, currow in enumerate(fibermapT):
-            collist, mask, _ = DT.main_cmx_or_sv(currow)
-            objtypnames = list(mask[0].names())
+            col_list, mask_list, _ = DT.main_cmx_or_sv(currow, scnd=True)
+            # collist will be column list like
+            # DESI_TARGET, BGS_TARGET, MWS_TARGET
+
+            # extract the DESI_TARGET part
+            colname = col_list[0]
+            mask = mask_list[0]
+
+            # all the possible types here
+            objtypnames = list(mask.names())
             objs = []
+            # check which names match our regular expression
             for curo in objtypnames:
                 for r in re_types:
                     if r.match(curo) is not None:
                         objs.append(curo)
+            # obtain integer values for each object type that matched
+            # our RE and bitwise OR them
             bitmask = functools.reduce(operator.or_,
-                                       [mask[0].mask(_) for _ in objs])
-
-            types_subset[i] = (currow[collist[0]] & bitmask) > 0
+                                       [mask.mask(_) for _ in objs])
+            # check if the given row has any hits in the bitmask
+            types_subset[i] = (currow[colname] & bitmask) > 0
 
     # select objects based on redrock velocity or type
     zbest_subset = np.zeros(len(fibermap), dtype=bool)
     if zbest_select:
-        maxvel = 2000  # maximum velocity to consider a star
         if zbest_path is None:
             warnings.warn(
                 'ZBest selection requested, but the zbest file not found')
         else:
             zb = atpy.Table().read(zbest_path, format='fits', hdu='REDSHIFTS')
             assert (len(zb) == len(subset))
-            zbest_subset = (((zb['SPECTYPE'] == 'STAR') |
-                             (np.abs(zb['Z']) < maxvel / 3e5)))
+            zbest_subset = (((zb['SPECTYPE'] == zbest_type) |
+                             (np.abs(zb['Z']) < zbest_maxvel / 3e5)))
     # We select either based on type or zbest
     subset = subset & (zbest_subset | types_subset)
     return subset
