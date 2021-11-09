@@ -11,6 +11,7 @@ import logging
 from rvspecfit import spec_fit
 from rvspecfit import make_interpol
 import rvspecfit
+
 git_rev = rvspecfit.__version__
 
 CCF_PKL_NAME = 'ccf_%s.pkl'
@@ -426,8 +427,11 @@ def ccf_executor(spec_setup,
             'parnames']
         del D
 
-    specs = specs[::every, :]
-    vec = vec.T[::every, :]
+    nspec = specs.shape[0]
+    rng = np.random.Generator(np.random.PCG64(44))
+    inds = rng.permutation(np.arange(nspec))[:(nspec // every)]
+    specs = specs[inds, :]
+    vec = vec.T[inds, :]
     nspec, lenspec = specs.shape
 
     xlogl, models, params, vsinis = preprocess_model_list(lam,

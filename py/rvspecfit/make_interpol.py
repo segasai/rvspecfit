@@ -67,8 +67,8 @@ def extract_spectrum(logg,
                      wavefile,
                      normalize=True):
     """
-    Exctract a spectrum of a given parameters then apply the resolution smearing
-    and divide by the continuum
+    Exctract a spectrum of a given parameters then apply the resolution
+    smearing and divide by the continuum
 
     Parameters
     -----------
@@ -112,9 +112,8 @@ def extract_spectrum(logg,
 
     spec2 = np.log(spec2)  # log the spectrum
     if not np.isfinite(spec2).all():
-        raise Exception(
-            'The spectrum is not finite (has nans or infs) at parameter values: %s'
-            % str((teff, logg, feh, alpha)))
+        raise Exception('The spectrum is not finite (has nans or infs) at '
+                        'parameter values: %s' % str((teff, logg, feh, alpha)))
     spec2 = spec2.astype(np.float32)
     return spec2, np.log(normnum)
 
@@ -151,9 +150,11 @@ def process_all(setupInfo,
         raise Exception('The template database file %s does not exist' %
                         dbfile)
     conn = sqlite3.connect(dbfile)
-    cur = conn.execute('select id, teff, logg, met, alpha from files')
+    cur = conn.execute('''select id, teff, logg, met, alpha from files
+    order by teff,logg, met, alpha''')
     tab = np.rec.fromrecords(cur.fetchall())
-    tab_id, tab_teff, tab_logg, tab_met, tab_alpha = tab.f0, tab.f1, tab.f2, tab.f3, tab.f4
+    tab_id, tab_teff, tab_logg, tab_met, tab_alpha = (tab.f0, tab.f1, tab.f2,
+                                                      tab.f3, tab.f4)
     ids = (tab_id).astype(int)
     nspec = len(ids)
     vec = np.array((tab_teff, tab_logg, tab_met, tab_alpha))
@@ -209,7 +210,7 @@ def process_all(setupInfo,
     else:
         try:
             os.mkdir(oprefix)
-        except:
+        except OSError:
             raise Exception('Failed to create output directory: %s' %
                             (oprefix, ))
     with open(('%s/' + SPEC_PKL_NAME) % (oprefix, HR), 'wb') as fp:
