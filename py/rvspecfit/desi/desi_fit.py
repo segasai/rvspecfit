@@ -429,7 +429,10 @@ def select_fibers_to_fit(fibermap,
         if maxe is None:
             maxe = np.inf
     if "EXPID" in fibermap.columns.names:
-        subset = (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <= maxe)
+        subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <=
+                                                        maxe)
+    # ONLY select good fiberstatus ones
+    subset = subset & (fibermap['FIBERSTATUS'] == 0)
 
     # Always apply TARGETID selection if provided
     if fit_targetid is not None:
@@ -472,26 +475,9 @@ def select_fibers_to_fit(fibermap,
             assert (len(zb) == len(subset))
             zbest_subset = (((zb['SPECTYPE'] == 'STAR') |
                              (np.abs(zb['Z']) < maxvel / 3e5)))
+    # We select either based on type or zbest
     subset = subset & (zbest_subset | types_subset)
     return subset
-
-
-def get_unique_seqid_to_fit(targetid, subset, combine=False):
-    """
-    Return the row ids of that needs to be processed
-    The complexity here is dealing with the combine mode, in that
-    case I return list of lists of integers
-
-    """
-    if not combine:
-        return np.nonzero(subset)[0]
-
-    seqid = np.arange(len(targetid))
-    utargetid, inv = np.unique(targetid)
-    ret = []
-    for u in utargetid:
-        ret.append(seqid[targetid == u])
-    return ret
 
 
 def get_specdata(waves, fluxes, ivars, masks, seqid, setups):
@@ -617,7 +603,6 @@ def proc_desi(fname,
               fig_prefix,
               config,
               fit_targetid=None,
-              combine=False,
               objtypes=None,
               doplot=True,
               minsn=-1e9,
@@ -661,7 +646,7 @@ def proc_desi(fname,
     zbest_select: bool
          If true then the zbest file is used to preselect targets
     ccfinit: bool
-         If true (default the starting point will be determined from 
+         If true (default the starting point will be determined from
          crosscorrelation as opposed to bruteforce grid search
     poolex: Executor
          The executor that will run parallel processes
@@ -686,6 +671,8 @@ def proc_desi(fname,
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
     scores = pyfits.getdata(fname, 'SCORES')
     fluxes, ivars, masks, waves = read_data(fname, setups)
+
+    # extract SN from the fibermap or compute ourselves
     if 'MEDIAN_CALIB_SNR_' + setups[0].upper() in scores.columns.names:
         sns = dict([(_, scores['MEDIAN_CALIB_SNR_' + _.upper()])
                     for _ in setups])
@@ -706,7 +693,7 @@ def proc_desi(fname,
                 'does not match the size of the fibermap; file %s; skipping...'
             ) % (_, fname))
             return -1
-    targetid = fibermap['TARGETID']
+
     zbest_path = get_zbest_fname(fname)
     subset = select_fibers_to_fit(fibermap,
                                   sns,
@@ -724,7 +711,6 @@ def proc_desi(fname,
         put_empty_file(mod_ofname)
         return 0
     logging.debug('Selected %d fibers to fit' % (subset.sum()))
-    # if we are combining
 
     # columns to include in the RVTAB
     columnsCopy = [
@@ -739,7 +725,7 @@ def proc_desi(fname,
     for curs in setups:
         models['desi_%s' % curs] = []
 
-    seqid_to_fit = get_unique_seqid_to_fit(targetid, subset, combine=combine)
+    seqid_to_fit = np.nonzero(subset)[0]
     subset_ret = subset.copy()
     # returned subset to deal with the fact that
     # I'll skip some spectra
@@ -750,17 +736,9 @@ def proc_desi(fname,
     rets = []
     nfibers_good = 0
     for curseqid in seqid_to_fit:
-        # collect data (if combining that means multiple spectra)
-        if not combine:
-            specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid,
-                                     setups)
-            curFiberRow = fibermap[curseqid]
-        else:
-            specdatas = sum([
-                get_specdata(waves, fluxes, ivars, masks, _, setups)
-                for _ in curseqid
-            ], [])
-            curFiberRow = fibermap[curseqid[0]]
+        # collect data
+        specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid, setups)
+        curFiberRow = fibermap[curseqid]
         if specdatas is None:
             logging.warning(
                 f'Giving up on fitting spectra for row {curFiberRow}')
@@ -817,10 +795,6 @@ def proc_desi(fname,
         pyfits.PrimaryHDU(header=get_prim_header(
             versions=versions, config=config, cmdline=cmdline))
     ]
-
-    # TODO
-    # in the combine mode I don't know how to write the model
-    #
 
     for curs in setups:
         outmod_hdus.append(
@@ -987,7 +961,6 @@ def proc_many(files,
               fig_prefix,
               config_fname=None,
               nthreads=1,
-              combine=False,
               fit_targetid=None,
               objtypes=None,
               minsn=-1e9,
@@ -1014,8 +987,6 @@ def proc_many(files,
         The prfix where the figures will be stored
     config_fname: string
         The name of the config file
-    combine: bool
-        Fit spectra of same targetid together
     fit_targetid: integer or None
         The targetid to fit (the rest will be ignored)
     objtypes: lists
@@ -1079,7 +1050,6 @@ def proc_many(files,
             continue
         args = (f, tab_ofname, mod_ofname, fig_prefix, config)
         kwargs = dict(fit_targetid=fit_targetid,
-                      combine=combine,
                       objtypes=objtypes,
                       doplot=doplot,
                       minsn=minsn,
@@ -1241,13 +1211,6 @@ only potentially interesting targets''',
                         action='store_true',
                         default=False)
 
-    parser.add_argument(
-        '--combine',
-        help='If enabled the code will simultaneously fit multiple spectra ' +
-        'belonging to one targetid (OBSOLETE ???)',
-        action='store_true',
-        default=False)
-
     parser.add_argument('--objtypes',
                         help='The list of targets MWS_ANY,SCND_ANY,STD_*',
                         type=str,
@@ -1274,7 +1237,6 @@ only potentially interesting targets''',
     fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config_fname = args.config
-    combine = args.combine
     doplot = args.doplot
     zbest_select = args.zbest_select
     minsn = args.minsn
@@ -1335,7 +1297,6 @@ but not both of them simulatenously''')
               nthreads=nthreads,
               config_fname=config_fname,
               fit_targetid=fit_targetid,
-              combine=combine,
               objtypes=objtypes,
               doplot=doplot,
               minsn=minsn,
