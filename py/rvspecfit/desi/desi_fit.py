@@ -432,7 +432,10 @@ def select_fibers_to_fit(fibermap,
         subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <=
                                                         maxe)
     # ONLY select good fiberstatus ones
-    subset = subset & (fibermap['FIBERSTATUS'] == 0)
+    if 'FIBERSTATUS' in fibermap.column.names:
+        subset = subset & (fibermap['FIBERSTATUS'] == 0)
+    elif 'COADD_FIBERSTATUS' in fibermap.column.names:
+        subset = subset & (fibermap['COADD_FIBERSTATUS'] == 0)
 
     # Always apply TARGETID selection if provided
     if fit_targetid is not None:
