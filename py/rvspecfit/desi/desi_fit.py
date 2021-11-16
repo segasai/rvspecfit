@@ -1270,6 +1270,10 @@ only potentially interesting targets''',
     fitarm = args.fitarm
     if fitarm is not None:
         fitarm = fitarm.split(',')
+        fitarm = [_.lower() for _ in fitarm]
+        for _ in fitarm:
+            if _ not in 'brz':
+                raise ValueError('only allowed arm names are brz')
     if args.param_init == 'CCF':
         ccfinit = True
     elif args.param_init == 'bruteforce':
