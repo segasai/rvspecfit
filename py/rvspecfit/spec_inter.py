@@ -139,7 +139,12 @@ class GridInterp:
         pos = np.array(
             [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)])
         if np.any((pos < 0) | (pos >= (self.lens - 1))):
-            ret = self.get_nearest(p)
+            if not np.isfinite(p).all():
+                # this can happen if teff<0
+                # and p is not finite i just take the first spectrum
+                ret = 0
+            else:
+                ret = self.get_nearest(p)
             return FF(self.dats[ret])
 
         coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
