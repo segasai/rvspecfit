@@ -190,7 +190,8 @@ This function is used for minimization
 """
     paramMapper = args['paramMapper']
     pdict = paramMapper.forward(p)
-    if pdict['vel'] > args['max_vel'] or pdict['vel'] < args['min_vel']:
+    if (pdict['vel'] > args['max_vel'] or pdict['vel'] < args['min_vel']
+            or (~np.isfinite(pdict.values())).any()):
         return 1e30
     return chisq_func0(pdict, args)
 
