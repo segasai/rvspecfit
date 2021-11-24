@@ -688,6 +688,15 @@ def proc_desi(fname,
         assert (len(setups) > 0)
 
     fibermap = pyfits.getdata(fname, 'FIBERMAP')
+
+    if fit_targetid is not None:
+        if not np.in1d(fibermap['TARGETID'], fit_targetid).any():
+            # skip reading anything if no good TARGETIDs found
+            logging.warning('No fibers selected in file %s' % (fname))
+            put_empty_file(tab_ofname)
+            put_empty_file(mod_ofname)
+            return 0
+
     scores = pyfits.getdata(fname, 'SCORES')
     fluxes, ivars, masks, waves = read_data(fname, setups)
 
@@ -1022,7 +1031,7 @@ def proc_many(files,
         if True do not process anything if output files exist
     fitarm: list
         the list of arms/spec configurations to fit (can be None)
-    npoly: integer 
+    npoly: integer
         the degree of the polynomial used for continuum
     process_status_file: str
         The filename where we'll put status of the fitting
