@@ -854,13 +854,8 @@ def proc_desi(fname,
 
     if overwrite or old_rvtab is None:
         # if output files do not exist or I cant read fibertab
-        pyfits.HDUList(outmod_hdus).writeto(mod_ofname,
-                                            overwrite=True,
-                                            checksum=True)
-        pyfits.HDUList(outtab_hdus).writeto(tab_ofname,
-                                            overwrite=True,
-                                            checksum=True)
-
+        write_hdulist(mod_ofname, pyfits.HDUList(outmod_hdus))
+        write_hdulist(tab_ofname, pyfits.HDUList(outtab_hdus))
     else:
         refit_tab = atpy.Table(fibermap)[subset_ret]
         # find a replacement subset
@@ -889,6 +884,15 @@ def proc_desi(fname,
     logging.debug(
         str.format('Global timing: {}', (np.diff(np.array(timers)), )))
     return len(seqid_to_fit)
+
+
+def write_hdulist(fname, hdulist):
+    """ Write HDUList to fname
+    using a temporary file which is then renamed
+    """
+    fname_tmp = fname + '.tmp'
+    hdulist.writeto(fname_tmp, overwrite=True, checksum=True)
+    os.rename(fname_tmp, fname)
 
 
 def merge_hdus(hdus, ofile, keepmask, columnDesc, setups):
@@ -923,9 +927,7 @@ def merge_hdus(hdus, ofile, keepmask, columnDesc, setups):
             continue
         raise Exception('I should not be here')
 
-    ofile_tmp = ofile + '.tmp'
-    pyfits.HDUList(hdus).writeto(ofile_tmp, overwrite=True, checksum=True)
-    os.rename(ofile_tmp, ofile)
+    write_hdulist(ofile, pyfits.HDUList(hdus))
 
 
 def proc_desi_wrapper(*args, **kwargs):
