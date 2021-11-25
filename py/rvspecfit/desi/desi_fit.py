@@ -169,12 +169,11 @@ def make_plot(specdata, yfit, title, fig_fname):
     plt.close(fig)
 
 
-def valid_file(fname):
+def valid_file(FP):
     """
     Check if all required extensions are present if yes return true
     """
-    exts = pyfits.open(fname)
-    extnames = [_.name for _ in exts]
+    extnames = [_.name for _ in FP]
 
     names0 = []
     arms = ['B', 'R', 'Z']
@@ -349,7 +348,7 @@ def get_sns(data, ivars, masks):
     return sns
 
 
-def read_data(fname, setups):
+def read_data(FP, setups):
     """ Read the data file
 
     Parameters
@@ -376,10 +375,10 @@ def read_data(fname, setups):
     waves = {}
     masks = {}
     for s in setups:
-        fluxes[s] = pyfits.getdata(fname, '%s_FLUX' % s.upper())
-        ivars[s] = pyfits.getdata(fname, '%s_IVAR' % s.upper())
-        masks[s] = pyfits.getdata(fname, '%s_MASK' % s.upper())
-        waves[s] = pyfits.getdata(fname, '%s_WAVELENGTH' % s.upper())
+        fluxes[s] = FP['%s_FLUX' % s.upper()]
+        ivars[s] = FP['%s_IVAR' % s.upper()]
+        masks[s] = FP['%s_MASK' % s.upper()]
+        waves[s] = FP['%s_WAVELENGTH' % s.upper()]
     return fluxes, ivars, masks, waves
 
 
@@ -677,7 +676,9 @@ def proc_desi(fname,
     timers = []
     timers.append(time.time())
     logging.info('Processing %s' % fname)
-    valid = valid_file(fname)
+
+    FP = pyfits.open(fname)
+    valid = valid_file(FP)
     if not valid:
         logging.error('Not valid file: %s' % (fname))
         return -1
@@ -687,7 +688,7 @@ def proc_desi(fname,
         setups = [_ for _ in setups if _ in fitarm]
         assert (len(setups) > 0)
 
-    fibermap = pyfits.getdata(fname, 'FIBERMAP')
+    fibermap = FP['FIBERMAP'].data
 
     if fit_targetid is not None:
         if not np.in1d(fibermap['TARGETID'], fit_targetid).any():
@@ -695,11 +696,12 @@ def proc_desi(fname,
             logging.warning('No fibers selected in file %s' % (fname))
             put_empty_file(tab_ofname)
             put_empty_file(mod_ofname)
+            FP.close()
             return 0
 
-    scores = pyfits.getdata(fname, 'SCORES')
-    fluxes, ivars, masks, waves = read_data(fname, setups)
-
+    scores = FP['SCORES'].data
+    fluxes, ivars, masks, waves = read_data(FP, setups)
+    FP.close()
     # extract SN from the fibermap or compute ourselves
     if 'MEDIAN_CALIB_SNR_' + setups[0].upper() in scores.columns.names:
         sns = dict([(_, scores['MEDIAN_CALIB_SNR_' + _.upper()])
