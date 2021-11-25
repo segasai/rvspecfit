@@ -487,7 +487,7 @@ def select_fibers_to_fit(fibermap,
     if zbest_select:
         if zbest_path is None:
             warnings.warn(
-                'ZBest selection requested, but the zbest file not found')
+                'zbest selection requested, but the zbest file not found')
         else:
             zb = atpy.Table().read(zbest_path, format='fits', hdu='REDSHIFTS')
             assert (len(zb) == len(subset))
@@ -723,8 +723,8 @@ def proc_desi(fname,
                 'does not match the size of the fibermap; file %s; skipping...'
             ) % (_, fname))
             return -1
-
-    zbest_path = get_zbest_fname(fname)
+    if zbest_select:
+        zbest_path = get_zbest_fname(fname)
     subset = select_fibers_to_fit(fibermap,
                                   sns,
                                   minsn=minsn,
