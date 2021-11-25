@@ -375,10 +375,10 @@ def read_data(FP, setups):
     waves = {}
     masks = {}
     for s in setups:
-        fluxes[s] = FP['%s_FLUX' % s.upper()]
-        ivars[s] = FP['%s_IVAR' % s.upper()]
-        masks[s] = FP['%s_MASK' % s.upper()]
-        waves[s] = FP['%s_WAVELENGTH' % s.upper()]
+        fluxes[s] = FP['%s_FLUX' % s.upper()].data
+        ivars[s] = FP['%s_IVAR' % s.upper()].data
+        masks[s] = FP['%s_MASK' % s.upper()].data
+        waves[s] = FP['%s_WAVELENGTH' % s.upper()].data
     return fluxes, ivars, masks, waves
 
 
