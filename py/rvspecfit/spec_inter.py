@@ -94,8 +94,13 @@ class GridInterp:
         Parameters
         ----------
 
-        uvecs: List of unique grid values
-        idgrid: grid of spectral ids (-1 if not avalaible
+        uvecs: List of unique grid values for each dim
+        idgrid: grid of spectral ids
+        This should be the full ndim-dimensional grid of ints.
+        I.e it'll be the id of spectrum from dats, or -1 if the
+        spectrum at that gridpoint is not known
+        vecs: ndarray
+        these are original coordinates of each spectrum (from dats)
         dats: ndarray
             2d array of vectors to be interpolated
         exp: bool
@@ -171,9 +176,13 @@ class GridInterp:
         # these are essentially normalized x_i values
 
         # This is the array of X_i^S_i * (1-X_i)^S_i
+        # the first dimension correspond to different vertices (therefore
+        # different S strings) and second dimension correspond to dimension
+        # 1...ndim we then need to take product over the last dim
         coeffs2 = coeffs[None, :]**self.edges * (1 - coeffs[None, :])**(
             1 - self.edges)
         coeffs2 = np.prod(coeffs2, axis=1)
+        # the final sum of coefficients times spectra at cube vertices
         spec = np.dot(coeffs2, self.dats[pos2, :])
         return FF(spec)
 
@@ -203,7 +212,7 @@ class SpecInterpolator:
         lam: ndarray
             Wavelength vector
         mapper: function
-            Function that does the mapping from scaled box parameters to 
+            Function that does the mapping from scaled box parameters to
             proper values
         parnames: tuple
             The list of parameter names ('logg', 'teff' ,.. ) etc
