@@ -135,7 +135,7 @@ class GridInterp:
         else:
             FF = lambda x: x
 
-        # gridlocs
+        # these are integer position in each dimension
         pos = np.array(
             [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)])
         if np.any((pos < 0) | (pos >= (self.lens - 1))):
@@ -146,6 +146,14 @@ class GridInterp:
             else:
                 ret = self.get_nearest(p)
             return FF(self.dats[ret])
+
+        # The logic here is following.
+        # this is 2d polylinear interpolation
+        # V00 * ( 1-x) *( 1-y) + V01 * (1-x) * y + V10* x*(1-y) + V11 *x*y
+        # I.e. V00 * x^0 * y^0 * (1-x)^1 * (1-y) + ...
+        # if we have unit n-d cube with vertices at bitstrings S
+        # then the interpolation is V_S * X^S * (1-X)^(1-S)
+        # where X^S is the vector power i.e. Product_i(X[i]^S[i])
 
         coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
                            (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
