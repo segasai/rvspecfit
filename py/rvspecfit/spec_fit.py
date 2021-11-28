@@ -65,8 +65,7 @@ class SpecData:
     '''
     Class describing a single spectrocopic dataset
     '''
-    def __init__(self, name, lam, spec, espec, badmask=None,
-                 resolution=None):
+    def __init__(self, name, lam, spec, espec, badmask=None, resolution=None):
         '''
         Construct the spectroscopic dataset
 
@@ -91,6 +90,7 @@ class SpecData:
         self.fd['spec'] = spec
         self.fd['espec'] = espec
         self.fd['resolution'] = resolution
+        self.fd['spec_error_ratio'] = spec / espec
         if badmask is None:
             badmask = np.zeros(len(spec), dtype=bool)
         self.fd['badmask'] = badmask
@@ -109,6 +109,10 @@ class SpecData:
     @property
     def spec(self):
         return self.fd['spec']
+
+    @property
+    def spec_error_ratio(self):
+        return self.fd['spec_error_ratio']
 
     @property
     def espec(self):
@@ -511,7 +515,8 @@ def get_chisq(specdata,
               options=None,
               config=None,
               cache=None,
-              full_output=False):
+              full_output=False,
+              fast_interp=False):
     """ Find the chi-square of the dataset at a given velocity
         atmospheric parameters, rotation parameters
         and resolution parameters
@@ -535,6 +540,8 @@ def get_chisq(specdata,
         the polynomial)
     config: dict (optional)
         The configuration objection
+    fast_interp: bool
+        If true, use the nearest neighbor interpolation
     cache: dict (optional)
         The cache object, to preserve info between calls
     full_output: bool
@@ -595,31 +602,39 @@ def get_chisq(specdata,
                 (templ_lam[0], templ_lam[-1], curdata.lam[0], curdata.lam[-1]))
 
         # current template interpolator object
-        if cache is None or templ_tag not in cache:
-            curtemplI = getRVInterpol(templ_lam, templ_spec)
-            if cache is not None:
-                cache[templ_tag] = curtemplI
-        else:
-            curtemplI = cache[templ_tag]
+        if not fast_interp:
+            if cache is None or templ_tag not in cache:
+                curtemplI = getRVInterpol(templ_lam, templ_spec)
+                if cache is not None:
+                    cache[templ_tag] = curtemplI
+            else:
+                curtemplI = cache[templ_tag]
 
-        evalTempl = evalRV(curtemplI, vel, curdata.lam)
+            evalTempl = evalRV(curtemplI, vel, curdata.lam)
+        else:
+            xind = np.searchsorted(
+                templ_lam,
+                np.sqrt((1 - vel / speed_of_light) /
+                        (1 + vel / speed_of_light)) * curdata.lam)
+            evalTempl = templ_spec[xind]
 
         # take into account the resolution
-        
+
         if resol_params is not None:
             evalTempl = convolve_resol(evalTempl, resol_params[name])
         if curdata.resolution is not None:
             if resol_params is not None:
-                raise ValueError('You are not allowed to set resol_param together with the resolution of each SpecData')
+                raise ValueError(
+                    'You are not allowed to set resol_param together with the resolution of each SpecData'
+                )
             evalTempl = convolve_resol(evalTempl, curdata.resolution)
 
         polys = get_basis(curdata, npoly, rbf=rbf)
 
-        curlogl = get_chisq0(curdata.spec,
+        curlogl = get_chisq0(curdata.spec_error_ratio,
                              evalTempl,
                              polys,
-                             get_coeffs=full_output,
-                             espec=curdata.espec)
+                             get_coeffs=full_output)
         if full_output:
             curlogl, coeffs = curlogl
             curmodel = np.dot(coeffs, polys * evalTempl)
