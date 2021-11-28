@@ -94,8 +94,13 @@ class GridInterp:
         Parameters
         ----------
 
-        uvecs: List of unique grid values
-        idgrid: grid of spectral ids (-1 if not avalaible
+        uvecs: List of unique grid values for each dim
+        idgrid: grid of spectral ids
+        This should be the full ndim-dimensional grid of ints.
+        I.e it'll be the id of spectrum from dats, or -1 if the
+        spectrum at that gridpoint is not known
+        vecs: ndarray
+        these are original coordinates of each spectrum (from dats)
         dats: ndarray
             2d array of vectors to be interpolated
         exp: bool
@@ -109,7 +114,9 @@ class GridInterp:
         self.ndim = len(self.uvecs)
         self.lens = np.array([len(_) for _ in self.uvecs])
         edges = itertools.product(*[[0, 1] for i in range(self.ndim)])
-        self.edges = np.array([np.array(_) for _ in edges])  # 0,1,0,1 vectors
+        self.edges = np.array([np.array(_) for _ in edges])
+        # list of vectors corresponding to vertices of unit cube, i.e.
+        # [[0,0], [0,1], [1,0], [1, 1]]
 
         self.ptp = vecs.ptp(axis=1)
         self.tree = scipy.spatial.cKDTree(vecs.T / self.ptp[None, :])
@@ -135,7 +142,7 @@ class GridInterp:
         else:
             FF = lambda x: x
 
-        # gridlocs
+        # these are integer position in each dimension
         pos = np.array(
             [np.digitize(p[i], self.uvecs[i]) - 1 for i in range(ndim)])
         if np.any((pos < 0) | (pos >= (self.lens - 1))):
@@ -147,21 +154,36 @@ class GridInterp:
                 ret = self.get_nearest(p)
             return FF(self.dats[ret])
 
-        coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
-                           (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
-                           for i in range(ndim)])  # from 0 to 1
-        # ndim  vec
-        coeffs2 = np.zeros((2**ndim, self.ndim))
-        pos2 = np.zeros(2**ndim, dtype=int)
-        coeffs2 = coeffs[None, :]**self.edges * (1 - coeffs[None, :])**(
-            1 - self.edges)
+        # here we check that all the spectra at the vertices
+        # are known
         pos2 = self.idgrid[tuple((pos[None, :] + self.edges).T)]
-        coeffs2 = np.prod(coeffs2, axis=1)
         if np.any(pos2 < 0):
             # outside boundary
             ret = self.get_nearest(p)
             return FF(self.dats[ret])
-        spec = (np.dot(coeffs2, self.dats[pos2, :]))
+
+        # The logic here is following.
+        # this is 2d polylinear interpolation
+        # V00 * ( 1-x) *( 1-y) + V01 * (1-x) * y + V10* x*(1-y) + V11 *x*y
+        # I.e. V00 * x^0 * y^0 * (1-x)^1 * (1-y) + ...
+        # if we have unit n-d cube with vertices at bitstrings S
+        # then the interpolation is V_S * X^S * (1-X)^(1-S)
+        # where X^S is the vector power i.e. Product_i(X[i]^S[i])
+
+        coeffs = np.array([(p[i] - self.uvecs[i][pos[i]]) /
+                           (self.uvecs[i][pos[i] + 1] - self.uvecs[i][pos[i]])
+                           for i in range(ndim)])  # from 0 to 1
+        # these are essentially normalized x_i values
+
+        # This is the array of X_i^S_i * (1-X_i)^S_i
+        # the first dimension correspond to different vertices (therefore
+        # different S strings) and second dimension correspond to dimension
+        # 1...ndim we then need to take product over the last dim
+        coeffs2 = coeffs[None, :]**self.edges * (1 - coeffs[None, :])**(
+            1 - self.edges)
+        coeffs2 = np.prod(coeffs2, axis=1)
+        # the final sum of coefficients times spectra at cube vertices
+        spec = np.dot(coeffs2, self.dats[pos2, :])
         return FF(spec)
 
 
@@ -190,7 +212,7 @@ class SpecInterpolator:
         lam: ndarray
             Wavelength vector
         mapper: function
-            Function that does the mapping from scaled box parameters to 
+            Function that does the mapping from scaled box parameters to
             proper values
         parnames: tuple
             The list of parameter names ('logg', 'teff' ,.. ) etc

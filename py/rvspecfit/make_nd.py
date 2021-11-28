@@ -7,6 +7,7 @@ import scipy.spatial
 
 from rvspecfit import make_interpol
 import rvspecfit
+
 git_rev = rvspecfit.__version__
 
 INTERPOL_PKL_NAME = 'interp_%s.pkl'
@@ -129,12 +130,19 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         ret_dict['extraflags'] = extraflags
 
     else:
-        uvecs = [
+        uvecs0 = [
             np.unique(vec[i, :], return_inverse=True) for i in range(ndim)
         ]
-        vecids = [_[1] for _ in uvecs]
-        uvecs = [_[0] for _ in uvecs]
+        # Unique grid positions for each dimension
+        uvecs = [_[0] for _ in uvecs0]
+        # location inside uvec
+        vecids = [_[1] for _ in uvecs0]
+        # lens is the list of sizes [10,20, 30] with the length
+        # being the number of dims
         lens = [len(_) for _ in uvecs]
+        # these will be the locations in the input arrays on the grid
+        # ie if we provide 3 points for [0,0], [0,1], [1,1]
+        # the idgrid will be [[0,1],[-1,2]]
         idgrid = np.zeros(lens, dtype=int) - 1
         idgrid[tuple(vecids)] = np.arange(vec.shape[1])
         ret_dict['uvecs'] = uvecs
