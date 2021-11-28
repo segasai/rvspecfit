@@ -82,12 +82,6 @@ class CubicSpline(PPoly):
     integrate
     roots
 
-    See Also
-    --------
-    Akima1DInterpolator : Akima 1D interpolator.
-    PchipInterpolator : PCHIP 1-D monotonic cubic interpolator.
-    PPoly : Piecewise polynomial in terms of coefficients and breakpoints.
-
     Notes
     References
     ----------
@@ -101,30 +95,27 @@ class CubicSpline(PPoly):
 
         n = len(x)
 
-        dxr = dx.reshape([dx.shape[0]] + [1] * (y.ndim - 1))
-        slope = np.diff(y) / dxr
-
         # Find derivative values at each x[i] by solving a tridiagonal
         # system.
         A = np.zeros((3, n))  # This is a banded matrix representation.
-        b = np.empty((n, ) + y.shape[1:], dtype=y.dtype)
 
         A[1, 1:-1] = 2 * (dx[:-1] + dx[1:])  # The diagonal
         A[0, 2:] = dx[:-1]  # The upper diagonal
         A[-1, :-2] = dx[1:]  # The lower diagonal
-
-        b[1:-1] = 3 * (dxr[1:] * slope[:-1] + dxr[:-1] * slope[1:])
-
         A[1, 0] = dx[1]
         A[0, 1] = x[2] - x[0]
-        d = x[2] - x[0]
-        b[0] = (
-            (dxr[0] + 2 * d) * dxr[1] * slope[0] + dxr[0]**2 * slope[1]) / d
         A[1, -1] = dx[-2]
         A[-1, -2] = x[-1] - x[-3]
+
+        slope = np.diff(y) / dx
+        b = np.empty(n, dtype=y.dtype)
+        b[1:-1] = 3 * (dx[1:] * slope[:-1] + dx[:-1] * slope[1:])
+
+        d = x[2] - x[0]
+        b[0] = ((dx[0] + 2 * d) * dx[1] * slope[0] + dx[0]**2 * slope[1]) / d
         d = x[-1] - x[-3]
-        b[-1] = ((dxr[-1]**2 * slope[-2] +
-                  (2 * d + dxr[-1]) * dxr[-2] * slope[-1]) / d)
+        b[-1] = ((dx[-1]**2 * slope[-2] +
+                  (2 * d + dx[-1]) * dx[-2] * slope[-1]) / d)
 
         s = solve_banded((1, 1),
                          A,
@@ -134,10 +125,10 @@ class CubicSpline(PPoly):
                          check_finite=False)
 
         dydx = s
-        t = (dydx[:-1] + dydx[1:] - 2 * slope) / dxr
-        c = np.empty((4, len(x) - 1) + y.shape[1:], dtype=t.dtype)
-        c[0] = t / dxr
-        c[1] = (slope - dydx[:-1]) / dxr - t
+        t = (dydx[:-1] + dydx[1:] - 2 * slope) / dx
+        c = np.empty((4, len(x) - 1), dtype=t.dtype)
+        c[0] = t / dx
+        c[1] = (slope - dydx[:-1]) / dx - t
         c[2] = dydx[:-1]
         c[3] = y[:-1]
         super(CubicSpline, self).__init__(c, x, extrapolate=extrapolate)
