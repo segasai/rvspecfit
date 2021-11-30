@@ -2,3 +2,12 @@
 *png
 *fits
 py/rvspecfit/_version.py
+build
+.gitignore
+.coverage
+__pycache__
+*/__pycache__
+tests/*db
+*#
+*/*#
+*/*/*#

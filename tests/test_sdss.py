@@ -1,4 +1,5 @@
 import os
+
 os.environ['OMP_NUM_THREADS'] = '1'
 import astropy.io.fits as pyfits
 import numpy as np
@@ -6,10 +7,13 @@ import sys
 import time
 import pathlib
 import matplotlib
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from rvspecfit import spec_fit
+from rvspecfit import vel_fit
 from rvspecfit import utils
+
 path = str(pathlib.Path(__file__).parent.absolute())
 
 
@@ -35,29 +39,30 @@ def test_fits():
     options = {'npoly': 10}
 
     t1 = time.time()
-    spec_fit.find_best(specdata,
-                       vel_grid,
-                       params_list,
-                       rot_params,
-                       resols_params,
-                       options=options,
-                       config=config)
-
+    res = spec_fit.find_best(specdata,
+                             vel_grid,
+                             params_list,
+                             rot_params,
+                             resols_params,
+                             options=options,
+                             config=config)
     t2 = time.time()
-    res = (spec_fit.find_best(specdata,
-                              vel_grid,
-                              params_list,
-                              rot_params,
-                              resols_params,
-                              options=options,
-                              config=config))
     bestv, bestpar, bestchi, vel_err = [
         res[_] for _ in ['best_vel', 'best_param', 'best_chi', 'vel_err']
     ]
-    t3 = time.time()
-    print(t2 - t1, t3 - t2)
-
+    assert (np.abs(bestv - 15) < 15)
+    param0 = vel_fit.firstguess(specdata, options=options, config=config)
+    resfull = vel_fit.process(specdata,
+                              param0,
+                              resols_params,
+                              options=options,
+                              config=config)
+    chisquare = np.mean(
+        ((specdata[0].spec - resfull['yfit'][0]) / specdata[0].espec)**2)
+    assert (chisquare < 1.2)
+    assert (np.abs(resfull['vel'] - 6) < 10)
     rot_params = (300, )
+    plt.clf()
     ret = spec_fit.get_chisq(specdata,
                              bestv,
                              bestpar,
@@ -82,6 +87,7 @@ def test_fits():
                              options=options,
                              config=config,
                              full_output=True)
+    plt.clf()
     plt.plot(specdata[0].lam, specdata[0].spec, 'k')
     plt.plot(specdata[0].lam, ret['models'][0], 'r')
     plt.savefig(path + '/plot_sdss_test2.png')
@@ -101,6 +107,7 @@ def test_fits():
                              options=options,
                              config=config,
                              full_output=True)
+    plt.clf()
     plt.plot(specdata[0].lam, specdata[0].spec, 'k')
     plt.plot(specdata[0].lam, ret['models'][0], 'r')
     plt.savefig(path + '/plot_sdss_test3.png')
