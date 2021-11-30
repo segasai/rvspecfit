@@ -144,7 +144,7 @@ def fit(specdata, config):
 
     nfft = ccf_dats[spec_setup].shape[0]
     curccf = np.empty((len(setups), nvelgrid))
-    
+
     for cur_id in range(nfft):
         curccf = []
         for ii, spec_setup in enumerate(setups):
@@ -154,13 +154,14 @@ def fit(specdata, config):
             # chisquare i -2* S/E^2 xx T +  1/E^2 xx T
             # where xx is the convolution operator
             curccf.append(
-            curccf[ii] = scipy.interpolate.interp1d(
-                vels[spec_setup],
-                (2*curccf0-curccf1)[subind[spec_setup]],
-            )(vel_grid)
+                scipy.interpolate.interp1d(vels[spec_setup],
+                                           (2 * curccf0 -
+                                            curccf1)[subind[spec_setup]],
+                                           kind='linear')(vel_grid))
             # we interpolate all the ccf from every arm
             # to the same velocity grid
-        curccf = np.array(curccf).sum(axis=0)
+
+        allccf = np.array(curccf).sum(axis=0)
         if allccf.max() > max_ccf:
             max_ccf = allccf.max()
             best_id = cur_id
