@@ -93,6 +93,7 @@ def fit(specdata, config):
     ccf_infos = {}  # ccf configurations
     ccf_mods = {}  # the actual template models
     proc_specs = {}  # actual data processed/continuum normalized etc
+    proc_ivars = {}
     setups = []
     for cursd in specdata:
         spec_setup = cursd.name
@@ -112,6 +113,7 @@ def fit(specdata, config):
                                                         badmask=cursd.badmask,
                                                         ccfconf=ccfconf)
         proc_specs[spec_setup] = proc_spec
+        proc_ivars[spec_setup] = proc_ivar
         spec_fft = np.fft.fft(proc_spec * proc_ivar)
         ivar_fft = np.fft.fft(proc_ivar)
 

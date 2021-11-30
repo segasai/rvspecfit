@@ -347,13 +347,14 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     """
     ccf_logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
     ccf_lam = np.exp(ccf_logl)
+    # to modify them
     curespec = espec.copy()
     curspec = spec0.copy()
     if badmask is None:
         badmask = np.zeros(len(curespec), dtype=bool)
-    mederr = np.median(curespec)
+    mederr = np.nanmedian(curespec)
     badmask = badmask | (curespec > maxerr * mederr)
-    curespec[badmask] = np.zeros_like(curespec[badmask]) + 1e9
+    curespec[badmask] = 1e9 * mederr
     curspec = interp_masker(lam, curspec, badmask)
     # not really needed but may be helpful for continuun determination
     cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
@@ -365,8 +366,10 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     else:
         cont = np.maximum(cont, 1)
 
+    # normalize the spectrum by continuum and update ivar
     c_spec = spec0 / cont
     curivar = cont**2 * curivar
+
     c_spec[badmask] = 0
     xind = np.searchsorted(lam, ccf_lam) - 1
     indsub = (xind >= 0) & (xind <= (len(lam) - 2))
@@ -378,8 +381,14 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     right_w = (ccf_lam[indsub] - lam[left_i]) / (lam[right_i] - lam[left_i])
     left_w = 1 - right_w
     res1[indsub] = left_w * c_spec[left_i] + right_w * c_spec[right_i]
-    res2[indsub] = curivar[left_i] * curivar[right_i] / (
-        left_w**2 * curivar[right_i] + right_w**2 * curivar[left_i])
+    left_ivar = curivar[left_i]
+    right_ivar = curivar[right_i]
+
+    # prevent division by zero
+    res2[indsub] = left_ivar * right_ivar / (
+        left_w**2 * right_ivar + right_w**2 * left_ivar +
+        ((left_ivar * right_ivar) == 0).astype(int))
+
     return res1, res2
 
 
