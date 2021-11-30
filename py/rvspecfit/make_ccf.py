@@ -463,6 +463,10 @@ def ccf_executor(spec_setup,
     np.save(modsavefile, np.array(models))
 
 
+def to_power_two(i):
+    return 2**(int(np.ceil(np.log(i) / np.log(2))))
+
+
 def main(args):
     parser = argparse.ArgumentParser(
         description='Create the Fourier transformed templates')
@@ -506,7 +510,7 @@ def main(args):
 
     args = parser.parse_args(args)
 
-    npoints = int((args.lambda1 - args.lambda0) / args.step)
+    npoints = to_power_two(int((args.lambda1 - args.lambda0) / args.step))
     ccfconf = CCFConfig(logl0=np.log(args.lambda0),
                         logl1=np.log(args.lambda1),
                         npoints=npoints)
