@@ -167,6 +167,7 @@ def pad(x, y):
         x2 = np.concatenate((np.arange(-delta1, 0) * deltax + x[0], x,
                              x[-1] + deltax * (1 + np.arange(delta2))))
     elif np.allclose(np.diff(np.log(x)), np.log(x[1] / x[0])):
+
         x2 = np.concatenate(deltax**(np.arange(-delta1, 0) * x[0], x,
                                      x[-1] * deltax**(1 + np.arange(delta2))))
     else:
@@ -217,16 +218,7 @@ def preprocess_model(logl,
 
     cont = np.maximum(cont, 1e-2 * np.median(cont))
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
-    c_model = c_model - np.mean(c_model)
-    ca_model = apodize(c_model)
-    xlogl, cpa_model = pad(logl, ca_model)
-    std = (cpa_model**2).sum()**.5
-    if std > 1e5:
-        logging.warning(
-            'WARNING something went wrong with the spectrum normalization, ' +
-            'model %s' % modid)
-    cpa_model /= std
-    return xlogl, cpa_model
+    return c_model
 
 
 def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
@@ -279,11 +271,12 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
 
     for ii, curx in enumerate(q):
         print('Processing : %d / %d' % (ii, len(q)))
-        xlogl, cpa_model = curx.get()
-        res.append(cpa_model)
+        c_model = curx.get()
+        res.append(c_model)
     pool.close()
     pool.join()
-    return xlogl, res, retparams, vsinisList
+    res = np.array(res)
+    return res, retparams, vsinisList
 
 
 def interp_masker(lam, spec, badmask):
@@ -352,7 +345,8 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
         The processed apodized/normalized/padded spectrum
 
     """
-    logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
+    ccf_logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
+    ccf_lam = np.exp(ccf_logl)
     curespec = espec.copy()
     curspec = spec0.copy()
     if badmask is None:
@@ -361,29 +355,32 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     badmask = badmask | (curespec > maxerr * mederr)
     curespec[badmask] = np.zeros_like(curespec[badmask]) + 1e9
     curspec = interp_masker(lam, curspec, badmask)
+    # not really needed but may be helpful for continuun determination
     cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
+    curivar = 1. / curespec**2
+    curivar[badmask] = 0
     medv = np.median(curspec)
     if medv > 0:
         cont = np.maximum(1e-2 * medv, cont)
     else:
-        #        medv1 = np.median(curspec[curspec > 0])
-        #        if not np.isfinite(medv1):
-        #            medv1=1
-        #        cont = np.maximum(1e-2 * medv1, cont)
-        cont = 1
+        cont = np.maximum(cont, 1)
 
     c_spec = spec0 / cont
-    c_spec = c_spec - np.median(c_spec)
-    ca_spec = apodize(c_spec)
-    if badmask is not None:
-        ca_spec[badmask] = 0
-    ca_spec = scipy.interpolate.interp1d(np.log(lam),
-                                         ca_spec,
-                                         bounds_error=False,
-                                         fill_value=0,
-                                         kind='linear')(logl)
-    lam1, cap_spec = pad(logl, ca_spec)
-    return cap_spec
+    curivar = cont**2 * curivar
+    c_spec[badmask] = 0
+    xind = np.searchsorted(lam, ccf_lam) - 1
+    indsub = (xind >= 0) & (xind <= (len(lam) - 1))
+    # these are the pixels we can fill
+    res1 = np.zeros(len(ccf_logl))
+    res2 = np.zeros(len(ccf_logl))
+    left_i = xind[indsub]
+    right_i = left_i + 1
+    right_w = (ccf_lam[indsub] - lam[left_i]) / (lam[right_i] - lam[left_i])
+    left_w = 1 - right_w
+    res1[indsub] = left_w * c_spec[left_i] + right_w * c_spec[right_i]
+    res2[indsub] = curivar[left_i] * curivar[right_i] / (
+        left_w**2 * curivar[right_i] + right_w**2 * curivar[left_i])
+    return res1, res2
 
 
 def ccf_executor(spec_setup,
@@ -434,11 +431,11 @@ def ccf_executor(spec_setup,
     vec = vec.T[inds, :]
     nspec, lenspec = specs.shape
 
-    xlogl, models, params, vsinis = preprocess_model_list(lam,
-                                                          np.exp(specs),
-                                                          vec,
-                                                          ccfconf,
-                                                          vsinis=vsinis)
+    models, params, vsinis = preprocess_model_list(lam,
+                                                   np.exp(specs),
+                                                   vec,
+                                                   ccfconf,
+                                                   vsinis=vsinis)
     ffts = np.array([np.fft.fft(x) for x in models])
     savefile = ('%s/' + CCF_PKL_NAME) % (oprefix, spec_setup)
     datsavefile = ('%s/' + CCF_DAT_NAME) % (oprefix, spec_setup)
@@ -446,7 +443,6 @@ def ccf_executor(spec_setup,
     dHash = {}
     dHash['params'] = params
     dHash['ccfconf'] = ccfconf
-    dHash['loglambda'] = xlogl
     dHash['vsinis'] = vsinis
     dHash['parnames'] = parnames
     dHash['revision'] = revision

@@ -81,6 +81,7 @@ def fit(specdata, config):
     # that we are fitting
     velstep = {}  # step in the ccf in velocity
     spec_fftconj = {}  # conjugated fft of the data
+    ivar_fftconj = {}  # conjugated fft of the data
     vels = {}  # velocity grids
     subind = {}  # the range of the ccf covering the velocity range of interest
     ccf_dats = {}  # ffts of templates
@@ -100,19 +101,18 @@ def fit(specdata, config):
         logl0 = ccfconf.logl0
         logl1 = ccfconf.logl1
         npoints = ccfconf.npoints
-        proc_spec = make_ccf.preprocess_data(lam,
-                                             spec,
-                                             espec,
-                                             badmask=cursd.badmask,
-                                             ccfconf=ccfconf)
-        proc_spec_std = proc_spec.std()
-        if proc_spec_std == 0:
-            proc_spec_std = 1
-            logging.warning('Spectrum looks like a constant...')
-        proc_spec /= proc_spec_std
+        proc_spec, proc_ivar = make_ccf.preprocess_data(lam,
+                                                        spec,
+                                                        espec,
+                                                        badmask=cursd.badmask,
+                                                        ccfconf=ccfconf)
         proc_specs[spec_setup] = proc_spec
-        spec_fft = np.fft.fft(proc_spec)
+        spec_fft = np.fft.fft(proc_spec * proc_ivar)
+        ivar_fft = np.fft.fft(proc_ivar)
+
         spec_fftconj[spec_setup] = spec_fft.conj()
+        ivar_fftconj[spec_setup] = ivar_fft.conj()
+
         cur_step = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
         lspec = len(spec_fft)
         cur_off = lspec // 2
@@ -144,19 +144,23 @@ def fit(specdata, config):
 
     nfft = ccf_dats[spec_setup].shape[0]
     curccf = np.empty((len(setups), nvelgrid))
+    
     for cur_id in range(nfft):
-
+        curccf = []
         for ii, spec_setup in enumerate(setups):
             curf = ccf_dats[spec_setup][cur_id, :]
             curccf0 = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
+            curccf1 = np.fft.ifft(ivar_fftconj[spec_setup] * curf).real
+            # chisquare i -2* S/E^2 xx T +  1/E^2 xx T
+            # where xx is the convolution operator
+            curccf.append(
             curccf[ii] = scipy.interpolate.interp1d(
                 vels[spec_setup],
-                curccf0[subind[spec_setup]],
+                (2*curccf0-curccf1)[subind[spec_setup]],
             )(vel_grid)
             # we interpolate all the ccf from every arm
             # to the same velocity grid
-
-        allccf = ccf_combiner(curccf)
+        curccf = np.array(curccf).sum(axis=0)
         if allccf.max() > max_ccf:
             max_ccf = allccf.max()
             best_id = cur_id
