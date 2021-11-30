@@ -8,7 +8,7 @@ import numpy as np
 import numpy.random
 import scipy
 import scipy.interpolate
-from scipy.constants.constants import speed_of_light
+import scipy.constants.constants
 import scipy.sparse
 import scipy.signal
 import collections
@@ -17,6 +17,9 @@ from rvspecfit import frozendict
 from rvspecfit import utils
 from rvspecfit import spec_inter
 from rvspecfit import spliner
+
+# in kms
+SPEED_OF_LIGHT = scipy.constants.constants.speed_of_light / 1e3
 
 
 class LRUDict:
@@ -404,7 +407,7 @@ def convolve_vsini(lam_templ, templ, vsini):
     if vsini == 0:
         return templ
     lnstep = np.log(lam_templ[1] / lam_templ[0])
-    amp = vsini * 1e3 / speed_of_light
+    amp = vsini / SPEED_OF_LIGHT
     npts = np.ceil(amp / lnstep)
     xgrid = np.arange(-npts, npts + 1) * lnstep / amp
     good = np.abs(xgrid) <= 1
@@ -458,7 +461,7 @@ def evalRV(interpol, vel, lams):
     spec: numpy
         Evaluated spectrum
     """
-    beta = vel * 1000. / speed_of_light
+    beta = vel / SPEED_OF_LIGHT
     return interpol(lams * np.sqrt((1 - beta) / (1 + beta)))
 
 
@@ -621,8 +624,8 @@ def get_chisq(specdata,
         else:
             xind = np.searchsorted(
                 templ_lam,
-                np.sqrt((1 - vel / speed_of_light) /
-                        (1 + vel / speed_of_light)) * curdata.lam)
+                np.sqrt((1 - vel / SPEED_OF_LIGHT) /
+                        (1 + vel / SPEED_OF_LIGHT)) * curdata.lam)
             evalTempl = templ_spec[xind]
 
         # take into account the resolution
@@ -632,8 +635,8 @@ def get_chisq(specdata,
         if curdata.resolution is not None:
             if resol_params is not None:
                 raise ValueError(
-                    'You are not allowed to set resol_param together with the resolution of each SpecData'
-                )
+                    'You are not allowed to set resol_param together with'
+                    'the resolution of each SpecData')
             evalTempl = convolve_resol(evalTempl, curdata.resolution)
 
         polys = get_basis(curdata, npoly, rbf=rbf)

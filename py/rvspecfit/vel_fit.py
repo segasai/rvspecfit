@@ -38,7 +38,7 @@ def firstguess(specdata,
             'teff': [3000, 5000, 8000, 10000],
             'feh': [-2, -1, 0],
             'alpha': [0]
-        } 
+        }
     vsinigrid: tuple
         (optional) list of vsinis to consider
 
@@ -198,8 +198,8 @@ This function is used for minimization
 
 def hess_func(p, pdict, args):
     """
-The function computes the 0.5*chi-square 
-and takes as input vector of parameters (not transofrmed)
+The function computes the 0.5*chi-square
+and takes as input vector of parameters (not transformed)
 pdict is for fixedparameters
 specParams is the list of names of parameters that we are varying
 """
