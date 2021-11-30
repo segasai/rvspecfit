@@ -232,7 +232,7 @@ def proc_onespec(
         res = fitter_ccf.fit(specdata, config)
         paramDict0 = res['best_par']
     else:
-        res = vel_fit.firstguess(specdata, config=config)
+        res = vel_fit.firstguess(specdata, config=config, options=options)
         res['best_vsini'] = res.get('vsini')
         paramDict0 = res
     t2 = time.time()
