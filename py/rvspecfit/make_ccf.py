@@ -369,7 +369,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     curivar = cont**2 * curivar
     c_spec[badmask] = 0
     xind = np.searchsorted(lam, ccf_lam) - 1
-    indsub = (xind >= 0) & (xind <= (len(lam) - 1))
+    indsub = (xind >= 0) & (xind <= (len(lam) - 2))
     # these are the pixels we can fill
     res1 = np.zeros(len(ccf_logl))
     res2 = np.zeros(len(ccf_logl))

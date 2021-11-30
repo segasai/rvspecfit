@@ -185,6 +185,7 @@ def fit(specdata, config):
                   best_ccf=best_ccf,
                   best_vsini=best_vsini,
                   best_model=best_model,
-                  proc_spec=proc_specs)
+                  proc_spec=proc_specs,
+                  vel_grid=vel_grid)
 
     return result
