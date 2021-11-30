@@ -61,4 +61,7 @@ setup(
         "Topic :: Utilities",
         "License :: OSI Approved :: BSD License",
     ],
+    setup_requires=["cffi>=1.0.0"],
+    cffi_modules=["py/rvspecfit/ffibuilder.py:ffibuilder"],
+    install_requires=["cffi>=1.0.0"],
 )

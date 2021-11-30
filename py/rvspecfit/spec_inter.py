@@ -198,7 +198,8 @@ class SpecInterpolator:
                  parnames,
                  revision='',
                  filename='',
-                 creation_soft_version=''):
+                 creation_soft_version='',
+                 logstep=None):
         """ Construct the interpolator object
 
         Parameters
@@ -234,6 +235,7 @@ class SpecInterpolator:
         self.revision = revision
         self.filename = filename
         self.creation_soft_version = creation_soft_version
+        self.logstep = logstep
 
     def outsideFlag(self, param0):
         """Check if the point is outside the interpolation grid
@@ -297,7 +299,7 @@ def getInterpolator(HR, config, warmup_cache=True):
             fd = pickle.load(fd0)
         (templ_lam, vecs, mapper, parnames) = (fd['lam'], fd['vec'],
                                                fd['mapper'], fd['parnames'])
-
+        logstep = fd['logstep']
         if 'triang' in fd:
             # triangulation based interpolation
             (triang, extraflags) = (fd['triang'], fd['extraflags'])
@@ -321,7 +323,8 @@ def getInterpolator(HR, config, warmup_cache=True):
             parnames,
             revision=revision,
             creation_soft_version=creation_soft_version,
-            filename=savefile)
+            filename=savefile,
+            logstep=logstep)
         interp_cache.interps[HR] = interpObj
     else:
         interpObj = interp_cache.interps[HR]

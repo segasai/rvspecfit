@@ -16,7 +16,7 @@ import collections
 from rvspecfit import frozendict
 from rvspecfit import utils
 from rvspecfit import spec_inter
-from rvspecfit import cubic
+from rvspecfit import spliner
 
 
 class LRUDict:
@@ -86,11 +86,12 @@ class SpecData:
         '''
         self.fd = {}
         self.fd['name'] = name
-        self.fd['lam'] = lam
-        self.fd['spec'] = spec
-        self.fd['espec'] = espec
+        self.fd['lam'] = np.ascontiguousarray(lam, dtype=np.float64)
+        self.fd['spec'] = np.ascontiguousarray(spec, dtype=np.float64)
+        self.fd['espec'] = np.ascontiguousarray(espec, dtype=np.float64)
         self.fd['resolution'] = resolution
-        self.fd['spec_error_ratio'] = spec / espec
+        self.fd['spec_error_ratio'] = np.ascontiguousarray(spec / espec,
+                                                           dtype=np.float64)
         if badmask is None:
             badmask = np.zeros(len(spec), dtype=bool)
         self.fd['badmask'] = badmask
@@ -280,7 +281,7 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
             spec = convolve_vsini(curInterp.lam, spec, *rot_params)
 
     templ_tag = random.getrandbits(128)
-    return outside, curInterp.lam, spec, templ_tag
+    return outside, curInterp.lam, spec, templ_tag, curInterp.logstep
 
 
 def construct_resol_mat(lam, resol=None, width=None):
@@ -412,7 +413,7 @@ def convolve_vsini(lam_templ, templ, vsini):
     return templ1
 
 
-def getRVInterpol(lam_templ, templ):
+def getRVInterpol(lam_templ, templ, logstep=True):
     """
     Produce the spectrum interpolator to evaluate the spectrum at arbitrary
     wavelengths
@@ -430,7 +431,7 @@ def getRVInterpol(lam_templ, templ):
         The object that can be used to evaluate template at any wavelength
     """
 
-    interpol = cubic.CubicSpline(lam_templ, templ, extrapolate=False)
+    interpol = spliner.Spline(lam_templ, templ, logstep=logstep)
     return interpol
 
 
@@ -578,7 +579,7 @@ def get_chisq(specdata,
     for curdata in specdata:
         name = curdata.name
 
-        outside, templ_lam, templ_spec, templ_tag = getCurTempl(
+        outside, templ_lam, templ_spec, templ_tag, logstep = getCurTempl(
             name, atm_params, rot_params, config)
 
         # if the current point is outside the template grid
@@ -604,7 +605,9 @@ def get_chisq(specdata,
         # current template interpolator object
         if not fast_interp:
             if cache is None or templ_tag not in cache:
-                curtemplI = getRVInterpol(templ_lam, templ_spec)
+                curtemplI = getRVInterpol(templ_lam,
+                                          templ_spec,
+                                          logstep=logstep)
                 if cache is not None:
                     cache[templ_tag] = curtemplI
             else:

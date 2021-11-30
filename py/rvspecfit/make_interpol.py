@@ -222,7 +222,8 @@ def process_all(setupInfo,
                  git_rev=git_rev,
                  mapper=mapper,
                  revision=revision,
-                 lognorms=lognorms), fp)
+                 lognorms=lognorms,
+                 logstep=log), fp)
 
 
 def add_bool_arg(parser, name, default=False, help=None):
