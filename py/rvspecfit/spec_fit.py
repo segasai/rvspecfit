@@ -131,6 +131,37 @@ class SpecData:
         return self.id
 
 
+def get_poly_basis(lam, npoly, rbf=True):
+    """ 
+    get polynomials for the grid of wavelength
+    if rbf is equal true then the first 3 terms will 
+    be still polynomials, the rest will be Gaussian rbf
+    """
+
+    polys = np.zeros((npoly, len(lam)))
+    normlam = (lam - lam[0]) / (lam[-1] - lam[0]) * 2 - 1
+    # -1..1
+    if not rbf:
+        coeffs = np.eye(npoly)
+        for i in range(npoly):
+            polys[i, :] = np.polynomial.Chebyshev(coeffs[i])(normlam)
+    else:
+        npoly0 = 3  # the first three terms are polynomial
+
+        for i in range(min(npoly0, npoly)):
+            polys[i, :] = normlam**i
+        nrbf = npoly - npoly0
+        if nrbf > 0:
+            sig = 1. / nrbf
+            # larger values lead to
+            # poorly conditioned matrices and noisy likelihood
+            # BE CAREFUL
+            rbfcens = np.linspace(-1, 1, nrbf, True)
+            polys[npoly0:, :] = np.exp(
+                -0.5 * (normlam[None, :] - rbfcens[:, None])**2 / sig**2)
+    return polys
+
+
 @functools.lru_cache(100)
 def get_basis(specdata, npoly, rbf=True):
     '''Get the precomputed polynomials for the continuum for a given specdata
@@ -152,34 +183,7 @@ def get_basis(specdata, npoly, rbf=True):
 
     '''
     lam = specdata.lam
-    # get polynomials for continuum
-    polys = np.zeros((npoly, len(lam)))
-    normlam = (lam - lam[0]) / (lam[-1] - lam[0]) * 2 - 1
-    # -1..1
-    if not rbf:
-        coeffs = {}
-        for i in range(npoly):
-            coeffs[i] = np.zeros(npoly)
-            coeffs[i][i] = 1
-        for i in range(npoly):
-            polys[i, :] = np.polynomial.Chebyshev(coeffs[i])(normlam)
-    else:
-        npoly0 = 3
-        for i in range(npoly0):
-            polys[i, :] = normlam**i
-        nrbf = npoly - npoly0
-        assert (npoly >= npoly0)
-        if nrbf > 0:
-            sig = 1. / nrbf
-            # larger values lead to
-            # poorly conditioned matrices and noisy likelihood
-            # BE CAREFUL
-            rbfcens = np.linspace(-1, 1, nrbf, True)
-            for i in range(nrbf):
-                polys[npoly0 + i, :] = np.exp(
-                    -0.5 * (normlam - rbfcens[i])**2 / sig**2)
-
-    return polys
+    return get_poly_basis(lam, npoly, rbf=rbf)
 
 
 def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
