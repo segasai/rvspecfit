@@ -1,3 +1,5 @@
-[run]
-	source=py/rvspecfit
+[paths]
+source =
+       py/rvspecfit/
+       **/site-packages/rvspecfit/
 
