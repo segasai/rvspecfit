@@ -10,6 +10,7 @@ class CCFCache:
     """ Singleton caching CCF information """
     ccf_info = {}
     ccfs = {}
+    ccf2s = {}
     ccf_models = {}
 
 
@@ -37,10 +38,13 @@ def get_ccf_info(spec_setup, config):
         ccf_dat_fname = prefix + make_ccf.CCF_DAT_NAME % spec_setup
         ccf_mod_fname = prefix + make_ccf.CCF_MOD_NAME % spec_setup
         CCFCache.ccf_info[spec_setup] = pickle.load(open(ccf_info_fname, 'rb'))
-        CCFCache.ccfs[spec_setup] = np.load(ccf_dat_fname, mmap_mode='r')
+        C = np.load(ccf_dat_fname, mmap_mode='r')
+        CCFCache.ccfs[spec_setup] = C['fft']
+        CCFCache.ccf2s[spec_setup] = C['fft2']
         CCFCache.ccf_models[spec_setup] = np.load(ccf_mod_fname, mmap_mode='r')
-    return CCFCache.ccfs[spec_setup], CCFCache.ccf_models[
-        spec_setup], CCFCache.ccf_info[spec_setup]
+    return CCFCache.ccfs[spec_setup], CCFCache.ccf2s[
+        spec_setup], CCFCache.ccf_models[spec_setup], CCFCache.ccf_info[
+            spec_setup]
 
 
 def ccf_combiner(ccfs):
@@ -85,6 +89,7 @@ def fit(specdata, config):
     vels = {}  # velocity grids
     subind = {}  # the range of the ccf covering the velocity range of interest
     ccf_dats = {}  # ffts of templates
+    ccf2_dats = {}  # ffts of templates
     ccf_infos = {}  # ccf configurations
     ccf_mods = {}  # the actual template models
     proc_specs = {}  # actual data processed/continuum normalized etc
@@ -95,8 +100,8 @@ def fit(specdata, config):
         lam = cursd.lam
         spec = cursd.spec
         espec = cursd.espec
-        ccf_dats[spec_setup], ccf_mods[spec_setup], ccf_infos[
-            spec_setup] = get_ccf_info(spec_setup, config)
+        (ccf_dats[spec_setup], ccf2_dats[spec_setup], ccf_mods[spec_setup],
+         ccf_infos[spec_setup]) = get_ccf_info(spec_setup, config)
         ccfconf = ccf_infos[spec_setup]['ccfconf']
         logl0 = ccfconf.logl0
         logl1 = ccfconf.logl1
@@ -145,13 +150,15 @@ def fit(specdata, config):
     nfft = ccf_dats[spec_setup].shape[0]
     curccf = np.empty((len(setups), nvelgrid))
 
+    allccfs = []
     for cur_id in range(nfft):
         curccf = []
         for ii, spec_setup in enumerate(setups):
             curf = ccf_dats[spec_setup][cur_id, :]
+            curf2 = ccf2_dats[spec_setup][cur_id, :]
             curccf0 = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
-            curccf1 = np.fft.ifft(ivar_fftconj[spec_setup] * curf).real
-            # chisquare i -2* S/E^2 xx T +  1/E^2 xx T
+            curccf1 = np.fft.ifft(ivar_fftconj[spec_setup] * curf2).real
+            # chisquare i -2* S/E^2 xx T +  1/E^2 xx T^2
             # where xx is the convolution operator
             curccf.append(
                 scipy.interpolate.interp1d(vels[spec_setup],
@@ -167,6 +174,7 @@ def fit(specdata, config):
             best_id = cur_id
             best_vel = vel_grid[np.argmax(allccf)]
             best_ccf = allccf
+        allccfs.append(allccf)
 
     if best_id < 0:
         logging.error('Cross-correlation failed')
@@ -187,5 +195,4 @@ def fit(specdata, config):
                   best_model=best_model,
                   proc_spec=proc_specs,
                   vel_grid=vel_grid)
-
     return result

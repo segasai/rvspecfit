@@ -15,7 +15,7 @@ import rvspecfit
 git_rev = rvspecfit.__version__
 
 CCF_PKL_NAME = 'ccf_%s.pkl'
-CCF_DAT_NAME = 'ccfdat_%s.npy'
+CCF_DAT_NAME = 'ccfdat_%s.npz'
 CCF_MOD_NAME = 'ccfmod_%s.npy'
 
 
@@ -437,6 +437,7 @@ def ccf_executor(spec_setup,
                                                    ccfconf,
                                                    vsinis=vsinis)
     ffts = np.array([np.fft.fft(x) for x in models])
+    fft2s = np.array([np.fft.fft(x**2) for x in models])
     savefile = ('%s/' + CCF_PKL_NAME) % (oprefix, spec_setup)
     datsavefile = ('%s/' + CCF_DAT_NAME) % (oprefix, spec_setup)
     modsavefile = ('%s/' + CCF_MOD_NAME) % (oprefix, spec_setup)
@@ -449,7 +450,7 @@ def ccf_executor(spec_setup,
 
     with open(savefile, 'wb') as fp:
         pickle.dump(dHash, fp)
-    np.save(datsavefile, np.array(ffts))
+    np.savez(datsavefile, fft=np.array(ffts), fft2=np.array(fft2s))
     np.save(modsavefile, np.array(models))
 
 
