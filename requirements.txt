@@ -6,3 +6,4 @@ scipy
 numdifftools
 pandas
 numpydoc
+cffi

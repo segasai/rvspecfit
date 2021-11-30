@@ -78,10 +78,9 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
               'rb') as fp:
         D = pickle.load(fp)
-        vec, specs, lam, parnames, mapper, lognorms = (D['vec'], D['specs'],
-                                                       D['lam'], D['parnames'],
-                                                       D['mapper'],
-                                                       D['lognorms'])
+        (vec, specs, lam, parnames, mapper, lognorms,
+         logstep) = (D['vec'], D['specs'], D['lam'], D['parnames'],
+                     D['mapper'], D['lognorms'], D['logstep'])
         del D
 
     vec = vec.astype(float)
@@ -151,7 +150,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
 
     savefile = ('%s/' + INTERPOL_PKL_NAME) % (prefix, spec_setup)
     ret_dict['lam'] = lam
-
+    ret_dict['logstep'] = logstep
     ret_dict['vec'] = vec
     ret_dict['parnames'] = parnames
     ret_dict['mapper'] = mapper
