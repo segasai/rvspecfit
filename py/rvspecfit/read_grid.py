@@ -90,8 +90,8 @@ def pix_integrator(x1, x2, l1, l2, s):
     Results
     -------
     ret: tuple of ndarray
-        Two weights for the integral (a,b) i.e. if the fluxes at x1,x2 are f1,f2
-        the result is a*f1+b*f2
+        Two weights for the integral (a,b) i.e. if the fluxes at x1,x2 are
+        f1,f2 the result is a*f1+b*f2
 
     """
     ret1 = gau_integrator(1 / (x1 - x2), -x2 / (x1 - x2), x1, x2, l1, l2, s)
@@ -109,8 +109,8 @@ class ParamMapper:
 
     def forward(self, vec):
         """
-        Map atmospheric parameters into parameters used in the grid for Interpolation
-        That includes logarithming the teff
+        Map atmospheric parameters into parameters used in the grid for
+        interpolation. That includes logarithming the teff
 
         Parameters
         -----------
@@ -127,12 +127,14 @@ class ParamMapper:
     def inverse(self, vec):
         """
         Map transformed parameters used in the grid for interpolation back into
-        the atmospheric parameters. That includes exponentiating the log10(teff)
+        the atmospheric parameters. That includes exponentiating the
+        log10(teff)
 
         Parameters
         -----------
         vec: numpy array
-            The vector of transformed atmospheric parameters log(Teff), logg, feh, alpha
+            The vector of transformed atmospheric parameters
+            log(Teff), logg, feh, alpha
 
         Returns
         ----------
@@ -158,9 +160,8 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
         os.unlink(dbfile)
     DB = sqlite3.connect(dbfile)
     id = 0
-    DB.execute(
-        'CREATE TABLE files (filename varchar, teff real, logg real, met real, alpha real, id int);'
-    )
+    DB.execute('''CREATE TABLE files (filename varchar, teff real, logg real,
+        met real, alpha real, id int);''')
 
     mask = '*/*fits'
     fs = sorted(glob.glob(prefix + mask))
@@ -189,15 +190,14 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
     DB.commit()
 
 
-def get_spec(
-    logg,
-    temp,
-    met,
-    alpha,
-    dbfile='/tmp/files.db',
-    prefix='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
-    wavefile='/physics2/skoposov/phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'
-):
+def get_spec(logg,
+             temp,
+             met,
+             alpha,
+             dbfile='/tmp/files.db',
+             prefix='PHOENIX_PATH/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
+             wavefile='PHOENIX_PATH/v2.0/HiResFITS/'
+             'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'):
     """ Returns individual spectra for a given spectral parameters
 
     Parameters
@@ -237,10 +237,10 @@ def get_spec(
     deltamet = 0.01
 
     query = '''select filename from files where
-		teff between %f and %f and
-		logg between %f and %f and
-		alpha between %f and %f and
-		met between %f and %f ''' % (
+    teff between %f and %f and
+    logg between %f and %f and
+    alpha between %f and %f and
+    met between %f and %f ''' % (
         temp - deltatemp, temp + deltatemp, logg - deltalogg, logg + deltalogg,
         alpha - deltaalpha, alpha + deltaalpha, met - deltamet, met + deltamet)
 
@@ -303,8 +303,6 @@ def make_rebinner(lam00,
     fwhm_to_sig = 2 * np.sqrt(2 * np.log(2))
     sigs = (fwhms**2 - fwhms0**2)**.5 / fwhm_to_sig
     thresh = 5  # 5 sigma
-    l0 = len(lam0)
-    l = len(lam)
     xs = []
     ys = []
     vals = []
@@ -411,9 +409,8 @@ def main(args):
         '--templdb',
         type=str,
         default='files.db',
-        help=
-        'The filename where the SQLite database describing the template library will be stored'
-    )
+        help='The filename where the SQLite database describing the '
+        'template library will be stored')
     args = parser.parse_args(args)
     makedb(args.prefix, dbfile=args.templdb)
 

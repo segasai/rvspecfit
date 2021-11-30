@@ -239,8 +239,8 @@ def add_bool_arg(parser, name, default=False, help=None):
 
 def main(args):
     parser = argparse.ArgumentParser(
-        description=
-        'Create interpolated and convolved spectra from the input grid.')
+        description='Create interpolated and convolved spectra from the '
+        'input grid.')
     parser.add_argument('--setup',
                         type=str,
                         help='Name of the spectral configuration',
@@ -266,8 +266,8 @@ def main(args):
         '--resol_func',
         type=str,
         help=(
-            'Spectral resolution function of the new grid. It is a string that '
-            +
+            'Spectral resolution function of the new grid. '
+            'It is a string that '
             'should be a function of wavelength in angstrom, i.e. 1000+2*x. ' +
             'This option is incompatible with --resol'),
     )
@@ -309,8 +309,8 @@ def main(args):
     parser.add_argument(
         '--wavefile',
         type=str,
-        help=
-        'The path to the fits file with the wavelength grid of the templates')
+        help='The path to the fits file with the wavelength grid '
+        'of templates')
     parser.add_argument('--resolution0',
                         type=float,
                         default=100000,

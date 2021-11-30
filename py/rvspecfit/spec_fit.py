@@ -135,9 +135,9 @@ class SpecData:
 
 
 def get_poly_basis(lam, npoly, rbf=True):
-    """ 
+    """
     get polynomials for the grid of wavelength
-    if rbf is equal true then the first 3 terms will 
+    if rbf is equal true then the first 3 terms will
     be still polynomials, the rest will be Gaussian rbf
     """
 
@@ -565,7 +565,7 @@ def get_chisq(specdata,
         for each of the fited spectra
         redchisq_array -- this is the array of reduced chi-squares
         models -- array of best fit models
-        raw_models -- array of models not corrected by the polynomial 
+        raw_models -- array of models not corrected by the polynomial
 
     """
     npoly = options.get('npoly') or 5
