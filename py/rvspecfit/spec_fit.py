@@ -631,10 +631,11 @@ def get_chisq(specdata,
 
         polys = get_basis(curdata, npoly, rbf=rbf)
 
-        curlogl = get_chisq0(curdata.spec_error_ratio,
+        curlogl = get_chisq0(curdata.spec,
                              evalTempl,
                              polys,
-                             get_coeffs=full_output)
+                             get_coeffs=full_output,
+                             espec=curdata.espec)
         if full_output:
             curlogl, coeffs = curlogl
             curmodel = np.dot(coeffs, polys * evalTempl)
