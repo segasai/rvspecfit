@@ -445,8 +445,8 @@ def ccf_executor(spec_setup,
                                                    vec,
                                                    ccfconf,
                                                    vsinis=vsinis)
-    ffts = np.array([np.fft.fft(x) for x in models])
-    fft2s = np.array([np.fft.fft(x**2) for x in models])
+    ffts = np.array([np.fft.rfft(x) for x in models])
+    fft2s = np.array([np.fft.rfft(x**2) for x in models])
     savefile = ('%s/' + CCF_PKL_NAME) % (oprefix, spec_setup)
     datsavefile = ('%s/' + CCF_DAT_NAME) % (oprefix, spec_setup)
     modsavefile = ('%s/' + CCF_MOD_NAME) % (oprefix, spec_setup)

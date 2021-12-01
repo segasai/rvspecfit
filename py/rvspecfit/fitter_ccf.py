@@ -114,8 +114,8 @@ def fit(specdata, config):
                                                         ccfconf=ccfconf)
         proc_specs[spec_setup] = proc_spec
         proc_ivars[spec_setup] = proc_ivar
-        spec_fft = np.fft.fft(proc_spec * proc_ivar)
-        ivar_fft = np.fft.fft(proc_ivar)
+        spec_fft = np.fft.rfft(proc_spec * proc_ivar)
+        ivar_fft = np.fft.rfft(proc_ivar)
 
         spec_fftconj[spec_setup] = spec_fft.conj()
         ivar_fftconj[spec_setup] = ivar_fft.conj()
@@ -158,8 +158,8 @@ def fit(specdata, config):
         for ii, spec_setup in enumerate(setups):
             curf = ccf_dats[spec_setup][cur_id, :]
             curf2 = ccf2_dats[spec_setup][cur_id, :]
-            curccf0 = np.fft.ifft(spec_fftconj[spec_setup] * curf).real
-            curccf1 = np.fft.ifft(ivar_fftconj[spec_setup] * curf2).real
+            curccf0 = np.fft.irfft(spec_fftconj[spec_setup] * curf)
+            curccf1 = np.fft.irfft(ivar_fftconj[spec_setup] * curf2)
             # chisquare i -2* S/E^2 xx T +  1/E^2 xx T^2
             # where xx is the convolution operator
             curccf.append(
