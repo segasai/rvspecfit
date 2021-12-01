@@ -1,4 +1,3 @@
-from __future__ import print_function
 import pickle
 import argparse
 import multiprocessing as mp
@@ -6,6 +5,7 @@ import numpy as np
 import scipy.interpolate
 import scipy.stats
 import sys
+import time
 import logging
 
 from rvspecfit import spec_fit
@@ -345,6 +345,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
         The processed apodized/normalized/padded spectrum
 
     """
+    t1 = time.time()
     ccf_logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
     ccf_lam = np.exp(ccf_logl)
     # to modify them
@@ -357,7 +358,9 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     curespec[badmask] = 1e9 * mederr
     curspec = interp_masker(lam, curspec, badmask)
     # not really needed but may be helpful for continuun determination
+    t2 = time.time()
     cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
+    t3 = time.time()
     curivar = 1. / curespec**2
     curivar[badmask] = 0
     medv = np.median(curspec)
@@ -388,7 +391,9 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     res2[indsub] = left_ivar * right_ivar / (
         left_w**2 * right_ivar + right_w**2 * left_ivar +
         ((left_ivar * right_ivar) == 0).astype(int))
-
+    t4 = time.time()
+    logging.debug('CCF preprocessing time %f %f %f' %
+                  (t2 - t1, t3 - t2, t4 - t3))
     return res1, res2
 
 
