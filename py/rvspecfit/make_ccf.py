@@ -119,63 +119,6 @@ def fit_resid(p, args=None, getModel=False):
     return (mod - spec) / espec
 
 
-def apodize(spec):
-    """
-    Apodize the spectrum
-
-    Parameters
-    -----------
-    spec: numpy array
-        The input numpy array
-    """
-    frac = 0.15
-    lspec = len(spec)
-    x = np.arange(lspec) * 1.
-    mask = 1 + 0 * x
-    ind = x < (frac * lspec)
-    mask[ind] = (1 - np.cos(x[ind] / frac / lspec * np.pi)) * .5
-    ind = (x - lspec + 1) > (-frac * lspec)
-    mask[ind] = (1 - np.cos((lspec - x - 1)[ind] / frac / lspec * np.pi)) * .5
-    return mask * spec
-
-
-def pad(x, y):
-    """
-    Pad the input array to the power of two lengths
-
-    Parameters
-    -----------
-    x: numpy array
-        wavelength vector
-    y: numpy array
-        spectrum
-
-    Returns
-    --------
-    x2: numpy array
-        New wavelength vector
-    y2: numpy array
-        New spectrum vector
-    """
-    lspec = len(y)
-    l1 = int(2**np.ceil(np.log(lspec) / np.log(2)))
-    delta1 = int((l1 - lspec) / 2)  # extra pixels on the left
-    delta2 = int((l1 - lspec) - delta1)  # extra pixels on the right
-    y2 = np.concatenate((np.zeros(delta1), y, np.zeros(delta2)))
-    deltax = x[1] - x[0]
-    if np.allclose(np.diff(x), deltax):
-        x2 = np.concatenate((np.arange(-delta1, 0) * deltax + x[0], x,
-                             x[-1] + deltax * (1 + np.arange(delta2))))
-    elif np.allclose(np.diff(np.log(x)), np.log(x[1] / x[0])):
-
-        x2 = np.concatenate(deltax**(np.arange(-delta1, 0) * x[0], x,
-                                     x[-1] * deltax**(1 + np.arange(delta2))))
-    else:
-        raise Exception(
-            'the wavelength axis is neither logarithmic, nor linear')
-    return x2, y2
-
-
 def preprocess_model(logl,
                      lammodel,
                      model0,
