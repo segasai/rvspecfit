@@ -937,6 +937,7 @@ def merge_hdus(hdus, ofile, keepmask, columnDesc, setups):
 def proc_desi_wrapper(*args, **kwargs):
     status = ProcessStatus.SUCCESS
     status_file = kwargs['process_status_file']
+    throw_exceptions = kwargs['throw_exceptions']
     del kwargs['process_status_file']
     nfit = 0
     t1 = time.time()
@@ -953,6 +954,8 @@ def proc_desi_wrapper(*args, **kwargs):
             traceback.print_exc(file=fd)
         # I decided not to just fail, proceed instead after
         # writing a bug report
+        if throw_exceptions:
+            raise
     finally:
         t2 = time.time()
         if status_file is not None:
@@ -1007,7 +1010,8 @@ def proc_many(files,
               zbest_select=False,
               ccfinit=True,
               process_status_file=None,
-              npoly=None):
+              npoly=None,
+              throw_exceptions=None):
     """
     Process many spectral files
 
@@ -1095,7 +1099,8 @@ def proc_many(files,
                       zbest_select=zbest_select,
                       process_status_file=process_status_file,
                       npoly=npoly,
-                      ccfinit=ccfinit)
+                      ccfinit=ccfinit,
+                      throw_exceptions=throw_exceptions)
         proc_desi_wrapper(*args, **kwargs)
 
     if parallel:
@@ -1245,6 +1250,12 @@ only potentially interesting targets''',
                         action='store_true',
                         default=False)
 
+    parser.add_argument('--throw_exceptions',
+                        help='If this option is set, the code will not'
+                        ' protect against exceptions inside rvspecfit',
+                        action='store_true',
+                        default=False)
+
     parser.add_argument('--objtypes',
                         help='The list of targets MWS_ANY,SCND_ANY,STD_*',
                         type=str,
@@ -1346,7 +1357,8 @@ but not both of them simulatenously''')
               cmdline=cmdline,
               zbest_select=zbest_select,
               ccfinit=ccfinit,
-              npoly=npoly)
+              npoly=npoly,
+              throw_exceptions=args.throw_exceptions)
 
 
 if __name__ == '__main__':
