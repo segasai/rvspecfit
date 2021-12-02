@@ -21,7 +21,7 @@ and value of 8 it return [3,13]
     return bestid
 
 
-def converter(path, opath):
+def converter(path, opath, smooth=0):
     """
 Read the input spectrum pickle file and convert it
 into the file with gaps filled and smaller step sizes
@@ -79,8 +79,12 @@ into the file with gaps filled and smaller step sizes
         evalx1, evalx2, evalx3, evalx4 = (vec_map[0][xind], vec_map[1][xind],
                                           vec_map[2][xind], vec_map[3][xind])
 
-        RR = scipy.interpolate.Rbf(evalx1, evalx2, evalx3, evalx4, specs[xind,
-                                                                         0])
+        RR = scipy.interpolate.Rbf(evalx1,
+                                   evalx2,
+                                   evalx3,
+                                   evalx4,
+                                   specs[xind, 0],
+                                   smooth=smooth)
 
         coeffs = scipy.linalg.solve(RR.A, specs[xind, :])
         xind1 = bestinterval == ii
@@ -124,8 +128,12 @@ def main(args):
                         help='Input pickle',
                         type=str,
                         required=True)
+    parser.add_argument('--smooth',
+                        help='smoothing Parameter',
+                        type=float,
+                        default=0.)
     args = parser.parse_args(args)
-    converter(args.input, args.output)
+    converter(args.input, args.output, smooth=args.smooth)
 
 
 if __name__ == '__main__':
