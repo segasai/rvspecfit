@@ -54,7 +54,7 @@ class CCFConfig:
             splinestep, 3e5 * (np.exp((logl1 - logl0) / self.maxcontpts) - 1))
 
 
-def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
+def get_continuum(lam0, spec0, espec0, ccfconf=None):
     """Determine the continuum of the spectrum by fitting a spline
 
     Parameters
@@ -68,9 +68,6 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None, bin=11):
         The vector of spectral uncertainties
     ccfconf: CCFConfig object
         The CCF configuration object
-    bin: integer, optional
-        The input spectrum will be binned by median filter by this number
-        before the fit
 
     Returns
     -------
@@ -296,8 +293,12 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     curspec = spec0.copy()
     if badmask is None:
         badmask = np.zeros(len(curespec), dtype=bool)
+    # now I filter the spectrum to see if there are parts where
+    # spectrum is basicaly negative, I mask those areas out
+    filt_size = 11
+    filtspec = scipy.signal.medfilt(curspec, filt_size)
     mederr = np.nanmedian(curespec)
-    badmask = badmask | (curespec > maxerr * mederr)
+    badmask = badmask | (curespec > maxerr * mederr) | (filtspec <= 0)
     curespec[badmask] = 1e9 * mederr
     curspec = interp_masker(lam, curspec, badmask)
     # not really needed but may be helpful for continuun determination
