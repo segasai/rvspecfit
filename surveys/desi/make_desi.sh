@@ -22,10 +22,10 @@ PREFIX=../../..//templ_data/desi/${REVISION}/
 
 # B
 
-#rvs_make_interpol --nthreads 2 --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1 \
-#    --resol_func $BRESOL --step $BSTEP --templdb ${PREFIX}/files.db \
-#    --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-#    --revision=$REVISION --no-normalize
+rvs_make_interpol --nthreads 2 --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1 \
+    --resol_func $BRESOL --step $BSTEP --templdb ${PREFIX}/files.db \
+    --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
+    --revision=$REVISION --no-normalize
 
 rvs_regularize_grid --input ${PREFIX}/specs_desi_b.pkl --smooth $SMOOTH --output ${PREFIX}/specs_desi_b.pkl
 
