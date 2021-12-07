@@ -939,6 +939,7 @@ def proc_desi_wrapper(*args, **kwargs):
     status_file = kwargs['process_status_file']
     throw_exceptions = kwargs['throw_exceptions']
     del kwargs['process_status_file']
+    del kwargs['throw_exceptions']
     nfit = 0
     t1 = time.time()
     try:
