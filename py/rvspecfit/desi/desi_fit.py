@@ -1027,7 +1027,8 @@ def proc_many(files,
               output_dir,
               output_tab_prefix,
               output_mod_prefix,
-              fig_prefix,
+              figure_dir,
+              figure_prefix,
               config_fname=None,
               nthreads=1,
               fit_targetid=None,
@@ -1053,8 +1054,10 @@ def proc_many(files,
         The files with spectra
     oprefix: string
         The prefix where the table with measurements will be stored
-    fig_prefix: string
-        The prfix where the figures will be stored
+    figure_dir: string
+        The director where the figures will be stored
+    figure_prefix: string
+        The prefix of figure filenames
     config_fname: string
         The name of the config file
     fit_targetid: integer or None
@@ -1106,7 +1109,10 @@ def proc_many(files,
         # output_prefix/e/f/xxx.fits
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
+        figure_path = figure_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
         os.makedirs(folder_path, exist_ok=True)
+        os.makedirs(figure_path, exist_ok=True)
+        cur_figure_prefix = figure_path + '/' + figure_prefix
         logging.debug(f'Making folder {folder_path}')
         tab_ofname = folder_path + output_tab_prefix + '_' + fname
         mod_ofname = folder_path + output_mod_prefix + '_' + fname
@@ -1118,7 +1124,7 @@ def proc_many(files,
                                            ProcessStatus.EXISTING, -1, 0)
 
             continue
-        args = (f, tab_ofname, mod_ofname, fig_prefix, config)
+        args = (f, tab_ofname, mod_ofname, cur_figure_prefix, config)
         kwargs = dict(fit_targetid=fit_targetid,
                       objtypes=objtypes,
                       doplot=doplot,
@@ -1311,7 +1317,6 @@ only potentially interesting targets''',
     output_dir, output_tab_prefix, output_mod_prefix = (args.output_dir,
                                                         args.output_tab_prefix,
                                                         args.output_mod_prefix)
-    fig_prefix = args.figure_dir + '/' + args.figure_prefix
     nthreads = args.nthreads
     config_fname = args.config
     doplot = args.doplot
@@ -1372,27 +1377,30 @@ but not both of them simulatenously''')
 
     os.makedirs(args.figure_dir, exist_ok=True)
 
-    proc_many(files,
-              output_dir,
-              output_tab_prefix,
-              output_mod_prefix,
-              fig_prefix,
-              nthreads=nthreads,
-              config_fname=config_fname,
-              fit_targetid=fit_targetid,
-              objtypes=objtypes,
-              doplot=doplot,
-              minsn=minsn,
-              process_status_file=args.process_status_file,
-              expid_range=(minexpid, maxexpid),
-              skipexisting=args.skipexisting,
-              overwrite=args.overwrite,
-              fitarm=fitarm,
-              cmdline=cmdline,
-              zbest_select=zbest_select,
-              ccfinit=ccfinit,
-              npoly=npoly,
-              throw_exceptions=args.throw_exceptions)
+    proc_many(
+        files,
+        output_dir,
+        output_tab_prefix,
+        output_mod_prefix,
+        args.figure_dir,
+        args.figure_prefix,
+        nthreads=nthreads,
+        config_fname=config_fname,
+        fit_targetid=fit_targetid,
+        objtypes=objtypes,
+        doplot=doplot,
+        minsn=minsn,
+        process_status_file=args.process_status_file,
+        expid_range=(minexpid, maxexpid),
+        skipexisting=args.skipexisting,
+        overwrite=args.overwrite,
+        fitarm=fitarm,
+        cmdline=cmdline,
+        zbest_select=zbest_select,
+        ccfinit=ccfinit,
+        npoly=npoly,
+        throw_exceptions=args.throw_exceptions,
+    )
 
 
 if __name__ == '__main__':
