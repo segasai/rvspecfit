@@ -1370,6 +1370,8 @@ but not both of them simulatenously''')
     else:
         pass
 
+    os.makedirs(args.figure_dir, exist_ok=True)
+
     proc_many(files,
               output_dir,
               output_tab_prefix,
