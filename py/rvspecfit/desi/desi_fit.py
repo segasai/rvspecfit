@@ -704,6 +704,11 @@ def proc_desi(fname,
 
     spectrum_header = FP[0].header
     fibermap = FP['FIBERMAP'].data
+    scores = FP['SCORES'].data
+    if 'EXP_FIBERMAP' in FP:
+        exp_fibermap = FP['EXP_FIBERMAP'].data
+    else:
+        exp_fibermap = None
 
     if fit_targetid is not None:
         if not np.in1d(fibermap['TARGETID'], fit_targetid).any():
@@ -714,7 +719,6 @@ def proc_desi(fname,
             FP.close()
             return 0
 
-    scores = FP['SCORES'].data
     fluxes, ivars, masks, waves = read_data(FP, setups)
     FP.close()
     # extract SN from the fibermap or compute ourselves
@@ -834,8 +838,13 @@ def proc_desi(fname,
         else:
             outdf1[k] = np.array([_[k] for _ in outdf])
     outtab = atpy.Table(outdf1)
+
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset_ret],
                                              name='FIBERMAP')
+    if exp_fibermap is not None:
+        tmp_sub = np.in1d(exp_fibermap['TARGETID'], fibermap[subset_ret])
+        exp_fibermap_subset_hdu = pyfits.BinTableHDU(
+            atpy.Table(exp_fibermap)[tmp_sub], name='EXP_FIBERMAP')
     scores_subset_hdu = pyfits.BinTableHDU(atpy.Table(scores)[subset_ret],
                                            name='SCORES')
     outmod_hdus = [
@@ -856,6 +865,9 @@ def proc_desi(fname,
     columnDesc = get_column_desc(setups)
 
     outmod_hdus += [fibermap_subset_hdu]
+    if exp_fibermap is not None:
+        outmod_hdus += [exp_fibermap_subset_hdu]
+
     assert (len(fibermap_subset_hdu.data) == len(outtab))
     outtab_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(
