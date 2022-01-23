@@ -842,7 +842,8 @@ def proc_desi(fname,
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset_ret],
                                              name='FIBERMAP')
     if exp_fibermap is not None:
-        tmp_sub = np.in1d(exp_fibermap['TARGETID'], fibermap[subset_ret])
+        tmp_sub = np.in1d(exp_fibermap['TARGETID'],
+                          fibermap['TARGETID'][subset_ret])
         exp_fibermap_subset_hdu = pyfits.BinTableHDU(
             atpy.Table(exp_fibermap)[tmp_sub], name='EXP_FIBERMAP')
     scores_subset_hdu = pyfits.BinTableHDU(atpy.Table(scores)[subset_ret],
@@ -865,8 +866,6 @@ def proc_desi(fname,
     columnDesc = get_column_desc(setups)
 
     outmod_hdus += [fibermap_subset_hdu]
-    if exp_fibermap is not None:
-        outmod_hdus += [exp_fibermap_subset_hdu]
 
     assert (len(fibermap_subset_hdu.data) == len(outtab))
     outtab_hdus = [
@@ -875,6 +874,8 @@ def proc_desi(fname,
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'), columnDesc),
         fibermap_subset_hdu, scores_subset_hdu
     ]
+    if exp_fibermap is not None:
+        outtab_hdus += [exp_fibermap_subset_hdu]
     timers.append(time.time())
 
     old_rvtab = None
