@@ -83,7 +83,10 @@ def get_zbest_fname(fname):
     return zbest_path
 
 
-def get_prim_header(versions={}, config=None, cmdline=None):
+def get_prim_header(versions={},
+                    config=None,
+                    cmdline=None,
+                    spectrum_header=None):
     """ Return the Primary HDU with various info in the header
 
     """
@@ -100,6 +103,17 @@ def get_prim_header(versions={}, config=None, cmdline=None):
         header['RVS_CONF'] = config['config_file_path']
     if cmdline is not None:
         header['RVS_CMD'] = cmdline
+
+    # keywords to copy from the header of the spectrum
+    copy_keys = [
+        'SPGRP', 'SPGRPVAL', 'TILEID', 'SPECTRO', 'PETAL', 'NIGHT', 'EXPID',
+        'HPXPIXEL', 'HPXNSIDE', 'HPXNEST'
+    ]
+
+    if spectrum_header is not None:
+        for key in copy_keys:
+            if key in spectrum_header:
+                header[key] = spectrum_header[key]
     return header
 
 
@@ -688,6 +702,7 @@ def proc_desi(fname,
         setups = [_ for _ in setups if _ in fitarm]
         assert (len(setups) > 0)
 
+    spectrum_header = FP[0].header
     fibermap = FP['FIBERMAP'].data
 
     if fit_targetid is not None:
@@ -824,8 +839,11 @@ def proc_desi(fname,
     scores_subset_hdu = pyfits.BinTableHDU(atpy.Table(scores)[subset_ret],
                                            name='SCORES')
     outmod_hdus = [
-        pyfits.PrimaryHDU(header=get_prim_header(
-            versions=versions, config=config, cmdline=cmdline))
+        pyfits.PrimaryHDU(
+            header=get_prim_header(versions=versions,
+                                   config=config,
+                                   cmdline=cmdline,
+                                   spectrum_header=spectrum_header))
     ]
 
     for curs in setups:
@@ -985,6 +1003,7 @@ class FakeFuture:
 
 
 class FakeExecutor:
+
     def __init__(self):
         pass
 
