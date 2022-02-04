@@ -14,13 +14,30 @@ import rvspecfit
 
 git_rev = rvspecfit.__version__
 
-CCF_PKL_NAME = 'ccf_%s.pkl'
-CCF_DAT_NAME = 'ccfdat_%s.npz'
-CCF_MOD_NAME = 'ccfmod_%s.npy'
+
+def get_continuum_prefix(continuum):
+    if not continuum:
+        pref = 'nocont_'
+    else:
+        pref = ''
+    return pref
+
+
+def get_ccf_pkl_name(setup, continuum=True):
+    return 'ccf_' + get_continuum_prefix(continuum) + '%s.pkl' % setup
+
+
+def get_ccf_dat_name(setup, continuum=True):
+    return 'ccfdat_' + get_continuum_prefix(continuum) + '%s.npz' % setup
+
+
+def get_ccf_mod_name(setup, continuum=True):
+    return 'ccfmod_' + get_continuum_prefix(continuum) + '%s.npy' % setup
 
 
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
+
     def __init__(self,
                  logl0=None,
                  logl1=None,
@@ -49,9 +66,14 @@ class CCFConfig:
         self.logl0 = logl0
         self.logl1 = logl1
         self.npoints = npoints
+        self.continuum = True
         self.maxcontpts = maxcontpts
-        self.splinestep = max(
-            splinestep, 3e5 * (np.exp((logl1 - logl0) / self.maxcontpts) - 1))
+        if splinestep is None:
+            self.continuum = False
+        else:
+            self.splinestep = max(
+                splinestep, 3e5 * (np.exp(
+                    (logl1 - logl0) / self.maxcontpts) - 1))
 
 
 def get_continuum(lam0, spec0, espec0, ccfconf=None):
@@ -303,7 +325,10 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     curspec = interp_masker(lam, curspec, badmask)
     # not really needed but may be helpful for continuun determination
     t2 = time.time()
-    cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
+    if ccfconf.contiuum:
+        cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
+    else:
+        cont = 1
     t3 = time.time()
     curivar = 1. / curespec**2
     curivar[badmask] = 0
@@ -396,9 +421,10 @@ def ccf_executor(spec_setup,
                                                    vsinis=vsinis)
     ffts = np.array([np.fft.rfft(x) for x in models])
     fft2s = np.array([np.fft.rfft(x**2) for x in models])
-    savefile = ('%s/' + CCF_PKL_NAME) % (oprefix, spec_setup)
-    datsavefile = ('%s/' + CCF_DAT_NAME) % (oprefix, spec_setup)
-    modsavefile = ('%s/' + CCF_MOD_NAME) % (oprefix, spec_setup)
+    savefile = (oprefix + '/' + get_ccf_pkl_name(spec_setup))
+    datsavefile = (oprefix + '/' + get_ccf_dat_name(spec_setup))
+    modsavefile = (oprefix + '/' + get_ccf_mod_name(spec_setup))
+
     dHash = {}
     dHash['params'] = params
     dHash['ccfconf'] = ccfconf
@@ -438,6 +464,11 @@ def main(args):
                         type=float,
                         help='Wavelength endpoint',
                         required=True)
+
+    parser.add_argument('--nocontinuum',
+                        dest='nocontinuum',
+                        action='store_true')
+
     parser.add_argument('--step',
                         type=float,
                         help='Pixel size in angstroms',
@@ -456,13 +487,19 @@ def main(args):
                         type=int,
                         default=30,
                         help='Subsample the input grid by this amount')
-
+    parser.set_default(nocontinuum=False)
     args = parser.parse_args(args)
 
     npoints = to_power_two(int((args.lambda1 - args.lambda0) / args.step))
-    ccfconf = CCFConfig(logl0=np.log(args.lambda0),
-                        logl1=np.log(args.lambda1),
-                        npoints=npoints)
+    if args.nocontinuum:
+        ccfconf = CCFConfig(logl0=np.log(args.lambda0),
+                            logl1=np.log(args.lambda1),
+                            npoints=npoints,
+                            splinestep=None)
+    else:
+        ccfconf = CCFConfig(logl0=np.log(args.lambda0),
+                            logl1=np.log(args.lambda1),
+                            npoints=npoints)
 
     if args.vsinis is not None:
         vsinis = [float(_) for _ in args.vsinis.split(',')]

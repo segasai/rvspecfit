@@ -34,9 +34,9 @@ def get_ccf_info(spec_setup, config):
     """
     if spec_setup not in CCFCache.ccfs:
         prefix = config['template_lib']
-        ccf_info_fname = prefix + make_ccf.CCF_PKL_NAME % spec_setup
-        ccf_dat_fname = prefix + make_ccf.CCF_DAT_NAME % spec_setup
-        ccf_mod_fname = prefix + make_ccf.CCF_MOD_NAME % spec_setup
+        ccf_info_fname = prefix + make_ccf.get_ccf_pkl_name(spec_setup)
+        ccf_dat_fname = prefix + make_ccf.get_ccf_dat_name(spec_setup)
+        ccf_mod_fname = prefix + make_ccf.get_ccf_mod_name(spec_setup)
         CCFCache.ccf_info[spec_setup] = pickle.load(open(ccf_info_fname, 'rb'))
         C = np.load(ccf_dat_fname, mmap_mode='r')
         CCFCache.ccfs[spec_setup] = C['fft']
