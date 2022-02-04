@@ -240,6 +240,8 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
         res.append(c_model)
     pool.close()
     pool.join()
+    retparams = np.array(retparams)
+    vsinisList = np.array(vsinisList)
     res = np.array(res)
     return res, retparams, vsinisList
 
