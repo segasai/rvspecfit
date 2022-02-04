@@ -173,12 +173,15 @@ def preprocess_model(logl,
         m = spec_fit.convolve_vsini(lammodel, model0, vsini)
     else:
         m = model0
-    cont = get_continuum(lammodel,
-                         m,
-                         np.maximum(m * 1e-5, 1e-2 * np.median(m)),
-                         ccfconf=ccfconf)
+    if ccfconf.continuum:
+        cont = get_continuum(lammodel,
+                             m,
+                             np.maximum(m * 1e-5, 1e-2 * np.median(m)),
+                             ccfconf=ccfconf)
 
-    cont = np.maximum(cont, 1e-2 * np.median(cont))
+        cont = np.maximum(cont, 1e-2 * np.median(cont))
+    else:
+        cont = 1
     c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
     return c_model
 
@@ -325,7 +328,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     curspec = interp_masker(lam, curspec, badmask)
     # not really needed but may be helpful for continuun determination
     t2 = time.time()
-    if ccfconf.contiuum:
+    if ccfconf.continuum:
         cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
     else:
         cont = 1
@@ -421,9 +424,12 @@ def ccf_executor(spec_setup,
                                                    vsinis=vsinis)
     ffts = np.array([np.fft.rfft(x) for x in models])
     fft2s = np.array([np.fft.rfft(x**2) for x in models])
-    savefile = (oprefix + '/' + get_ccf_pkl_name(spec_setup))
-    datsavefile = (oprefix + '/' + get_ccf_dat_name(spec_setup))
-    modsavefile = (oprefix + '/' + get_ccf_mod_name(spec_setup))
+    savefile = (oprefix + '/' +
+                get_ccf_pkl_name(spec_setup, ccfconf.continuum))
+    datsavefile = (oprefix + '/' +
+                   get_ccf_dat_name(spec_setup, ccfconf.continuum))
+    modsavefile = (oprefix + '/' +
+                   get_ccf_mod_name(spec_setup, ccfconf.continuum))
 
     dHash = {}
     dHash['params'] = params
@@ -487,7 +493,7 @@ def main(args):
                         type=int,
                         default=30,
                         help='Subsample the input grid by this amount')
-    parser.set_default(nocontinuum=False)
+    parser.set_defaults(nocontinuum=False)
     args = parser.parse_args(args)
 
     npoints = to_power_two(int((args.lambda1 - args.lambda0) / args.step))
