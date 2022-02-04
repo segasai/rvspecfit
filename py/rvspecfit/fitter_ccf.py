@@ -53,14 +53,6 @@ def get_ccf_info(spec_setup, config):
             spec_setup]
 
 
-def ccf_combiner(ccfs):
-    # combine ccfs from multiple filters
-    # since ccf^2 is -chisq
-    # we assume ccfs is 2d array shaped like Nfilters, nvelocities
-    ret = (np.sign(ccfs) * ccfs**2).sum(axis=0)
-    return ret
-
-
 def fit(specdata, config):
     """
     Process the data by doing cross-correlation with templates
@@ -156,35 +148,33 @@ def fit(specdata, config):
     # or if array is shifted to n pixels to the left it will peak at n (0based)
 
     nfft = ccf_dats[spec_setup].shape[0]
-    curccf = np.empty((len(setups), nvelgrid))
 
-    allccfs = []
+    all_chisqs = []
     for cur_id in range(nfft):
-        curccf = []
+        cur_chisq = np.zeros(len(vel_grid))
         for ii, spec_setup in enumerate(setups):
             curf = ccf_dats[spec_setup][cur_id, :]
             curf2 = ccf2_dats[spec_setup][cur_id, :]
             curccf0 = np.fft.irfft(spec_fftconj[spec_setup] * curf)
             curccf1 = np.fft.irfft(ivar_fftconj[spec_setup] * curf2)
-            # chisquare i -2* S/E^2 xx T +  1/E^2 xx T^2
+            # chisquare i -2* l * S/E^2 xx T + l^2 1/E^2 xx T^2
+            #  l is the multiplier (S-lT)
+            # the best value is l = ((S/E^2) xx T)/(1/E^2 xx T^2)
+            # Thus  the best chisq is -((S/E^2) xx T)^2/(1/E^2 xx T^2)
             # where xx is the convolution operator
-            curccf.append(
-                scipy.interpolate.interp1d(vels[spec_setup],
-                                           (2 * curccf0 -
-                                            curccf1)[subind[spec_setup]],
-                                           kind='linear')(vel_grid))
+            cur_chisq += (scipy.interpolate.interp1d(
+                vels[spec_setup], (-curccf0**2 / curccf1)[subind[spec_setup]],
+                kind='linear')(vel_grid))
             # we interpolate all the ccf from every arm
             # to the same velocity grid
+        all_chisqs.append(cur_chisq)
+    all_chisqs = np.array(all_chisqs)
+    best_id = np.argmin(all_chisqs.min(axis=1))
+    best_ccf = all_chisqs[best_id]
+    best_pix = np.argmin(best_ccf)
+    best_vel = vel_grid[best_pix]
 
-        allccf = np.array(curccf).sum(axis=0)
-        if allccf.max() > max_ccf:
-            max_ccf = allccf.max()
-            best_id = cur_id
-            best_vel = vel_grid[np.argmax(allccf)]
-            best_ccf = allccf
-        allccfs.append(allccf)
-
-    if best_id < 0:
+    if not np.isfinite(all_chisqs[best_id, best_pix]):
         logging.error('Cross-correlation failed')
         raise RuntimeError('Cross-correlation step failed')
 
