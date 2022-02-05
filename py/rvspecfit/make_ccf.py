@@ -325,7 +325,8 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     filt_size = 11
     filtspec = scipy.signal.medfilt(curspec, filt_size)
     mederr = np.nanmedian(curespec)
-    badmask = badmask | (curespec > maxerr * mederr) | (filtspec <= 0)
+    if ccfconf.continuum:
+        badmask = badmask | (curespec > maxerr * mederr) | (filtspec <= 0)
     curespec[badmask] = 1e9 * mederr
     curspec = interp_masker(lam, curspec, badmask)
     # not really needed but may be helpful for continuun determination

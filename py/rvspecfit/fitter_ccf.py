@@ -139,9 +139,6 @@ def fit(specdata, config):
         velstep[spec_setup] = cur_step
         vels[spec_setup] = cur_vels[cur_ind]
 
-    max_ccf = -np.inf
-    best_id = -1
-
     # the logic is the following
     # if array y is shifted by n pixels to the right side wrt x
     # ifft(fft(x)*fft(y).conj) will peak at pixel N-n (0based)
