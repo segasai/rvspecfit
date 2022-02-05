@@ -35,6 +35,10 @@ rvs_make_ccf --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1  --every $EVERY \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $BSTEP \
     --revision=$REVISION
 
+rvs_make_ccf --setup desi_b --lambda0 $BLAM0 --lambda1 $BLAM1  --every $EVERY \
+    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $BSTEP \
+    --revision=$REVISION --nocontinuum
+
 # R
 
 rvs_make_interpol --nthreads 2 --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 \
@@ -49,7 +53,9 @@ rvs_make_nd --prefix ${PREFIX}/ --regular --setup desi_r --revision=$REVISION
 rvs_make_ccf --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 --every $EVERY \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $RSTEP \
     --revision=$REVISION
-
+rvs_make_ccf --setup desi_r --lambda0 $RLAM0 --lambda1 $RLAM1 --every $EVERY \
+    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $RSTEP \
+    --revision=$REVISION --nocontinuum
 # Z
 
 rvs_make_interpol --nthreads 2 --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1 \
@@ -65,3 +71,6 @@ rvs_make_ccf --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1 --every $EVERY \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $ZSTEP \
     --revision=$REVISION
 
+rvs_make_ccf --setup desi_z --lambda0 $ZLAM0 --lambda1 $ZLAM1 --every $EVERY \
+    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $ZSTEP \
+    --revision=$REVISION --nocontinuum
