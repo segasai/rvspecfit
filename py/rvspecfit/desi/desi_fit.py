@@ -1043,6 +1043,7 @@ def proc_many(files,
               cmdline=None,
               zbest_select=False,
               ccfinit=True,
+              ccf_continuum_normalize=True,
               process_status_file=None,
               npoly=None,
               throw_exceptions=None):
@@ -1085,6 +1086,14 @@ def proc_many(files,
     config = utils.read_config(config_fname)
     assert (config is not None)
     assert ('template_lib' in config)
+    if 'ccf_continuum_normalize' in config:
+        if config['ccf_continuum_normalize'] != ccf_continuum_normalize:
+            warnings.warn(
+                'ccf_continuum_normalize command line option will override the option specified in the config file'
+            )
+            config['ccf_continuum_normalize'] = ccf_continuum_normalize
+    else:
+        config['ccf_continuum_normalize'] = ccf_continuum_normalize
     if nthreads > 1:
         parallel = True
     else:
@@ -1289,6 +1298,12 @@ only potentially interesting targets''',
                         action='store_true',
                         default=False)
 
+    parser.add_argument('--no_ccf_continuum_normalize',
+                        help='',
+                        target='ccf_continuum_normalize',
+                        action='store_false',
+                        default=True)
+
     parser.add_argument('--throw_exceptions',
                         help='If this option is set, the code will not'
                         ' protect against exceptions inside rvspecfit',
@@ -1299,7 +1314,7 @@ only potentially interesting targets''',
                         help='The list of targets MWS_ANY,SCND_ANY,STD_*',
                         type=str,
                         default=None)
-
+    parser.set_defaults(ccf_continuum_normalize=True)
     args = parser.parse_args(args)
 
     if args.version:
@@ -1398,6 +1413,7 @@ but not both of them simulatenously''')
         fitarm=fitarm,
         cmdline=cmdline,
         zbest_select=zbest_select,
+        ccf_continuum_normalize=ccf_continuum_normalize,
         ccfinit=ccfinit,
         npoly=npoly,
         throw_exceptions=args.throw_exceptions,
