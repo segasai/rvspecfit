@@ -26,7 +26,7 @@ def get_default_config():
     return D
 
 
-def read_config(fname=None):
+def read_config(fname=None, override_options=None):
     """
     Read the configuration file and return the frozendict with it
 
@@ -36,7 +36,8 @@ def read_config(fname=None):
     fname: string, optional
         The path to the configuration file. If not given config.yaml in the
         current directory is used
-
+    override_options: dictionary, optional
+        Update the options
     Returns
     -------
     config: frozendict
@@ -58,9 +59,8 @@ def read_config(fname=None):
         if fname_specified:
             raise RuntimeError(f"Configuration file '{fname}' not found.")
         else:
-            logging.warning(
-                f"Configuration file '{fname}' not found. Using default settings"
-            )
+            logging.warning(f"Configuration file '{fname}' not found. "
+                            "Using default settings")
             D = {}
     D0 = get_default_config()
     for k in D0.keys():
@@ -70,6 +70,12 @@ def read_config(fname=None):
                 'Using default value {}', k, D0[k])
             D[k] = D0[k]
     D['config_file_path'] = os.path.abspath(fname)
+    if override_options is not None:
+        for k, v in override_options.items():
+            if k in D and v != D[k]:
+                logging.warning(f'Provided option {k} overrides the value in '
+                                'the configuration file')
+            D[k] = v
     return freezeDict(D)
 
 

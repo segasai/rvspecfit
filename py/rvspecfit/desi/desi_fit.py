@@ -1083,17 +1083,11 @@ def proc_many(files,
     process_status_file: str
         The filename where we'll put status of the fitting
     """
-    config = utils.read_config(config_fname)
+    override = dict(ccf_continuum_normalize=ccf_continuum_normalize)
+    config = utils.read_config(config_fname, override)
     assert (config is not None)
     assert ('template_lib' in config)
-    if 'ccf_continuum_normalize' in config:
-        if config['ccf_continuum_normalize'] != ccf_continuum_normalize:
-            warnings.warn(
-                'ccf_continuum_normalize command line option will override the option specified in the config file'
-            )
-            config['ccf_continuum_normalize'] = ccf_continuum_normalize
-    else:
-        config['ccf_continuum_normalize'] = ccf_continuum_normalize
+
     if nthreads > 1:
         parallel = True
     else:
@@ -1300,7 +1294,7 @@ only potentially interesting targets''',
 
     parser.add_argument('--no_ccf_continuum_normalize',
                         help='',
-                        target='ccf_continuum_normalize',
+                        dest='ccf_continuum_normalize',
                         action='store_false',
                         default=True)
 
@@ -1360,6 +1354,7 @@ only potentially interesting targets''',
     else:
         raise ValueError(
             'Unknown param_init value; only known ones are CCF and bruteforce')
+    ccf_continuum_normalize = args.ccf_continuum_normalize
 
     if input_files == [] and input_file_from is not None:
         raise Exception(
