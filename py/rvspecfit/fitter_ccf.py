@@ -93,6 +93,7 @@ def fit(specdata, config):
     proc_specs = {}  # actual data processed/continuum normalized etc
     proc_ivars = {}
     setups = []
+    ccf_confs = []
     for cursd in specdata:
         spec_setup = cursd.name
         setups.append(spec_setup)
@@ -102,6 +103,7 @@ def fit(specdata, config):
         (ccf_dats[spec_setup], ccf2_dats[spec_setup], ccf_mods[spec_setup],
          ccf_infos[spec_setup]) = get_ccf_info(spec_setup, config)
         ccfconf = ccf_infos[spec_setup]['ccfconf']
+        ccf_confs.append(ccfconf)
         logl0 = ccfconf.logl0
         logl1 = ccfconf.logl1
         npoints = ccfconf.npoints
@@ -159,9 +161,13 @@ def fit(specdata, config):
             # the best value is l = ((S/E^2) xx T)/(1/E^2 xx T^2)
             # Thus  the best chisq is -((S/E^2) xx T)^2/(1/E^2 xx T^2)
             # where xx is the convolution operator
-            cur_chisq += (scipy.interpolate.interp1d(
-                vels[spec_setup], (-curccf0**2 / curccf1)[subind[spec_setup]],
-                kind='linear')(vel_grid))
+            if ccf_confs[ii].continuum:
+                chisq = -2 * curccf0 + curccf1
+            else:
+                chisq = (-curccf0**2 / curccf1)
+            cur_chisq += (scipy.interpolate.interp1d(vels[spec_setup],
+                                                     chisq[subind[spec_setup]],
+                                                     kind='linear')(vel_grid))
             # we interpolate all the ccf from every arm
             # to the same velocity grid
         all_chisqs.append(cur_chisq)
