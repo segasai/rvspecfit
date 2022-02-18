@@ -6,27 +6,30 @@ C[i] * (x-x[i]) + D[i])*(x[i+1]-x)
 
 void construct(double *xs, double *ys, int N, double *A, double *B, double *C,
                double *D, double *h) {
-  int N1 = N - 1;
-  int N2 = N - 2;
-  int N3 = N - 3;
+  const int N1 = N - 1;
+  const int N2 = N - 2;
+  const int N3 = N - 3;
   double vs[N2];
   double bs[N1];
   double us[N1];
   double zs[N];
   double cc_dash[N3];
   double dd_dash[N2];
+  double hinv[N1];
+  const double one_sixth = 1./6;
   // see here https://github.com/segasai/stan-splines
   for (int i = 0; i < N1; i++) {
     h[i] = xs[i + 1] - xs[i];
-    bs[i] = (ys[i + 1] - ys[i]) / h[i];
+    hinv[i] = 1. / h[i]; // using inverse reduces the number of divisions
+    bs[i] = (ys[i + 1] - ys[i]) * hinv[i];
   }
   for (int i = 0; i < N2; i++) {
     vs[i] = 2 * (h[i + 1] + h[i]);
     us[i] = 6 * (bs[i + 1] - bs[i]);
   }
-  double *cc = h + 1; // offdiagonal
-  double *bb = vs;    // diagonal
-  double *dd = us;    // RHS
+  const double *cc = h + 1; // offdiagonal
+  const double *bb = vs;    // diagonal
+  const double *dd = us;    // RHS
   cc_dash[0] = cc[0] / bb[0];
   // thomas algo where we assume symmetric matrix
   // https://en.wikipedia.org/wiki/Tridiagonal_matrix_algorithm
@@ -47,10 +50,12 @@ void construct(double *xs, double *ys, int N, double *A, double *B, double *C,
   }
 
   for (int i = 0; i < N1; i++) {
-    A[i] = zs[i + 1] / 6 / h[i];
-    B[i] = zs[i] / 6 / h[i];
-    C[i] = ys[i + 1] / h[i] - zs[i + 1] * h[i] / 6;
-    D[i] = ys[i] / h[i] - zs[i] * h[i] / 6;
+    const double tmp1 = hinv[i] * one_sixth;
+    const double tmp2 = h[i] * one_sixth;
+    A[i] = zs[i + 1] * tmp1;
+    B[i] = zs[i] * tmp1;
+    C[i] = ys[i + 1] * hinv[i] - zs[i + 1] * tmp2;
+    D[i] = ys[i] * hinv[i] - zs[i] * tmp2;
   }
 }
 
