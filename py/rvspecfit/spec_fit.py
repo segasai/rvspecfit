@@ -8,7 +8,7 @@ import numpy as np
 import numpy.random
 import scipy
 import scipy.interpolate
-import scipy.constants.constants
+import scipy.constants as sci_con
 import scipy.sparse
 import scipy.signal
 import collections
@@ -19,11 +19,12 @@ from rvspecfit import spec_inter
 from rvspecfit import spliner
 
 # in kms
-SPEED_OF_LIGHT = scipy.constants.constants.speed_of_light / 1e3
+SPEED_OF_LIGHT = sci_con.speed_of_light / 1e3
 
 
 class LRUDict:
     """ Simple implementation of LRU dictionary """
+
     def __init__(self, N):
         self.N = N
         self.D = collections.OrderedDict()
@@ -50,6 +51,7 @@ class LRUDict:
 
 # resolution matrix
 class ResolMatrix:
+
     def __init__(self, mat):
         self.fd = {}
         self.fd['mat'] = mat
@@ -68,6 +70,7 @@ class SpecData:
     '''
     Class describing a single spectrocopic dataset
     '''
+
     def __init__(self, name, lam, spec, espec, badmask=None, resolution=None):
         '''
         Construct the spectroscopic dataset
