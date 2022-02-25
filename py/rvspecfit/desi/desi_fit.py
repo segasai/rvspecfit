@@ -1028,8 +1028,8 @@ def proc_many(files,
               output_dir,
               output_tab_prefix,
               output_mod_prefix,
-              figure_dir,
-              figure_prefix,
+              figure_dir=None,
+              figure_prefix=None,
               config_fname=None,
               nthreads=1,
               fit_targetid=None,
@@ -1113,15 +1113,18 @@ def proc_many(files,
         # output_prefix/e/f/xxx.fits
         fdirs = f.split('/')
         folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
-        figure_path = figure_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
         os.makedirs(folder_path, exist_ok=True)
-        os.makedirs(figure_path, exist_ok=True)
-        cur_figure_prefix = figure_path + '/' + figure_prefix
         logging.debug(f'Making folder {folder_path}')
+        if figure_dir is not None:
+            figure_path = figure_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
+            os.makedirs(figure_path, exist_ok=True)
+            cur_figure_prefix = figure_path + '/' + figure_prefix
+            logging.debug(f'Making folder {figure_path}')
         tab_ofname = folder_path + output_tab_prefix + '_' + fname
         mod_ofname = folder_path + output_mod_prefix + '_' + fname
 
-        if (skipexisting) and os.path.exists(tab_ofname):
+        if (skipexisting and os.path.exists(tab_ofname)
+                and os.path.exists(mod_ofname)):
             logging.info('skipping, products already exist %s' % f)
             if process_status_file is not None:
                 update_process_status_file(process_status_file, f,
@@ -1234,11 +1237,11 @@ def main(args):
                         type=str,
                         required=False)
     parser.add_argument('--figure_dir',
-                        help='Prefix for the fit figures, i.e. fig_folder/',
+                        help='Path for the fit figures, i.e. fig_folder/',
                         type=str,
                         default='./')
     parser.add_argument('--figure_prefix',
-                        help='Prefix for the fit figures, i.e. im',
+                        help='Prefix for the fit figures filename, i.e. im',
                         type=str,
                         default='fig',
                         required=False)
@@ -1385,16 +1388,18 @@ but not both of them simulatenously''')
         fit_targetid = np.unique([targetid])
     else:
         pass
-
-    os.makedirs(args.figure_dir, exist_ok=True)
+    if doplot:
+        figure_dir = args.figure_dir
+    else:
+        figure_dir = None
 
     proc_many(
         files,
         output_dir,
         output_tab_prefix,
         output_mod_prefix,
-        args.figure_dir,
-        args.figure_prefix,
+        figure_dir=figure_dir,
+        figure_prefix=args.figure_prefix,
         nthreads=nthreads,
         config_fname=config_fname,
         fit_targetid=fit_targetid,
