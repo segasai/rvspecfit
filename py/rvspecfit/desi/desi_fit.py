@@ -1120,6 +1120,8 @@ def proc_many(files,
             os.makedirs(figure_path, exist_ok=True)
             cur_figure_prefix = figure_path + '/' + figure_prefix
             logging.debug(f'Making folder {figure_path}')
+        else:
+            cur_figure_prefix = None
         tab_ofname = folder_path + output_tab_prefix + '_' + fname
         mod_ofname = folder_path + output_mod_prefix + '_' + fname
 
