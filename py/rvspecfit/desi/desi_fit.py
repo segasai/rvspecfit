@@ -797,9 +797,11 @@ def proc_desi(fname,
             continue
         nfibers_good += 1
         curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
-        fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
-                                                    curseqid)
-
+        if doplot:
+            fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
+                                                        curseqid)
+        else:
+            fig_fname = None
         rets.append((poolex.submit(
             proc_onespec, *(specdatas, setups, config, options),
             **dict(fig_fname=fig_fname, doplot=doplot,
