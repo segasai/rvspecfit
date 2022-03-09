@@ -470,7 +470,9 @@ def select_fibers_to_fit(fibermap,
     # compute the subset based on TARGET types
     fibermapT = atpy.Table(fibermap)
     types_subset = np.ones(len(fibermap), dtype=bool)
+    selecting_by_type = False
     if DT is not None and objtypes is not None:
+        selecting_by_type = True
         re_types = [re.compile(_) for _ in objtypes]
         for i, currow in enumerate(fibermapT):
             col_list, mask_list, _ = DT.main_cmx_or_sv(currow, scnd=True)
@@ -497,11 +499,15 @@ def select_fibers_to_fit(fibermap,
             types_subset[i] = (currow[colname] & bitmask) > 0
 
     # select objects based on redrock velocity or type
-    zbest_subset = np.zeros(len(fibermap), dtype=bool)
     if zbest_select:
         if zbest_path is None:
             warnings.warn(
                 'zbest selection requested, but the zbest file not found')
+            if selecting_by_type:
+                zbest_subset = np.zeros(len(fibermap), dtype=bool)
+            else:
+                # I fit everything
+                zbest_subset = np.ones(len(fibermap), dtype=bool)
         else:
             zb = atpy.Table().read(zbest_path, format='fits', hdu='REDSHIFTS')
             assert (len(zb) == len(subset))
