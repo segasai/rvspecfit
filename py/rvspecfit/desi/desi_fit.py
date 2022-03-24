@@ -513,6 +513,8 @@ def select_fibers_to_fit(fibermap,
             assert (len(zb) == len(subset))
             zbest_subset = (((zb['SPECTYPE'] == zbest_type) |
                              (np.abs(zb['Z']) < zbest_maxvel / 3e5)))
+    else:
+        zbest_subset = np.zeros(len(fibermap), dtype=bool)
     # We select either based on type or zbest
     subset = subset & (zbest_subset | types_subset)
     return subset
