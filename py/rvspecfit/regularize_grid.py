@@ -21,13 +21,23 @@ and value of 8 it return [3,13]
     return bestid
 
 
-def converter(path, opath, smooth=0):
+def converter(path,
+              opath,
+              smooth=0,
+              min_feh=-4,
+              max_feh=1.2,
+              step_feh=0.25,
+              min_alpha=-0.4,
+              max_alpha=1.2,
+              step_alpha=0.2):
     """
 Read the input spectrum pickle file and convert it
 into the file with gaps filled and smaller step sizes
     """
-    newfehgrid = np.arange(-4, 1.25, .25)
-    newalphagrid = np.arange(-0.4, 1.3, 0.2)
+    # I'm adding half a step to ensure that max value is included
+    newfehgrid = np.arange(min_feh, max_feh + step_feh / 2., step_feh)
+    newalphagrid = np.arange(min_alpha, max_alpha + step_alpha / 2.,
+                             step_alpha)
 
     dat = pickle.load(open(path, 'rb'))
 
