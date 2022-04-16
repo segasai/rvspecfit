@@ -527,7 +527,8 @@ def get_chisq(specdata,
               config=None,
               cache=None,
               full_output=False,
-              fast_interp=False):
+              fast_interp=False,
+              espec_systematic=None):
     """ Find the chi-square of the dataset at a given velocity
         atmospheric parameters, rotation parameters
         and resolution parameters
@@ -557,7 +558,10 @@ def get_chisq(specdata,
         The cache object, to preserve info between calls
     full_output: bool
         If full_output is set more info is returned
-
+    espec_systematic: dict or float
+        This will be added in quadrature to the error vector when computing
+        logl. If it is a dict it must be indexed by the spec setup otherwise
+        this constant will be used for all spectra.
     Returns
     -------
     ret: float or dictionary
@@ -644,11 +648,19 @@ def get_chisq(specdata,
 
         polys = get_basis(curdata, npoly, rbf=rbf)
 
+        if espec_systematic is not None:
+            if isinstance(espec_systematic, dict):
+                curespec = espec_sytematic[name]
+                curespec = np.sqrt(curespec**2 + curdata.espec**2)
+            else:
+                curespec = np.sqrt(curespec**2 + curdata.espec**2)
+        else:
+            curespec = curdata.espec
         curlogl = get_chisq0(curdata.spec,
                              evalTempl,
                              polys,
                              get_coeffs=full_output,
-                             espec=curdata.espec)
+                             espec=curespec)
         if full_output:
             curlogl, coeffs = curlogl
             curmodel = np.dot(coeffs, polys * evalTempl)
