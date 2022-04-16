@@ -650,7 +650,7 @@ def get_chisq(specdata,
 
         if espec_systematic is not None:
             if isinstance(espec_systematic, dict):
-                curespec = espec_sytematic[name]
+                curespec = espec_systematic[name]
                 curespec = np.sqrt(curespec**2 + curdata.espec**2)
             else:
                 curespec = np.sqrt(curespec**2 + curdata.espec**2)
