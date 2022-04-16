@@ -228,27 +228,31 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     if espec is not None:
         normspec = spec / espec
         normtempl = templ / espec
+        logl_z = np.log(espec).sum()
     else:
         normspec = spec
         normtempl = templ
+        logl_z = 0
 
     polys1 = normtempl[None, :] * polys
-    # M
+    # T matrix
     vector1 = polys1 @ normspec
-    # M^T S
+    # v= T^T D
 
     matrix1 = np.dot(polys1, polys1.T)
+    # M^{-1} matrix
     u, s, v = scipy.linalg.svd(matrix1, check_finite=False)
     det = np.prod(s)
     # matrix1 = usv
-    # matrix1 = u @ np.diag(s**2) @ u.T
-    # matrix1 is the M^T M matrix
+    # matrix1 = u @ np.diag(s) @ u.T
+    # matrix1 is the (T^T T)^{-1} matrix
 
+    #  I need to compute vector1.T M vector1
+    #  so I need to invert the matrix1. I can do it using svd
     v2 = v.T @ (
         (1. / s)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
 
-    chisq = -vector1.T @ v2 + \
-        0.5 * np.log(det)
+    chisq = -vector1.T @ v2 + np.log(det) + 2 * logl_z
     if get_coeffs:
         coeffs = v2.flatten()
         return chisq, coeffs
@@ -650,10 +654,10 @@ def get_chisq(specdata,
 
         if espec_systematic is not None:
             if isinstance(espec_systematic, dict):
-                curespec = espec_systematic[name]
-                curespec = np.sqrt(curespec**2 + curdata.espec**2)
+                curespec = np.sqrt(espec_systematic[name]**2 +
+                                   curdata.espec**2)
             else:
-                curespec = np.sqrt(curespec**2 + curdata.espec**2)
+                curespec = np.sqrt(espec_systematic**2 + curdata.espec**2)
         else:
             curespec = curdata.espec
         curlogl = get_chisq0(curdata.spec,
