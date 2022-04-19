@@ -242,7 +242,9 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     matrix1 = np.dot(polys1, polys1.T)
     # M^{-1} matrix
     u, s, v = scipy.linalg.svd(matrix1, check_finite=False)
-    det = np.prod(s)
+    detI = np.prod(s)
+    # this is the determinant of M^{-1}
+
     # matrix1 = usv
     # matrix1 = u @ np.diag(s) @ u.T
     # matrix1 is the (T^T T)^{-1} matrix
@@ -251,7 +253,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     #  so I need to invert the matrix1. I can do it using svd
     v2 = v.T @ (
         (1. / s)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
-    chisq = -vector1.T @ v2 + np.log(det) + 2 * logl_z + np.dot(
+    chisq = -vector1.T @ v2 - np.log(1. / detI) + 2 * logl_z + np.dot(
         normspec, normspec)
     if get_coeffs:
         coeffs = v2.flatten()
