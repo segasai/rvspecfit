@@ -1117,20 +1117,24 @@ def proc_many(files,
     res = []
     for f in files:
         fname = f.split('/')[-1]
-        assert (len(f.split('/')) > 2)
-        # we need that because we use the last two directories in the path
-        # to create output directory structure
-        # i.e. input file a/b/c/d/e/f/g.fits will produce output file in
-        # output_prefix/e/f/xxx.fits
-        fdirs = f.split('/')
         if subdirs:
+            assert (len(f.split('/')) > 2)
+            # we need that because we use the last two directories in the path
+            # to create output directory structure
+            # i.e. input file a/b/c/d/e/f/g.fits will produce output file in
+            # output_prefix/e/f/xxx.fits
+            fdirs = f.split('/')
             folder_path = output_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
         else:
             folder_path = output_dir + '/'
         os.makedirs(folder_path, exist_ok=True)
         logging.debug(f'Making folder {folder_path}')
         if figure_dir is not None:
-            figure_path = figure_dir + '/' + fdirs[-3] + '/' + fdirs[-2] + '/'
+            if subdirs:
+                figure_path = figure_dir + '/' + fdirs[-3] + '/' + fdirs[
+                    -2] + '/'
+            else:
+                figure_path = figure_dir + '/'
             os.makedirs(figure_path, exist_ok=True)
             cur_figure_prefix = figure_path + '/' + figure_prefix
             logging.debug(f'Making folder {figure_path}')
