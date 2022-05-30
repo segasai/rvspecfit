@@ -72,15 +72,22 @@ def get_zbest_fname(fname):
     paths = fname.split('/')
     fname_end = paths[-1]
 
-    f1 = fname_end.replace('coadd-', 'redrock-')
-    if f1 == fname_end:
-        f1 = fname_end.replace('spectra-', 'redrock-')
-        if f1 == fname_end:
-            return None
-    zbest_path = '/'.join(paths[:-1] + [f1])
-    if os.path.exists(zbest_path):
-        return zbest_path
-    return zbest_path
+    zbest_prefixes = ['redrock-', 'zbest-']
+    extensions = ['REDSHIFTS', 'ZBEST']
+    file_prefixes = ['coadd-', 'spectra-']
+    # I know how to deal with 'coadd-' or 'spectra-' data only
+    for curpref in file_prefixes:
+        if fname_end[:len(curpref)] == curpref:
+            break
+    else:
+        return None
+    # try two types of zbest files redrock or zbest (used in the past)
+    for cur_zpref, cur_ext in zip(zbest_prefixes, extensions):
+        f1 = fname_end.replace(curpref, cur_zpref)
+        zbest_path = '/'.join(paths[:-1] + [f1])
+        if os.path.exists(zbest_path):
+            return zbest_path, cur_ext
+    return None
 
 
 def get_prim_header(versions={},
@@ -399,6 +406,7 @@ def read_data(FP, setups):
 def select_fibers_to_fit(fibermap,
                          sns,
                          zbest_path=None,
+                         zbest_ext=None,
                          minsn=None,
                          objtypes=None,
                          expid_range=None,
@@ -509,7 +517,7 @@ def select_fibers_to_fit(fibermap,
                 # I fit everything
                 zbest_subset = np.ones(len(fibermap), dtype=bool)
         else:
-            zb = atpy.Table().read(zbest_path, format='fits', hdu='REDSHIFTS')
+            zb = atpy.Table().read(zbest_path, format='fits', hdu=zbest_ext)
             assert (len(zb) == len(subset))
             zbest_subset = (((zb['SPECTYPE'] == zbest_type) |
                              (np.abs(zb['Z']) < zbest_maxvel / 3e5)))
@@ -751,7 +759,7 @@ def proc_desi(fname,
             ) % (_, fname))
             return -1
     if zbest_select:
-        zbest_path = get_zbest_fname(fname)
+        zbest_path, zbest_ext = get_zbest_fname(fname)
     else:
         zbest_path = None
     subset = select_fibers_to_fit(fibermap,
@@ -761,6 +769,7 @@ def proc_desi(fname,
                                   expid_range=expid_range,
                                   fit_targetid=fit_targetid,
                                   zbest_path=zbest_path,
+                                  zbest_ext=zbest_ext,
                                   zbest_select=zbest_select)
 
     # skip if no need to fit anything
