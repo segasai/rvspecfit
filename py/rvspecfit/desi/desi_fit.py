@@ -509,7 +509,7 @@ def select_fibers_to_fit(fibermap,
     # select objects based on redrock velocity or type
     if zbest_select:
         if zbest_path is None:
-            logging.warn(
+            logging.warning(
                 'zbest selection requested, but the zbest file not found')
             if selecting_by_type:
                 zbest_subset = np.zeros(len(fibermap), dtype=bool)
@@ -517,7 +517,7 @@ def select_fibers_to_fit(fibermap,
                 # I fit everything
                 zbest_subset = np.ones(len(fibermap), dtype=bool)
         else:
-            logging.info('Using zbest file', zbest_path)
+            logging.info('Using zbest file %s', zbest_path)
             zb = atpy.Table().read(zbest_path, format='fits', hdu=zbest_ext)
             assert (len(zb) == len(subset))
             zbest_subset = (((zb['SPECTYPE'] == zbest_type) |
