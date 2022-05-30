@@ -707,8 +707,10 @@ def proc_desi(fname,
     timers = []
     timers.append(time.time())
     logging.info('Processing %s' % fname)
-
-    FP = pyfits.open(fname)
+    try:
+        FP = pyfits.open(fname)
+    except OSError:
+        logging.error('Cannot read file %s' % (fname))
     valid = valid_file(FP)
     if not valid:
         logging.error('Not valid file: %s' % (fname))
