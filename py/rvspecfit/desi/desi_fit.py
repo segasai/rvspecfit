@@ -711,6 +711,7 @@ def proc_desi(fname,
         FP = pyfits.open(fname)
     except OSError:
         logging.error('Cannot read file %s' % (fname))
+        return -1
     valid = valid_file(FP)
     if not valid:
         logging.error('Not valid file: %s' % (fname))
