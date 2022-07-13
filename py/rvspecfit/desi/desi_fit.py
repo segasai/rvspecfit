@@ -1036,6 +1036,65 @@ def proc_desi_wrapper(*args, **kwargs):
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
 
 
+class FileQueue:
+    """ This is a class that can work as an iterator
+    Here we can either provide the list of files or the file with the list
+    of files or use it as queue, where we pick up the top file, remove the 
+    line from the file and move on"""
+
+    def __init__(self, file_list=None, file_from=None, queue=False):
+        if file_list is not None:
+            self.file_list = file_list
+            self.file_from = None
+            self.queue = False
+        elif file_from is not None:
+            if not queue:
+                self.file_list = []
+                with open(file_from, 'r') as fp:
+                    for ll in fp:
+                        self.file_list.append(ll.rstrip())
+            else:
+                self.file_list = None
+                self.file_from = file_from
+                self.queue = queue
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.file_list is not None:
+            if len(self.file_list) > 0:
+                return self.file_list.pop(0)
+            else:
+                raise StopIteration
+        else:
+            return self.read_next()
+
+    def read_next(self):
+        lockname = self.file_from + '.lock'
+        wait_time = 10
+        max_waits = 100
+        for i in range(max_waits):
+            if os.path.exists(lockname):
+                time.sleep(wait_time)
+                continue
+            try:
+                with open(lockname, 'w'):
+                    with open(self.file_from, 'r') as fp1:
+                        ll = fp1.readlines()
+                    if len(ll) == 0:
+                        raise StopIteration
+                    ret = ll[0].rstrip()
+                    with open(self.file_from, 'w') as fp1:
+                        fp1.writelines(ll[1:])
+                    return ret
+            finally:
+                os.unlink(lockname)
+
+        logging.warning('Cannot read next file due to lock')
+        raise StopIteration
+
+
 class FakeFuture:
     # this is a fake Future object designed for easier switching
     # to single thread operations when debugging
@@ -1225,6 +1284,12 @@ def main(args):
         help='Read the list of spectral files from the text file',
         type=str,
         default=None)
+    parser.add_argument(
+        '--queue_file',
+        help='If the input file list is a queue where we delete entries'
+        'as soon as we picked up a file',
+        action='store_true',
+        default=False)
 
     parser.add_argument('--output_dir',
                         help='Output directory for the tables',
@@ -1378,6 +1443,7 @@ only potentially interesting targets''',
     output_dir, output_tab_prefix, output_mod_prefix = (args.output_dir,
                                                         args.output_tab_prefix,
                                                         args.output_mod_prefix)
+    queue_file = args.queue_file
     nthreads = args.nthreads
     config_fname = args.config
     doplot = args.doplot
@@ -1407,20 +1473,18 @@ only potentially interesting targets''',
             'Unknown param_init value; only known ones are CCF and bruteforce')
     ccf_continuum_normalize = args.ccf_continuum_normalize
 
-    if input_files == [] and input_file_from is not None:
-        raise Exception(
+    if input_files != [] and input_file_from is not None:
+        raise RuntimeError(
             '''You can only specify --input_files OR --input_file_from options
-but not both of them simulatenously''')
-    if input_files != []:
-        files = input_files
-    elif input_file_from is not None:
-        files = []
-        with open(input_file_from, 'r') as fp:
-            for curl in fp:
-                files.append(curl.rstrip())
-    else:
+            but not both of them simulatenously''')
+    elif input_file_from is None and input_files == []:
         parser.print_help()
         raise RuntimeError('You need to specify the spectra you want to fit')
+    if input_files == []:
+        input_files = None
+    files = FileQueue(file_list=input_files,
+                      file_from=input_file_from,
+                      queue=queue_file)
 
     fit_targetid = None
     if targetid_file_from is not None and targetid is not None:
