@@ -790,7 +790,7 @@ def proc_desi(fname,
         put_empty_file(tab_ofname)
         put_empty_file(mod_ofname)
         return 0
-    logging.debug('Selected %d fibers to fit' % (subset.sum()))
+    logging.info('Selected %d fibers to fit' % (subset.sum()))
 
     # columns to include in the RVTAB
     columnsCopy = [
@@ -1311,8 +1311,8 @@ def main(args):
         '--overwrite',
         help='''If enabled the code will overwrite the existing products,
  otherwise it will attempt to update/append''',
-        action='store_true',
-        default=False)
+        default=None,
+        required=False)
     parser.add_argument('--version',
                         help='Output the version of the software',
                         action='store_true',
@@ -1441,6 +1441,9 @@ but not both of them simulatenously''')
     else:
         figure_dir = None
 
+    if args.overwrite is not None:
+        logging.warning('overwrite keyword is meaningless now')
+
     proc_many(
         files,
         output_dir,
@@ -1458,7 +1461,7 @@ but not both of them simulatenously''')
         process_status_file=args.process_status_file,
         expid_range=(minexpid, maxexpid),
         skipexisting=args.skipexisting,
-        overwrite=args.overwrite,
+        overwrite=True,
         fitarm=fitarm,
         cmdline=cmdline,
         zbest_select=zbest_select,
