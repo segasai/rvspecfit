@@ -403,6 +403,35 @@ def read_data(FP, setups):
     return fluxes, ivars, masks, waves
 
 
+def filter_fibermap(fibermapT, DT, objtypes=None):
+    # compute the subset based on TARGET types
+    types_subset = np.ones(len(fibermapT), dtype=bool)
+    re_types = [re.compile(_) for _ in objtypes]
+    for i, currow in enumerate(fibermapT):
+        col_list, mask_list, _ = DT.main_cmx_or_sv(currow, scnd=True)
+        # collist will be column list like
+        # DESI_TARGET, BGS_TARGET, MWS_TARGET
+
+        # extract the DESI_TARGET part
+        colname = col_list[0]
+        mask = mask_list[0]
+
+        # all the possible types here
+        objtypnames = list(mask.names())
+        objs = []
+        # check which names match our regular expression
+        for curo in objtypnames:
+            for r in re_types:
+                if r.match(curo) is not None:
+                    objs.append(curo)
+        # obtain integer values for each object type that matched
+        # our RE and bitwise OR them
+        bitmask = functools.reduce(operator.or_, [mask.mask(_) for _ in objs])
+        # check if the given row has any hits in the bitmask
+        types_subset[i] = (currow[colname] & bitmask) > 0
+    return types_subset
+
+
 def select_fibers_to_fit(fibermap,
                          sns,
                          zbest_path=None,
@@ -477,55 +506,34 @@ def select_fibers_to_fit(fibermap,
 
     # compute the subset based on TARGET types
     fibermapT = atpy.Table(fibermap)
-    types_subset = np.ones(len(fibermap), dtype=bool)
-    selecting_by_type = False
     if DT is not None and objtypes is not None:
         selecting_by_type = True
-        re_types = [re.compile(_) for _ in objtypes]
-        for i, currow in enumerate(fibermapT):
-            col_list, mask_list, _ = DT.main_cmx_or_sv(currow, scnd=True)
-            # collist will be column list like
-            # DESI_TARGET, BGS_TARGET, MWS_TARGET
-
-            # extract the DESI_TARGET part
-            colname = col_list[0]
-            mask = mask_list[0]
-
-            # all the possible types here
-            objtypnames = list(mask.names())
-            objs = []
-            # check which names match our regular expression
-            for curo in objtypnames:
-                for r in re_types:
-                    if r.match(curo) is not None:
-                        objs.append(curo)
-            # obtain integer values for each object type that matched
-            # our RE and bitwise OR them
-            bitmask = functools.reduce(operator.or_,
-                                       [mask.mask(_) for _ in objs])
-            # check if the given row has any hits in the bitmask
-            types_subset[i] = (currow[colname] & bitmask) > 0
+        types_subset = filter_fibermap(fibermapT, DT, objtypes=objtypes)
+    else:
+        types_subset = np.zeros(len(fibermap), dtype=bool)
+        selecting_by_type = False
+    # if we are not doing a selection the mask is filled with false
 
     # select objects based on redrock velocity or type
+    selecting_by_zbest = False
     if zbest_select:
         if zbest_path is None:
             logging.warning(
                 'zbest selection requested, but the zbest file not found')
-            if selecting_by_type:
-                zbest_subset = np.zeros(len(fibermap), dtype=bool)
-            else:
-                # I fit everything
-                zbest_subset = np.ones(len(fibermap), dtype=bool)
         else:
+            selecting_by_zbest = True
             logging.info('Using zbest file %s', zbest_path)
             zb = atpy.Table().read(zbest_path, format='fits', hdu=zbest_ext)
             assert (len(zb) == len(subset))
             zbest_subset = (((zb['SPECTYPE'] == zbest_type) |
                              (np.abs(zb['Z']) < zbest_maxvel / 3e5)))
-    else:
+    if not selecting_by_zbest:
         zbest_subset = np.zeros(len(fibermap), dtype=bool)
-    # We select either based on type or zbest
-    subset = subset & (zbest_subset | types_subset)
+    # if we are not doing a selection the mask is filled with false
+
+    if selecting_by_zbest or selecting_by_type:
+        # We select either based on type or zbest
+        subset = subset & (zbest_subset | types_subset)
     return subset
 
 
