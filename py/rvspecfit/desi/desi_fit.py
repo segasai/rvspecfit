@@ -773,7 +773,7 @@ def proc_desi(fname,
     if zbest_select:
         zbest_path, zbest_ext = get_zbest_fname(fname)
     else:
-        zbest_path = None
+        zbest_path, zbest_ext = None, None
     subset = select_fibers_to_fit(fibermap,
                                   sns,
                                   minsn=minsn,
