@@ -1071,25 +1071,28 @@ class FileQueue:
             return self.read_next()
 
     def read_next(self):
-        lockname = self.file_from + '.lock'
-        wait_time = 10
+        import socket
+        lockname = self.file_from + '.%s.%d.lock' % (socket.gethostname(),
+                                                     os.getpid())
+        wait_time = 1
         max_waits = 100
         for i in range(max_waits):
-            if os.path.exists(lockname):
+            try:
+                os.rename(self.file_from, lockname)
+            except FileNotFoundError:
                 time.sleep(wait_time)
                 continue
             try:
-                with open(lockname, 'w'):
-                    with open(self.file_from, 'r') as fp1:
-                        ll = fp1.readlines()
-                    if len(ll) == 0:
-                        raise StopIteration
-                    ret = ll[0].rstrip()
-                    with open(self.file_from, 'w') as fp1:
-                        fp1.writelines(ll[1:])
-                    return ret
+                with open(lockname, 'r') as fp1:
+                    ll = fp1.readlines()
+                if len(ll) == 0:
+                    raise StopIteration
+                ret = ll[0].rstrip()
+                with open(self.file_from, 'w') as fp1:
+                    fp1.writelines(ll[1:])
+                return ret
             finally:
-                os.unlink(lockname)
+                os.rename(lockname, self.file_from)
 
         logging.warning('Cannot read next file due to lock')
         raise StopIteration
