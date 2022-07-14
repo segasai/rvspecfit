@@ -1088,7 +1088,7 @@ class FileQueue:
                 if len(ll) == 0:
                     raise StopIteration
                 ret = ll[0].rstrip()
-                with open(self.file_from, 'w') as fp1:
+                with open(lockname, 'w') as fp1:
                     fp1.writelines(ll[1:])
                 return ret
             finally:
