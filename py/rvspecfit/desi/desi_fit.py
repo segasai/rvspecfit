@@ -664,7 +664,6 @@ def proc_desi(fname,
               doplot=True,
               minsn=-1e9,
               expid_range=None,
-              overwrite=False,
               poolex=None,
               fitarm=None,
               cmdline=None,
@@ -694,9 +693,6 @@ def proc_desi(fname,
         The slallest S/N for processing
     expid_range: tuple of ints
         The range of expids to fit
-    overwrite: bool
-        If true, the output file will be always be overwritten, otherwise
-        the results may be appended instead
     fitarm: list
          List of strings corresponding to configurations that need to be fit,
          it can be none
@@ -909,43 +905,9 @@ def proc_desi(fname,
         outtab_hdus += [exp_fibermap_subset_hdu]
     timers.append(time.time())
 
-    old_rvtab = None
-    if os.path.exists(tab_ofname):
-        try:
-            old_rvtab = atpy.Table().read(tab_ofname,
-                                          format='fits',
-                                          hdu='FIBERMAP')
-        except (FileNotFoundError, OSError, ValueError) as e:  # noqa F841
-            pass
 
-    if overwrite or old_rvtab is None:
-        # if output files do not exist or I cant read fibertab
-        write_hdulist(mod_ofname, pyfits.HDUList(outmod_hdus))
-        write_hdulist(tab_ofname, pyfits.HDUList(outtab_hdus))
-    else:
-        refit_tab = atpy.Table(fibermap)[subset_ret]
-        # find a replacement subset
-        refit_tab_pd = refit_tab.to_pandas()
-        old_rvtab_pd = old_rvtab.to_pandas()
-        refit_tab_pd['rowid'] = np.arange(len(refit_tab), dtype=int)
-        old_rvtab_pd['rowid'] = np.arange(len(old_rvtab), dtype=int)
-
-        pkey = ['EXPID', 'TARGETID']
-        merge = refit_tab_pd.merge(old_rvtab_pd,
-                                   left_on=pkey,
-                                   right_on=pkey,
-                                   suffixes=['_x', '_y'],
-                                   indicator=True,
-                                   how='outer')
-        repset = np.array(merge['_merge'] == 'both_only')
-        repid_old = np.array(merge['rowid_y'], dtype=int)[repset]
-
-        keepmask = np.ones(len(old_rvtab), dtype=bool)
-        keepmask[repid_old] = False
-        # this is the subset of the old data that must
-        # be kept
-        merge_hdus(outmod_hdus, mod_ofname, keepmask, columnDesc, setups)
-        merge_hdus(outtab_hdus, tab_ofname, keepmask, columnDesc, setups)
+    write_hdulist(mod_ofname, pyfits.HDUList(outmod_hdus))
+    write_hdulist(tab_ofname, pyfits.HDUList(outtab_hdus))
     timers.append(time.time())
     logging.debug(
         str.format('Global timing: {}', (np.diff(np.array(timers)), )))
@@ -1130,7 +1092,6 @@ def proc_many(files,
               minsn=-1e9,
               doplot=True,
               expid_range=None,
-              overwrite=False,
               skipexisting=False,
               fitarm=None,
               cmdline=None,
@@ -1240,7 +1201,6 @@ def proc_many(files,
                       doplot=doplot,
                       minsn=minsn,
                       expid_range=expid_range,
-                      overwrite=overwrite,
                       poolex=poolEx,
                       fitarm=fitarm,
                       cmdline=cmdline,
@@ -1528,7 +1488,6 @@ only potentially interesting targets''',
         process_status_file=args.process_status_file,
         expid_range=(minexpid, maxexpid),
         skipexisting=args.skipexisting,
-        overwrite=True,
         fitarm=fitarm,
         cmdline=cmdline,
         zbest_select=zbest_select,
