@@ -858,7 +858,7 @@ def proc_desi(fname,
         outdf.append(outdict)
 
         for ii, curs in enumerate(setups):
-            # I assume all the setusp were fitted
+            # I assume all the setups were fitted
             models['desi_%s' % curs].append(curmodel[ii])
     timers.append(time.time())
     outdf1 = {}
