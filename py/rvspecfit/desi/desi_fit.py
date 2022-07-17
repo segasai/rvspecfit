@@ -905,7 +905,6 @@ def proc_desi(fname,
         outtab_hdus += [exp_fibermap_subset_hdu]
     timers.append(time.time())
 
-
     write_hdulist(mod_ofname, pyfits.HDUList(outmod_hdus))
     write_hdulist(tab_ofname, pyfits.HDUList(outtab_hdus))
     timers.append(time.time())
@@ -1037,12 +1036,12 @@ class FileQueue:
         lockname = self.file_from + '.%s.%d.lock' % (socket.gethostname(),
                                                      os.getpid())
         wait_time = 1
-        max_waits = 100
+        max_waits = 1000
         for i in range(max_waits):
             try:
                 os.rename(self.file_from, lockname)
             except FileNotFoundError:
-                time.sleep(wait_time)
+                time.sleep(np.random.uniform(wait_time, 1.5 * wait_time))
                 continue
             try:
                 with open(lockname, 'r') as fp1:
