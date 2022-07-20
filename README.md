@@ -46,8 +46,7 @@ The library is avialable here ftp://phoenix.astro.physik.uni-goettingen.de/v2.0/
 
 ## Preparation of PHOENIX library
 
-The preparation requires several steps (you can see other examples of these steps in the surveys/sdss/make_sdss.sh script 
-in the repo)>
+The preparation requires several steps (you can several examples of these steps in the surveys folder, i.e surveys/sdss/make_sdss.sh surveys/desi/make_desi.sh)
 
 * Creating a PHOENIX file sqlite database that will be used in the processing (you only need to do this 
 step once)
