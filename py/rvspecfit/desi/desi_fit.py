@@ -516,6 +516,8 @@ def select_fibers_to_fit(fibermap,
 
     # select objects based on redrock velocity or type
     selecting_by_zbest = False
+    rr_z = None
+    rr_spectype = None
     if zbest_select:
         if zbest_path is None:
             logging.warning(
@@ -524,9 +526,11 @@ def select_fibers_to_fit(fibermap,
             selecting_by_zbest = True
             logging.info('Using zbest file %s', zbest_path)
             zb = atpy.Table().read(zbest_path, format='fits', hdu=zbest_ext)
+            rr_spectype = zb['SPECTYPE']
+            rr_z = zb['Z']
             assert (len(zb) == len(subset))
-            zbest_subset = (((zb['SPECTYPE'] == zbest_type) |
-                             (np.abs(zb['Z']) < zbest_maxvel / 3e5)))
+            zbest_subset = ((rr_spectype == zbest_type) |
+                            ((np.abs(rr_z)) < zbest_maxvel / 3e5))
     if not selecting_by_zbest:
         zbest_subset = np.zeros(len(fibermap), dtype=bool)
     # if we are not doing a selection the mask is filled with false
@@ -534,7 +538,7 @@ def select_fibers_to_fit(fibermap,
     if selecting_by_zbest or selecting_by_type:
         # We select either based on type or zbest
         subset = subset & (zbest_subset | types_subset)
-    return subset
+    return subset, rr_z, rr_spectype
 
 
 def get_specdata(waves, fluxes, ivars, masks, seqid, setups):
@@ -642,7 +646,8 @@ def get_column_desc(setups):
          'Total chi-square for all arms for polynomial only fit'),
         ('TARGETID', 'DESI targetid'), ('EXPID', 'DESI exposure id'),
         ('SUCCESS', "Did we succeed or fail"),
-        ('RVS_WARN', "RVSpecFit warning flag")
+        ('RVS_WARN', "RVSpecFit warning flag"), ('RR_Z', 'Redrock redshift'),
+        ('RR_SPECTYPE', 'Redrock spectype')
     ])
 
     for curs in setups:
@@ -770,15 +775,15 @@ def proc_desi(fname,
         zbest_path, zbest_ext = get_zbest_fname(fname)
     else:
         zbest_path, zbest_ext = None, None
-    subset = select_fibers_to_fit(fibermap,
-                                  sns,
-                                  minsn=minsn,
-                                  objtypes=objtypes,
-                                  expid_range=expid_range,
-                                  fit_targetid=fit_targetid,
-                                  zbest_path=zbest_path,
-                                  zbest_ext=zbest_ext,
-                                  zbest_select=zbest_select)
+    subset, rr_z, rr_spectype = select_fibers_to_fit(fibermap,
+                                                     sns,
+                                                     minsn=minsn,
+                                                     objtypes=objtypes,
+                                                     expid_range=expid_range,
+                                                     fit_targetid=fit_targetid,
+                                                     zbest_path=zbest_path,
+                                                     zbest_ext=zbest_ext,
+                                                     zbest_select=zbest_select)
 
     # skip if no need to fit anything
     if not (subset.any()):
@@ -802,6 +807,11 @@ def proc_desi(fname,
         models['desi_%s' % curs] = []
 
     seqid_to_fit = np.nonzero(subset)[0]
+    if rr_z is not None:
+        rr_z, rr_spectype = rr_z[seqid_to_fit], rr_spectype[seqid_to_fit]
+    else:
+        rr_z = np.zeros(len(seqid_to_fit)) + np.nan
+        rr_spectype = np.ma.zeros(len(seqid_to_fit), dtype=str)
     subset_ret = subset.copy()
     # returned subset to deal with the fact that
     # I'll skip some spectra
@@ -811,7 +821,8 @@ def proc_desi(fname,
     timers.append(time.time())
     rets = []
     nfibers_good = 0
-    for curseqid in seqid_to_fit:
+    for cur_rr_z, cur_rr_spectype, curseqid in zip(rr_z, rr_spectype,
+                                                   seqid_to_fit):
         # collect data
         specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid, setups)
         curFiberRow = fibermap[curseqid]
@@ -829,8 +840,8 @@ def proc_desi(fname,
             fig_fname = None
         rets.append((poolex.submit(
             proc_onespec, *(specdatas, setups, config, options),
-            **dict(fig_fname=fig_fname, doplot=doplot,
-                   ccfinit=ccfinit)), curFiberRow, curseqid))
+            **dict(fig_fname=fig_fname, doplot=doplot, ccfinit=ccfinit)),
+                     curFiberRow, curseqid, cur_rr_z, cur_rr_spectype))
     timers.append(time.time())
     if nfibers_good == 0:
         logging.warning('In the end no spectra worth fitting...')
@@ -841,7 +852,8 @@ def proc_desi(fname,
         outdict, curmodel = r[0].result()
         versions = outdict['versions']
         del outdict['versions']  # I don't want to store it in the table
-        curFiberRow, curseqid = r[1], r[2]
+        curFiberRow, curseqid, cur_rr_z, cur_rr_spectype = (r[1], r[2], r[3],
+                                                            r[4])
 
         for col in columnsCopy:
             if col in fibermap.columns.names:
@@ -850,21 +862,15 @@ def proc_desi(fname,
             outdict['SN_%s' % curs.upper()] = sns[curs][curseqid]
 
         outdict['SUCCESS'] = outdict['RVS_WARN'] == 0
-
+        outdict['RR_Z'] = cur_rr_z
+        outdict['RR_SPECTYPE'] = cur_rr_spectype
         outdf.append(outdict)
 
         for ii, curs in enumerate(setups):
             # I assume all the setups were fitted
             models['desi_%s' % curs].append(curmodel[ii])
     timers.append(time.time())
-    outdf1 = {}
-    for k in outdf[0].keys():
-        # we can't just concatenate quantities easily
-        if isinstance(outdf[0][k], auni.Quantity):
-            outdf1[k] = auni.Quantity([_[k] for _ in outdf])
-        else:
-            outdf1[k] = np.array([_[k] for _ in outdf])
-    outtab = atpy.Table(outdf1)
+    outtab = atpy.Table(outdf)
 
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset_ret],
                                              name='FIBERMAP')
