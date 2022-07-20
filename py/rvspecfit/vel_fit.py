@@ -90,6 +90,7 @@ def firstguess(specdata,
 
 
 class VSiniMapper:
+
     def __init__(self, min_vsini, max_vsini):
         self.min_vsini = min_vsini
         self.max_vsini = max_vsini
@@ -106,6 +107,7 @@ class ParamMapper:
     This class constructs the dictionary with human readable parameters
     out of the vector, as well as taking into accoutnt which params are fixed
 """
+
     def __init__(self,
                  specParams,
                  paramDict0,
@@ -452,10 +454,15 @@ def process(specdata,
     try:
         hessian_inv = scipy.linalg.inv(hessian)
         diag_hess = np.array(np.diag(hessian_inv))
+        diag_hess1 = 1. / np.diag(hessian)
         bad_diag_hess = diag_hess < 0
-        diag_hess[bad_diag_hess] = 0
+        bad_diag_hess1 = diag_hess1 < 0
+        sub1 = bad_diag_hess & (~bad_diag_hess1)
+        sub2 = bad_diag_hess & (bad_diag_hess1)
+        diag_hess[sub1] = diag_hess1[sub1]
+        diag_hess[sub2] = 0
         diag_err = np.sqrt(diag_hess)
-        diag_err[bad_diag_hess] = np.nan
+        diag_err[sub2] = np.nan
     except np.linalg.LinAlgError:
         logging.warning('The inversion of the Hessian failed')
         diag_err = np.zeros(hessian.shape[0]) + np.nan
