@@ -65,7 +65,7 @@ void construct(double *xs, double *ys, int N, double *A, double *B, double *C,
    spacings hs
    and coefficients As, Bs, Cs, Ds
    if logstep==1 we assume that the knots are uniformly spaced in log
-   if it is zero they are linearly spaced
+   if it is zero they are *linearly* spaced
    The result is written in ret
  */
 int evaler(double *evalx, int nevalx, int N, double *xs, double *hs, double *As,
@@ -73,7 +73,8 @@ int evaler(double *evalx, int nevalx, int N, double *xs, double *hs, double *As,
   int pos[nevalx];
   double x0 = xs[0];
   double xlast = xs[N - 1];
-  // some checking
+  // some checking that the first and last values are within
+  // knot boundary
   if ((evalx[0] < x0) || (evalx[nevalx - 1] < x0)) {
     return -1;
   }
