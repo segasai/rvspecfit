@@ -125,11 +125,12 @@ badmask = tab['badmask']
 # This constructs the specData object from wavelength, spectrum and error
 # spectrum arrays. The rvspecfit works on arrays of SpecData's
 
-sd = spec_fit.SpecData('myconf',
+specdata = [spec_fit.SpecData('myconf',
                                wavelength,
                                spec,
                                espec,
                                badmask=badmask)
+                              ]
 
 # this tries to get a sensible guess for the stellar parameters/velocity
 res = fitter_ccf.fit(specdata, config)
