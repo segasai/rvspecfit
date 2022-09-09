@@ -258,6 +258,8 @@ def process(specdata,
 
     if config is None:
         raise Exception('Config must be provided')
+    if isinstance(specdata, spec_fit.SpecData):
+        specdata = [specdata]
 
     min_vel = config['min_vel']
     max_vel = config['max_vel']

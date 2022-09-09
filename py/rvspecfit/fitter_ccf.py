@@ -3,6 +3,7 @@ import numpy as np
 import scipy.optimize
 import scipy.interpolate
 from rvspecfit import make_ccf
+from rvspecfit.spec_fit import SpecData
 import logging
 
 
@@ -94,6 +95,9 @@ def fit(specdata, config):
     proc_ivars = {}
     setups = []
     ccf_confs = []
+    if isinstance(specdata,SpecData):
+        # if we got a single one put it in the list
+        specdata = [specdata]
     for cursd in specdata:
         spec_setup = cursd.name
         setups.append(spec_setup)
