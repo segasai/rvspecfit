@@ -104,6 +104,7 @@ class ParamMapper:
     Class used to map stellar atmospheric parameters into more manageable grid
     used for interpolation
     """
+
     def __init__(self):
         pass
 
@@ -144,7 +145,9 @@ class ParamMapper:
         return np.array([10**vec[0], vec[1], vec[2], vec[3]])
 
 
-def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
+def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
+           dbfile='files.db',
+           keywords=None):
     """ Create an sqlite database of the templates
 
     Parameters
@@ -153,6 +156,9 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
         The path to PHOENIX
     dbfile: str
         The output file with the sqlite DB
+    keywords: dict
+        The dictionary with the map of teff,logg,feh,alpha to keyword names
+        in the headers
 
     """
     if os.path.exists(dbfile):
@@ -165,10 +171,6 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
 
     mask = '*/*fits'
     fs = sorted(glob.glob(prefix + mask))
-    keywords = dict(teff='PHXTEFF',
-                    logg='PHXLOGG',
-                    alpha='PHXALPHA',
-                    met='PHXM_H')
 
     if len(fs) == 0:
         raise Exception(
@@ -185,7 +187,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/', dbfile='files.db'):
 
         DB.execute('insert into files  values (?, ? , ? , ? , ?, ? )',
                    (f.replace(prefix, ''), curpar['teff'], curpar['logg'],
-                    curpar['met'], curpar['alpha'], id))
+                    curpar['feh'], curpar['alpha'], id))
         id += 1
     DB.commit()
 
@@ -405,6 +407,24 @@ def main(args):
                         default='./',
                         dest='prefix',
                         help='The location of the input grid')
+
+    parser.add_argument('--keyword_teff',
+                        type=str,
+                        default='PHXTEFF',
+                        help='The keyword for teff in the header')
+    parser.add_argument('--keyword_logg',
+                        type=str,
+                        default='PHXLOGG',
+                        help='The keyword for logg in the header')
+    parser.add_argument('--keyword_alpha',
+                        type=str,
+                        default='PHXALPHA',
+                        help='The keyword for alpha in the header')
+    parser.add_argument('--keyword_feh',
+                        type=str,
+                        default='PHXM_H',
+                        help='The keyword for feh in the header')
+
     parser.add_argument(
         '--templdb',
         type=str,
@@ -412,7 +432,11 @@ def main(args):
         help='The filename where the SQLite database describing the '
         'template library will be stored')
     args = parser.parse_args(args)
-    makedb(args.prefix, dbfile=args.templdb)
+    keywords = dict(teff=args.keyword_teff,
+                    logg=args.keyword_logg,
+                    alpha=args.keyword_alpha,
+                    met=args.keyword_feh)
+    makedb(args.prefix, dbfile=args.templdb, keywords=keywords)
 
 
 if __name__ == '__main__':
