@@ -150,12 +150,12 @@ def main(args):
                         required=False,
                         default=-4)
     parser.add_argument('--max_alpha',
-                        help='Max feh',
+                        help='Max alpha',
                         type=float,
                         required=False,
                         default=1.2)
     parser.add_argument('--min_alpha',
-                        help='Min feh',
+                        help='Min alpha',
                         type=float,
                         required=False,
                         default=-.4)
