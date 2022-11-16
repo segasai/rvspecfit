@@ -24,12 +24,12 @@ and value of 8 it return [3,13]
 def converter(path,
               opath,
               smooth=0,
-              min_feh=-4,
-              max_feh=1.2,
-              step_feh=0.25,
-              min_alpha=-0.4,
-              max_alpha=1.2,
-              step_alpha=0.2):
+              min_feh=None,
+              max_feh=None,
+              step_feh=None,
+              min_alpha=None,
+              max_alpha=None,
+              step_alpha=None):
     """
 Read the input spectrum pickle file and convert it
 into the file with gaps filled and smaller step sizes
@@ -138,12 +138,53 @@ def main(args):
                         help='Input pickle',
                         type=str,
                         required=True)
+
+    parser.add_argument('--max_feh',
+                        help='Max feh',
+                        type=float,
+                        required=False,
+                        default=1.2)
+    parser.add_argument('--min_feh',
+                        help='Min feh',
+                        type=float,
+                        required=False,
+                        default=-4)
+    parser.add_argument('--max_alpha',
+                        help='Max feh',
+                        type=float,
+                        required=False,
+                        default=1.2)
+    parser.add_argument('--min_alpha',
+                        help='Min feh',
+                        type=float,
+                        required=False,
+                        default=-.4)
+    parser.add_argument('--step_feh',
+                        help='step feh',
+                        type=float,
+                        required=False,
+                        default=.25)
+    parser.add_argument('--step_alpha',
+                        help='step alpha',
+                        type=float,
+                        required=False,
+                        default=.2)
     parser.add_argument('--smooth',
                         help='smoothing Parameter',
                         type=float,
                         default=0.)
     args = parser.parse_args(args)
-    converter(args.input, args.output, smooth=args.smooth)
+    converter(
+        args.input,
+        args.output,
+        smooth=args.smooth,
+        min_feh=args.min_feh,
+        max_feh=args.max_feh,
+        step_feh=args.step_feh,
+        min_alpha=args.min_alpha,
+        max_alpha=args.max_alpha,
+        step_alpha=args.step_alpha,
+    )
 
 
 if __name__ == '__main__':
