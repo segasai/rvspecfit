@@ -435,7 +435,7 @@ def main(args):
     keywords = dict(teff=args.keyword_teff,
                     logg=args.keyword_logg,
                     alpha=args.keyword_alpha,
-                    met=args.keyword_feh)
+                    feh=args.keyword_feh)
     makedb(args.prefix, dbfile=args.templdb, keywords=keywords)
 
 
