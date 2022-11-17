@@ -112,7 +112,9 @@ into the file with gaps filled and smaller step sizes
         RR = scipy.interpolate.RBFInterpolator(np.array(
             [evalx1, evalx2, evalx3, evalx4]).T,
                                                specs[xind, :],
-                                               smoothing=smooth)
+                                               smoothing=smooth,
+                                               kernel='multiquadric',
+                                               epsilon=1)
 
         xind1 = bestinterval == ii
 
