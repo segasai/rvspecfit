@@ -21,6 +21,25 @@ and value of 8 it return [3,13]
     return bestid
 
 
+def check_holes_2d(x, y):
+    # check that the x,y locations form a grid without holes
+    ux, ix = np.unique(x, return_inverse=True)
+    uy, iy = np.unique(y, return_inverse=True)
+    nx = len(ux)
+    ny = len(uy)
+    arr = np.zeros((len(ux), len(uy)))
+    arr[ix, iy] = 1
+    xholes, yholes = np.nonzero(1 - arr)
+    for cx, cy in zip(xholes, yholes):
+        if cx == 0 or cx == nx - 1 or cy == 0 or cy == ny - 1:
+            continue
+        cnt = arr[cx - 1, cy - 1] + arr[cx + 1, cy + 1] + arr[cx - 1, cy +
+                                                              1] + arr[cx + 1,
+                                                                       cy - 1]
+        if cnt == 3 or cnt == 4:
+            raise Exception('the grid has holes')
+
+
 def converter(path,
               opath,
               smooth=0,
@@ -62,6 +81,7 @@ into the file with gaps filled and smaller step sizes
     teff_grid2d, logg_grid2d = np.array(list(set(zip(teff, logg)))).T
     # these are unique teff and logg locations of grid points in 2d
     # I assume they have no holes (I checked)
+    check_holes_2d(teff, logg)
 
     # these a rank transformed teff, logg points
     teff_grid2d_map, logg_grid2d_map = [
@@ -89,14 +109,11 @@ into the file with gaps filled and smaller step sizes
         evalx1, evalx2, evalx3, evalx4 = (vec_map[0][xind], vec_map[1][xind],
                                           vec_map[2][xind], vec_map[3][xind])
 
-        RR = scipy.interpolate.Rbf(evalx1,
-                                   evalx2,
-                                   evalx3,
-                                   evalx4,
-                                   specs[xind, 0],
-                                   smooth=smooth)
+        RR = scipy.interpolate.RBFInterpolator(np.array(
+            [evalx1, evalx2, evalx3, evalx4]).T,
+                                               specs[xind, :],
+                                               smoothing=smooth)
 
-        coeffs = scipy.linalg.solve(RR.A, specs[xind, :])
         xind1 = bestinterval == ii
 
         x1, x2, x3, x4 = (teff_grid2d[xind1], logg_grid2d[xind1], newfehgrid,
@@ -112,8 +129,7 @@ into the file with gaps filled and smaller step sizes
         print('predsub', len(x1))
         newx0 = np.array([x1, x2, x3, x4])
         newx = np.array([mappers[_]([x1, x2, x3, x4][_]) for _ in range(4)])
-        r = RR._call_norm(newx, RR.xi)
-        pred = np.dot(RR._function(r), coeffs)
+        pred = RR(newx.T)
 
         res_vec.append(newx0)
         res_spec.append(pred)
@@ -127,9 +143,15 @@ into the file with gaps filled and smaller step sizes
         pickle.dump(dat, fp, protocol=4)
 
 
+def check_scipy_version():
+    import scipy.version
+    if [int(_) for _ in scipy.version.version.split('.')] < [1, 9, 0]:
+        raise RuntimeError('scipy 1.9.0+ is required due to Rbf changes')
+
+
 def main(args):
     parser = argparse.ArgumentParser()
-
+    check_scipy_version()
     parser.add_argument('--input',
                         help='Input pickle',
                         type=str,
