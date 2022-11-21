@@ -71,7 +71,10 @@ into the file with gaps filled and smaller step sizes
 
     # important that I don't use the s=0
     mappers = [
-        scipy.interpolate.UnivariateSpline(_, np.arange(len(_)))
+        scipy.interpolate.UnivariateSpline(_,
+                                           np.arange(len(_)),
+                                           k=min(3,
+                                                 len(_) - 1))
         for _ in [uteff, ulogg, ufeh, ualpha]
     ]
 
@@ -92,7 +95,7 @@ into the file with gaps filled and smaller step sizes
 
     width = 12
 
-    edges = np.arange(0, len(uteff) - width)  # inclusive edges
+    edges = np.arange(0, max(1, len(uteff) - width))  # inclusive edges
 
     intervals = np.array([(_, _ + width) for _ in edges])
 
