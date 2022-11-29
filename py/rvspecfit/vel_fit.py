@@ -15,9 +15,10 @@ def firstguess(specdata,
                resolParams=None,
                vsinigrid=(None, 10, 100),
                paramsgrid=None):
-    """ Compute the starting point tempalte parameters and radial velocity
+    """ Compute the starting point template parameters and radial velocity
     by brute force looping over small grid of templates and a grid of
-    radial velocities
+    radial velocities. This can be useful before starting a maximum-likelihood
+    fit using vel_fit.process() or for initializing MCMC samples.
 
     Parameters
     ----------
