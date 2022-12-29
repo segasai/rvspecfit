@@ -524,6 +524,17 @@ def get_chisq_continuum(specdata, options=None):
     return dict(chisq_array=ret, redchisq_array=ret1)
 
 
+def _overlap_check(templ_l0, templ_l1, spec_l0, spec_l1, min_vel, max_vel):
+    # Check that the template covers the observed spectrum
+    for vel in [min_vel, max_vel]:
+        corr = (1 + vel / 299792.458)
+        if templ_l0 * corr > spec_l0 or templ_l1 * corr < spec_l1:
+            raise RuntimeError(
+                (f"The template library ({templ_l0},{templ_l1})  doesn't cover"
+                 f" this wavelength range ({spec_l0},{spec_l1}) with "
+                 f"velocities {min_vel} {max_vel}"))
+
+
 def get_chisq(specdata,
               vel,
               atm_params,
@@ -595,6 +606,9 @@ def get_chisq(specdata,
     raw_models = []
     chisq_array = []
     red_chisq_array = []
+    min_vel = config['min_vel']
+    max_vel = config['max_vel']
+
     # iterate over multiple datasets
     for curdata in specdata:
         name = curdata.name
@@ -614,13 +628,8 @@ def get_chisq(specdata,
         else:
             logl += outside * badchi
 
-        if (curdata.lam[0] < templ_lam[0] or curdata.lam[0] > templ_lam[-1]
-                or curdata.lam[-1] < templ_lam[0]
-                or curdata.lam[-1] > templ_lam[-1]):
-            raise Exception(
-                ("The template library (%f,%f)  doesn't cover" +
-                 "this wavelength range (%f,%f)") %
-                (templ_lam[0], templ_lam[-1], curdata.lam[0], curdata.lam[-1]))
+        _overlap_check(templ_lam[0], templ_lam[-1], curdata.lam[0],
+                       curdata.lam[1], min_vel, max_vel)
 
         # current template interpolator object
         if not fast_interp:
