@@ -527,7 +527,7 @@ def get_chisq_continuum(specdata, options=None):
 def _overlap_check(templ_l0, templ_l1, spec_l0, spec_l1, min_vel, max_vel):
     # Check that the template covers the observed spectrum
     for vel in [min_vel, max_vel]:
-        corr = (1 + vel / 299792.458)
+        corr = np.sqrt((1 + vel / SPEED_OF_LIGHT) / (1 - vel / SPEED_OF_LIGHT))
         if templ_l0 * corr > spec_l0 or templ_l1 * corr < spec_l1:
             raise RuntimeError(
                 (f"The template library ({templ_l0},{templ_l1})  doesn't cover"
@@ -629,7 +629,7 @@ def get_chisq(specdata,
             logl += outside * badchi
 
         _overlap_check(templ_lam[0], templ_lam[-1], curdata.lam[0],
-                       curdata.lam[1], min_vel, max_vel)
+                       curdata.lam[-1], min_vel, max_vel)
 
         # current template interpolator object
         if not fast_interp:
