@@ -150,7 +150,8 @@ def process_all(setupInfo,
         raise Exception('The template database file %s does not exist' %
                         dbfile)
     conn = sqlite3.connect(dbfile)
-    cur = conn.execute('''select id, teff, logg, met, alpha from files
+    cur = conn.execute('''select id, teff, logg, met, alpha from files 
+    where not bad
     order by teff,logg, met, alpha''')
     tab = np.rec.fromrecords(cur.fetchall())
     tab_id, tab_teff, tab_logg, tab_met, tab_alpha = (tab.f0, tab.f1, tab.f2,

@@ -167,7 +167,8 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     DB = sqlite3.connect(dbfile)
     id = 0
     DB.execute('''CREATE TABLE files (filename varchar, teff real, logg real,
-        met real, alpha real, id int);''')
+        met real, alpha real, id int, 
+        bad bool);''')
 
     mask = '*/*fits'
     fs = sorted(glob.glob(prefix + mask))
@@ -185,7 +186,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
                     f"Keyword for {param} {curkey} not found in {f}")
             curpar[param] = hdr[curkey]
 
-        DB.execute('insert into files  values (?, ? , ? , ? , ?, ? )',
+        DB.execute('insert into files  values (?, ? , ? , ? , ?, ?, false)',
                    (f.replace(prefix, ''), curpar['teff'], curpar['logg'],
                     curpar['feh'], curpar['alpha'], id))
         id += 1
