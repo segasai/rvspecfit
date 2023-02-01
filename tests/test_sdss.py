@@ -113,6 +113,30 @@ def test_fits():
     plt.savefig(path + '/plot_sdss_test3.png')
     ret = spec_fit.get_chisq_continuum(specdata, options=options)
 
+    ret0 = spec_fit.get_chisq(
+        specdata,
+        bestv,
+        bestpar,
+        rot_params,
+        options=options,
+        config=config,
+    )
+    ret1 = spec_fit.get_chisq(
+        specdata,
+        bestv,
+        bestpar,
+        rot_params,
+        options=options,
+        config=config,
+        espec_systematic={'sdss1': specdata[0].spec * 0.01})
+    ret1 = spec_fit.get_chisq(specdata,
+                              bestv,
+                              bestpar,
+                              rot_params,
+                              options=options,
+                              config=config,
+                              espec_systematic=specdata[0].spec * 0.01)
+
 
 if __name__ == '__main__':
     test_fits()
