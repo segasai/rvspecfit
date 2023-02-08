@@ -36,6 +36,9 @@ class FakePool:
     def close(self):
         pass
 
+    def join(self):
+        pass
+
 
 def get_line_continuum(lam, spec):
     """
