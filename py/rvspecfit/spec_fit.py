@@ -253,8 +253,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     #  so I need to invert the matrix1. I can do it using svd
     v2 = v.T @ (
         (1. / s)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
-    chisq = -vector1.T @ v2 - ldetI + 2 * logl_z + np.dot(
-        normspec, normspec)
+    chisq = -vector1.T @ v2 - ldetI + 2 * logl_z + np.dot(normspec, normspec)
     if get_coeffs:
         coeffs = v2.flatten()
         return chisq, coeffs
@@ -685,7 +684,11 @@ def get_chisq(specdata,
             chisq_array.append(XCHISQ)
             red_chisq_array.append(XCHISQ / len(curdata.espec))
 
-        assert (np.isfinite(float(curlogl)))
+        if not np.isfinite(float(curlogl)):
+            raise RuntimeError(
+                f'The log(likelihood) value is not finite'
+                f'when processing spectral configuration {name}\n'
+                f'velocity {vel}, atm parameters {atm_params}')
         logl += float(curlogl)
 
     if full_output:
