@@ -16,6 +16,24 @@ git_rev = rvspecfit.__version__
 SPEC_PKL_NAME = 'specs_%s.pkl'
 
 
+class FakePoolResult:
+
+    def __init__(self, x):
+        self.x = x
+
+    def get(self):
+        return self.x
+
+
+class FakePool:
+
+    def __init__(self):
+        pass
+
+    def apply_async(func, args, kwargs={}):
+        return FakePoolResult(func(*args, **kwargs))
+
+
 def get_line_continuum(lam, spec):
     """
     Determine the extremely simple linear in log continuum to
@@ -189,7 +207,11 @@ def process_all(setupInfo,
 
     specs = []
     lognorms = np.zeros(nspec)
-    pool = mp.Pool(nthreads, initialize_matrix_cache, (mat, lamgrid))
+    if nthreads > 1:
+        pool = mp.Pool(nthreads, initialize_matrix_cache, (mat, lamgrid))
+    else:
+        pool = FakePool()
+        initialize_matrix_cache(mat, lamgrid)
     for curteff, curlogg, curfeh, curalpha in vec.T:
         i += 1
         specs.append(
