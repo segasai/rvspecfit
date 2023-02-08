@@ -30,7 +30,7 @@ class FakePool:
     def __init__(self):
         pass
 
-    def apply_async(func, args, kwargs={}):
+    def apply_async(self, func, args, kwargs={}):
         return FakePoolResult(func(*args, **kwargs))
 
 
