@@ -33,6 +33,9 @@ class FakePool:
     def apply_async(self, func, args, kwargs={}):
         return FakePoolResult(func(*args, **kwargs))
 
+    def close(self):
+        pass
+
 
 def get_line_continuum(lam, spec):
     """
