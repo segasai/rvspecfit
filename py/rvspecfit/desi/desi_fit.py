@@ -71,7 +71,9 @@ def get_zbest_fname(fname):
     """ Get the zbest file for a given spectrum """
     paths = fname.split('/')
     fname_end = paths[-1]
-
+    if fname_end[-3:] == '.gz':
+        fname_end = fname_end[:-3]
+    not_found = (None, None)  # we return this if we are unsuccessful
     zbest_prefixes = ['redrock-', 'zbest-']
     extensions = ['REDSHIFTS', 'ZBEST']
     file_prefixes = ['coadd-', 'spectra-']
@@ -80,14 +82,15 @@ def get_zbest_fname(fname):
         if fname_end[:len(curpref)] == curpref:
             break
     else:
-        return None
+        return not_found
     # try two types of zbest files redrock or zbest (used in the past)
     for cur_zpref, cur_ext in zip(zbest_prefixes, extensions):
         f1 = fname_end.replace(curpref, cur_zpref)
-        zbest_path = '/'.join(paths[:-1] + [f1])
-        if os.path.exists(zbest_path):
-            return zbest_path, cur_ext
-    return None
+        for postf in ['', '.gz']:
+            zbest_path = '/'.join(paths[:-1] + [f1]) + postf
+            if os.path.exists(zbest_path):
+                return zbest_path, cur_ext
+    return not_found
 
 
 def get_prim_header(versions={},
@@ -1006,7 +1009,7 @@ proc_desi_wrapper.__doc__ = proc_desi.__doc__
 class FileQueue:
     """ This is a class that can work as an iterator
     Here we can either provide the list of files or the file with the list
-    of files or use it as queue, where we pick up the top file, remove the 
+    of files or use it as queue, where we pick up the top file, remove the
     line from the file and move on"""
 
     def __init__(self, file_list=None, file_from=None, queue=False):
@@ -1189,8 +1192,12 @@ def proc_many(files,
             logging.debug(f'Making folder {figure_path}')
         else:
             cur_figure_prefix = None
-        tab_ofname = folder_path + output_tab_prefix + '_' + fname
-        mod_ofname = folder_path + output_mod_prefix + '_' + fname
+        if fname[-3:] == '.gz':
+            fname0 = fname[:-3]
+        else:
+            fname0 = fname
+        tab_ofname = folder_path + output_tab_prefix + '_' + fname0
+        mod_ofname = folder_path + output_mod_prefix + '_' + fname0
 
         if (skipexisting and os.path.exists(tab_ofname)
                 and os.path.exists(mod_ofname)):
