@@ -7,6 +7,7 @@ from rvspecfit import make_nd
 
 
 class TriInterp:
+
     def __init__(self, triang, dats, exp=True):
         """
         Get the Interpolation object from the Delaunay triangulation
@@ -55,6 +56,7 @@ class TriInterp:
 
 
 class GridOutsideCheck:
+
     def __init__(self, uvecs, vecs, idgrid):
         self.uvecs = uvecs
         self.idgrid = idgrid
@@ -87,6 +89,7 @@ class GridOutsideCheck:
 
 
 class GridInterp:
+
     def __init__(self, uvecs, idgrid, vecs, dats, exp=True):
         """
         Get the Grid interpolation object
@@ -189,6 +192,7 @@ class GridInterp:
 
 class SpecInterpolator:
     """ Spectrum interpolator object """
+
     def __init__(self,
                  name,
                  interper,
@@ -267,7 +271,7 @@ class interp_cache:
     interps = {}
 
 
-def getInterpolator(HR, config, warmup_cache=True):
+def getInterpolator(HR, config, warmup_cache=False):
     """ Return the spectrum interpolation object for a given instrument
     setup HR and config. This function also checks the cache
 

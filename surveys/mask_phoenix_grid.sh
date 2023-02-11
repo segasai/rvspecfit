@@ -9,7 +9,7 @@
 set -e -u 
 if [ -f $1 ] ; then
     {
-	echo cp $1 $2
+	cp $1 $2
 	echo '
 update files set bad=true where (alpha+0.4)<0.01 and teff<4500;
 update files set bad=true where 
