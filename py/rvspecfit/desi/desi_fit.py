@@ -533,15 +533,26 @@ def select_fibers_to_fit(fibermap,
             rr_z = zb['Z']
             zbest_subset = ((rr_spectype == zbest_type) |
                             ((np.abs(rr_z)) < zbest_maxvel / 3e5))
-            if (len(zb) == len(subset)):
+            if len(zb) == len(subset):
                 # row match
                 assert np.all(zb['TARGETID'] == fibermap['TARGETID'])
             else:
                 # match by id
                 # useful when fitting spectra- file using coadd rr file
+                xmap = dict(
+                    zip(
+                        zb['TARGETID'][zbest_subset],
+                        zip(zb['Z'][zbest_subset],
+                            zb['SPECTYPE'][zbest_subset])))
                 zbest_subset = np.in1d(fibermap['TARGETID'],
                                        zb['TARGETID'][zbest_subset])
-
+                rr_z = np.zeros(len(fibermap), dtype=zb['Z'].dtype) + np.nan
+                rr_spectype = np.ma.zeros(len(fibermap),
+                                          dtype=zb['SPECTYPE'].dtype)
+                for i in range(len(fibermap)):
+                    cur_tid = fibermap['TARGETID'][i]
+                    if cur_tid in xmap:
+                        rr_z[i], rr_spectype[i] = xmap[cur_tid]
     if not selecting_by_zbest:
         zbest_subset = np.zeros(len(fibermap), dtype=bool)
     # if we are not doing a selection the mask is filled with false
