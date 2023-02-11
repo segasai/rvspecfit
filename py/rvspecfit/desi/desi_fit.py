@@ -531,9 +531,17 @@ def select_fibers_to_fit(fibermap,
             zb = atpy.Table().read(zbest_path, format='fits', hdu=zbest_ext)
             rr_spectype = zb['SPECTYPE']
             rr_z = zb['Z']
-            assert (len(zb) == len(subset))
             zbest_subset = ((rr_spectype == zbest_type) |
                             ((np.abs(rr_z)) < zbest_maxvel / 3e5))
+            if (len(zb) == len(subset)):
+                # row match
+                assert np.all(zb['TARGETID'] == fibermap['TARGETID'])
+            else:
+                # match by id
+                # useful when fitting spectra- file using coadd rr file
+                zbest_subset = np.in1d(fibermap['TARGETID'],
+                                       zb['TARGETID'][zbest_subset])
+
     if not selecting_by_zbest:
         zbest_subset = np.zeros(len(fibermap), dtype=bool)
     # if we are not doing a selection the mask is filled with false
