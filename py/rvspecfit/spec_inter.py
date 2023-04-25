@@ -291,7 +291,6 @@ def getInterpolator(HR, config, warmup_cache=False):
 
     """
     if HR not in interp_cache.interps:
-        expFlag = True
         dats = np.load(config['template_lib'] + make_nd.INTERPOL_DAT_NAME % HR,
                        mmap_mode='r')
         if warmup_cache:
@@ -301,6 +300,8 @@ def getInterpolator(HR, config, warmup_cache=False):
         savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
         with open(savefile, 'rb') as fd0:
             fd = pickle.load(fd0)
+        expFlag = fd.get('expFlag') or True
+
         (templ_lam, vecs, mapper, parnames) = (fd['lam'], fd['vec'],
                                                fd['mapper'], fd['parnames'])
         logstep = fd['logstep']
