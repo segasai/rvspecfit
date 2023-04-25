@@ -300,7 +300,7 @@ def getInterpolator(HR, config, warmup_cache=False):
         savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
         with open(savefile, 'rb') as fd0:
             fd = pickle.load(fd0)
-        expFlag = fd.get('expFlag') or True
+        log_spec = fd.get('log_spec') or True
 
         (templ_lam, vecs, mapper, parnames) = (fd['lam'], fd['vec'],
                                                fd['mapper'], fd['parnames'])
@@ -308,12 +308,12 @@ def getInterpolator(HR, config, warmup_cache=False):
         if 'triang' in fd:
             # triangulation based interpolation
             (triang, extraflags) = (fd['triang'], fd['extraflags'])
-            interper, extraper = (TriInterp(triang, dats, exp=expFlag),
+            interper, extraper = (TriInterp(triang, dats, exp=log_spec),
                                   TriInterp(triang, extraflags, exp=False))
         elif 'regular' in fd:
             # regular grid interpolation
             uvecs, idgrid = (fd['uvecs'], fd['idgrid'])
-            interper = GridInterp(uvecs, idgrid, vecs, dats, exp=expFlag)
+            interper = GridInterp(uvecs, idgrid, vecs, dats, exp=log_spec)
             extraper = GridOutsideCheck(uvecs, vecs, idgrid)
         else:
             raise RuntimeError('Unrecognized interpolation file')

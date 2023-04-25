@@ -89,7 +89,8 @@ def extract_spectrum(logg,
                      dbfile,
                      prefix,
                      wavefile,
-                     normalize=True):
+                     normalize=True,
+                     log_spec=True):
     """
     Exctract a spectrum of a given parameters then apply the resolution
     smearing and divide by the continuum
@@ -133,8 +134,8 @@ def extract_spectrum(logg,
     spec2 = spec1 / normnum
     if normalize:
         spec2 = spec2 / get_line_continuum(si.lamgrid, spec2)
-
-    spec2 = np.log(spec2)  # log the spectrum
+    if log_spec:
+        spec2 = np.log(spec2)  # log the spectrum
     if not np.isfinite(spec2).all():
         raise Exception('The spectrum is not finite (has nans or infs) at '
                         'parameter values: %s' % str((teff, logg, feh, alpha)))
@@ -184,6 +185,7 @@ def process_all(setupInfo,
     nspec = len(ids)
     vec = np.array((tab_teff, tab_logg, tab_met, tab_alpha))
     parnames = ('teff', 'logg', 'feh', 'alpha')
+    log_spec = True
     i = 0
 
     templ_lam, spec = read_grid.get_spec(tab_logg[0],
@@ -223,7 +225,7 @@ def process_all(setupInfo,
         specs.append(
             pool.apply_async(extract_spectrum,
                              (curlogg, curteff, curfeh, curalpha, dbfile,
-                              prefix, wavefile, normalize)))
+                              prefix, wavefile, normalize, log_spec)))
     lam = lamgrid
     for i in range(len(specs)):
         print('%d/%d' % (i, len(specs)))
@@ -252,7 +254,8 @@ def process_all(setupInfo,
                  mapper=mapper,
                  revision=revision,
                  lognorms=lognorms,
-                 logstep=log), fp)
+                 logstep=log,
+                 log_spec=log_spec), fp)
 
 
 def add_bool_arg(parser, name, default=False, help=None):
