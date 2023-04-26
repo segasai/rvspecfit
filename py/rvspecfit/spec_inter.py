@@ -3,6 +3,7 @@ import scipy.spatial
 import scipy.interpolate
 import pickle
 import itertools
+import importlib
 from rvspecfit import make_nd
 
 
@@ -330,6 +331,14 @@ def getInterpolator(HR, config, warmup_cache=False):
             uvecs, idgrid = (fd['uvecs'], fd['idgrid'])
             interper = GridInterp(uvecs, idgrid, vecs, dats, exp=log_spec)
             extraper = GridOutsideCheck(uvecs, vecs, idgrid)
+        elif interp_type == 'generic':
+            mod_name = fd['module']
+            class_name = fd['class_name']
+            outside_class = fd['outside_class_name']
+            mod = importlib.import_module(mod_name)
+            interper = mod.getattr(class_name)(HR, fd)
+            extraper = mod.getattr(outside_class)(HR, fd)
+            # NOT FINISHED implementation of a generic interpolation function
         else:
             raise RuntimeError('Unrecognized interpolation file')
 
