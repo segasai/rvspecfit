@@ -127,7 +127,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         triang = scipy.spatial.Delaunay(vec.T)
         ret_dict['triang'] = triang
         ret_dict['extraflags'] = extraflags
-
+        ret_dict['interpolation_type'] = 'triangulation'
     else:
         uvecs0 = [
             np.unique(vec[i, :], return_inverse=True) for i in range(ndim)
@@ -147,7 +147,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         ret_dict['uvecs'] = uvecs
         ret_dict['regular'] = True
         ret_dict['idgrid'] = idgrid
-
+        ret_dict['interpolation_type'] = 'regulargrid'
     savefile = ('%s/' + INTERPOL_PKL_NAME) % (prefix, spec_setup)
     ret_dict['lam'] = lam
     ret_dict['logstep'] = logstep
