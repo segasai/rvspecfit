@@ -290,7 +290,7 @@ def proc_onespec(
         ALPHAFE_ERR=res1['param_err']['alpha'],
         FEH_ERR=res1['param_err']['feh'],
         VSINI=res1['vsini'] * auni.km / auni.s,
-#        NEXP=len(specdata) // len(setups),
+        #        NEXP=len(specdata) // len(setups),
     )
 
     for i, curd in enumerate(specdata):
@@ -311,6 +311,12 @@ def proc_onespec(
     chisq_thresh = 50
     # if the delta-chisq between continuum is smaller than this we
     # set a warning flag
+    # if feh is close to the edge
+    feh_thresh = 0.01
+    feh_edges = [-4, 1]
+
+    teff_thresh = 10
+    teff_edges = [2300, 15000]
 
     rvedge_thresh = 5 * auni.km / auni.s
     # if we are within this threshold of the RV boundary we set another
@@ -319,19 +325,37 @@ def proc_onespec(
     # If the error is larger than this we warn
 
     rvs_warn = 0
-    bitmasks = {'CHISQ_WARN': 1, 'RV_WARN': 2, 'RVERR_WARN': 4}
+    bitmasks = {
+        'CHISQ_WARN': 1,
+        'RV_WARN': 2,
+        'RVERR_WARN': 4,
+        'PARAM_WARN': 8
+    }
     dchisq = outdict['CHISQ_C_TOT'] - outdict['CHISQ_TOT']  # should be >0
 
     if (dchisq < chisq_thresh):
         rvs_warn |= bitmasks['CHISQ_WARN']
-
-    if (np.abs(outdict['VRAD'] - config['max_vel'] * auni.km / auni.s) <
-            rvedge_thresh) or (np.abs(outdict['VRAD'] - config['min_vel'] *
-                                      auni.km / auni.s) < rvedge_thresh):
+    kms = auni.km / auni.s
+    if ((outdict['VRAD'] - config['max_vel'] * kms > -rvedge_thresh)
+            or (outdict['VRAD'] - config['min_vel'] * kms) > rvedge_thresh):
         rvs_warn |= bitmasks['RV_WARN']
+
     if (outdict['VRAD_ERR'] > rverr_thresh):
         rvs_warn |= bitmasks['RVERR_WARN']
 
+    for cur_param, cur_edges, cur_thresh in [['teff', teff_edges, teff_thresh],
+                                             ['feh', feh_edges, feh_thresh]]:
+        for xid, cur_oper in [[0, operator.lt], [1, operator.gt]]:
+            # if for left edge we are doing <
+            # for right we are doing >
+            if xid == 0:
+                # left_edge shift to the right
+                cur_val = cur_edges[xid] + cur_thresh
+            if xid == 1:
+                # right edge shift to the left
+                cur_val = cur_edges[xid] - cur_thresh
+            if cur_oper(res1['param'][cur_param], cur_val):
+                rvs_warn |= bitmasks['PARAM_WARN']
     outdict['RVS_WARN'] = rvs_warn
 
     if doplot:
@@ -485,8 +509,8 @@ def select_fibers_to_fit(fibermap,
         if maxe is None:
             maxe = np.inf
     if "EXPID" in fibermap.columns.names:
-        subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID'] <=
-                                                        maxe)
+        subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID']
+                                                        <= maxe)
     # ONLY select good fiberstatus ones
     if 'FIBERSTATUS' in fibermap.columns.names:
         subset = subset & (fibermap['FIBERSTATUS'] == 0)
