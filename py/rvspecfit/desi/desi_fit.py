@@ -318,10 +318,11 @@ def proc_onespec(
     teff_thresh = 10
     teff_edges = [2300, 15000]
 
-    rvedge_thresh = 5 * auni.km / auni.s
     # if we are within this threshold of the RV boundary we set another
     # warning
-    rverr_thresh = 100 * auni.km / auni.s
+    rvedge_thresh = 5
+
+    rverr_thresh = 100
     # If the error is larger than this we warn
 
     rvs_warn = 0
@@ -336,17 +337,19 @@ def proc_onespec(
     if (dchisq < chisq_thresh):
         rvs_warn |= bitmasks['CHISQ_WARN']
     kms = auni.km / auni.s
-    if ((outdict['VRAD'] - config['max_vel'] * kms > -rvedge_thresh)
-            or (outdict['VRAD'] - config['min_vel'] * kms) > rvedge_thresh):
+    cur_vrad = outdict['VRAD'].to_value(kms)
+    if (cur_vrad > config['max_vel'] - rvedge_thresh
+            or cur_vrad < config['min_vel'] + rvedge_thresh):
         rvs_warn |= bitmasks['RV_WARN']
 
-    if (outdict['VRAD_ERR'] > rverr_thresh):
+    if (outdict['VRAD_ERR'].to_value(kms) > rverr_thresh):
         rvs_warn |= bitmasks['RVERR_WARN']
 
     for cur_param, cur_edges, cur_thresh in [['teff', teff_edges, teff_thresh],
                                              ['feh', feh_edges, feh_thresh]]:
         for xid, cur_oper in [[0, operator.lt], [1, operator.gt]]:
-            # if for left edge we are doing <
+            # if for left edge we are doing < i.e the value is less than
+            # the left edge this is bad
             # for right we are doing >
             if xid == 0:
                 # left_edge shift to the right
