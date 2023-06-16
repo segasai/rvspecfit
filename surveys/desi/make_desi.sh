@@ -34,6 +34,7 @@ CONF=(desi_b desi_r desi_z)
 RESOL=($BRESOL $RRESOL $ZRESOL)
 
 for i in 0 1 2; do {
+    (
     CURLAM0=${LAM0[$i]}
     CURLAM1=${LAM1[$i]}
     CURCONF=${CONF[$i]}
@@ -54,4 +55,6 @@ for i in 0 1 2; do {
     rvs_make_ccf --setup $CURCONF --lambda0 $CURLAM0 --lambda1 $CURLAM1  --every $EVERY \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $CURSTEP \
     --revision=$REVISION --nocontinuum
+    ) & 
 } ; done 
+wait;
