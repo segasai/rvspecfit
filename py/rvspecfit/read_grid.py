@@ -179,7 +179,8 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
         for k, v in extra_params.items():
             extra_params_str = extra_params_str + f'{k} real,'
             extra_keys.append(v)
-
+    else:
+        extra_params = {}
     DB.execute(f'''CREATE TABLE files (filename varchar, teff real, logg real,
         met real, alpha real,
         {extra_params_str}
