@@ -173,8 +173,8 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
         os.unlink(dbfile)
     DB = sqlite3.connect(dbfile)
     id = 0
+    extra_params_str = ''
     if extra_params is not None:
-        extra_params_str = ''
         extra_keys = []
         for k, v in extra_params.items():
             extra_params_str = extra_params_str + f'{k} real,'
