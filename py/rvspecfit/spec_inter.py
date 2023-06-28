@@ -336,6 +336,7 @@ def getInterpolator(HR, config, warmup_cache=False):
             class_name = fd['class_name']
             outside_class = fd['outside_class_name']
             mod = importlib.import_module(mod_name)
+            fd['template_lib'] = config['template_lib']
             interper = getattr(mod, class_name)(fd)
             extraper = getattr(mod, outside_class)(fd)
             # NOT FINISHED implementation of a generic interpolation function
