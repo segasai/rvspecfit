@@ -147,7 +147,8 @@ class ParamMapper:
 
 def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
            dbfile='files.db',
-           keywords=None):
+           keywords=None,
+           mask=None):
     """ Create an sqlite database of the templates
 
     Parameters
@@ -170,7 +171,6 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
         met real, alpha real, id int, 
         bad bool);''')
 
-    mask = '*/*fits'
     fs = sorted(glob.glob(prefix + mask))
 
     if len(fs) == 0:
@@ -425,6 +425,10 @@ def main(args):
                         type=str,
                         default='PHXM_H',
                         help='The keyword for feh in the header')
+    parser.add_argument('--glob_mask',
+                        type=str,
+                        default='*/*fits',
+                        help='The mask to find the spectra')
 
     parser.add_argument(
         '--templdb',
@@ -437,7 +441,10 @@ def main(args):
                     logg=args.keyword_logg,
                     alpha=args.keyword_alpha,
                     feh=args.keyword_feh)
-    makedb(args.prefix, dbfile=args.templdb, keywords=keywords)
+    makedb(args.prefix,
+           dbfile=args.templdb,
+           keywords=keywords,
+           mask=args.glob_mask)
 
 
 if __name__ == '__main__':
