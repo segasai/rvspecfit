@@ -8,6 +8,7 @@ import scipy.stats
 import scipy.sparse
 import numpy as np
 import argparse
+import itertools
 
 
 def gau_integrator(A, B, x1, x2, l1, l2, s):
@@ -148,7 +149,8 @@ class ParamMapper:
 def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
            dbfile='files.db',
            keywords=None,
-           mask=None):
+           mask=None,
+           extra_params=None):
     """ Create an sqlite database of the templates
 
     Parameters
@@ -160,15 +162,28 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     keywords: dict
         The dictionary with the map of teff,logg,feh,alpha to keyword names
         in the headers
-
+    mask: string
+        The string how to identify spectral files, i.e. '*/*fits'
+    extra_params: dict or None
+        The dictionary of variable name vs FITS name to read from spectral
+        files
     """
     if os.path.exists(dbfile):
         print(f'Overwriting the template database file {dbfile}')
         os.unlink(dbfile)
     DB = sqlite3.connect(dbfile)
     id = 0
-    DB.execute('''CREATE TABLE files (filename varchar, teff real, logg real,
-        met real, alpha real, id int, 
+    if extra_params is not None:
+        extra_params_str = ''
+        extra_keys = []
+        for k, v in extra_params.items():
+            extra_params_str = extra_params_str + f'{k} real,'
+            extra_keys.append(v)
+
+    DB.execute(f'''CREATE TABLE files (filename varchar, teff real, logg real,
+        met real, alpha real,
+        {extra_params_str}
+        id int,
         bad bool);''')
 
     fs = sorted(glob.glob(prefix + mask))
@@ -180,15 +195,18 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     for f in fs:
         hdr = pyfits.getheader(f)
         curpar = {}
-        for param, curkey in keywords.items():
+        for param, curkey in itertools.chain(keywords.items(),
+                                             extra_params.items()):
             if curkey not in hdr:
                 raise Exception(
                     f"Keyword for {param} {curkey} not found in {f}")
             curpar[param] = hdr[curkey]
 
-        DB.execute('insert into files  values (?, ? , ? , ? , ?, ?, false)',
-                   (f.replace(prefix, ''), curpar['teff'], curpar['logg'],
-                    curpar['feh'], curpar['alpha'], id))
+        query = ('insert into files (filename, id, bad,' +
+                 ','.join(curpar.keys()) + ') values (?, ?, ? ' +
+                 len(curpar) * ',?' + ' )')
+        DB.execute(query,
+                   (f.replace(prefix, ''), id, False) + tuple(curpar.values()))
         id += 1
     DB.commit()
 
@@ -425,6 +443,13 @@ def main(args):
                         type=str,
                         default='PHXM_H',
                         help='The keyword for feh in the header')
+    parser.add_argument(
+        '--extra_params',
+        type=str,
+        default=None,
+        help='Extra template parameters in the form of comma separated '
+        'value:value. I.e. if you want to store vmic values and they are '
+        'in the VMIC keyword in the header use vmic:VMIC')
     parser.add_argument('--glob_mask',
                         type=str,
                         default='*/*fits',
@@ -440,11 +465,22 @@ def main(args):
     keywords = dict(teff=args.keyword_teff,
                     logg=args.keyword_logg,
                     alpha=args.keyword_alpha,
-                    feh=args.keyword_feh)
+                    met=args.keyword_feh)
+    if args.extra_params is None:
+        extra_params = None
+    else:
+        extra_params = args.extra_params.split(',')
+        _tmp = {}
+        for cur in extra_params:
+            cur1, cur2 = cur.split(':')
+            _tmp[cur1] = cur2
+        extra_params = _tmp
+
     makedb(args.prefix,
            dbfile=args.templdb,
            keywords=keywords,
-           mask=args.glob_mask)
+           mask=args.glob_mask,
+           extra_params=extra_params)
 
 
 if __name__ == '__main__':
