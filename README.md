@@ -46,12 +46,11 @@ The library is avialable here ftp://phoenix.astro.physik.uni-goettingen.de/v2.0/
 
 ## Preparation of PHOENIX library
 
-The preparation requires several steps (you can several examples of these steps in the surveys folder, i.e surveys/sdss/make_sdss.sh surveys/desi/make_desi.sh)
+The preparation requires several steps (you can find several examples of these steps in the surveys folder, i.e surveys/sdss/make_sdss.sh surveys/desi/make_desi.sh which prepare rvspecfit for processing SDSS or DESI spectra)
 
-* Creating a PHOENIX file sqlite database that will be used in the processing (you only need to do this 
-step once)
+* Creating a PHOENIX file sqlite database that will be used in the processing (you only need to do this step once)
 
-This is done with 
+This is done with
 ```
 $ rvs_read_grid --prefix $PATH/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
 ```
