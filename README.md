@@ -116,22 +116,25 @@ config=utils.read_config('config.yaml') # optional
 
 
 # let's assume we have data stored in 1d arrays in a table
+# with wavelength being in Angstrom
+# espec being a vector of standard deviations
+
 tab=atpy.Table().read('spec.fits')
 wavelength = tab['wavelength']
 spec = tab['spec']
 espec = tab['espec']
-badmask = tab['badmask']
-
 
 # This constructs the specData object from wavelength, spectrum and error
-# spectrum arrays. The rvspecfit works on arrays of SpecData's
+# spectrum arrays. The rvspecfit works on arrays of SpecData's which may
+# represent multiple exposures or multiple spectral configurations
+# Here we just have one spectrum from the spectral configuration "myconf"
 
 specdata = [spec_fit.SpecData('myconf',
                                wavelength,
                                spec,
-                               espec,
-                               badmask=badmask)
+                               espec)
                               ]
+
 
 # this tries to get a sensible guess for the stellar parameters/velocity
 res = fitter_ccf.fit(specdata, config)
