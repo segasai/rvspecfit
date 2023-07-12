@@ -55,20 +55,20 @@ This is done with
 $ rvs_read_grid --prefix $PATH/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
 ```
 
-* Making interpolated spectra for your spectral configuration (if your instrument has multiple arms, 
-you may need to run this many times for each arm)
+* Making interpolated spectra for your spectral configuration (if your instrument has multiple arms, you will need to run this once for each arm)
+
 ```
 $ rvs_make_interpol --setup myconf --lambda0 4000 --lambda1 5000 \
     --resol_func '1000+2*x' --step 0.5 --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $PATH/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits \
     --air --revision=v2020x
 ```
-That will create the spectral configuration called myconf for spectra with wavelength range of 4000 to 5000, step 0.5 angstrom and resolution being 1000+2*x (where x is wavelength in angstroms). It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum. 
-This step will take up to an hour. 
+That will create the spectral configuration called myconf for spectra with wavelength range of 4000 to 5000, step 0.5 Angstrom and resolution being 1000+2*x (where x is wavelength in Angstroms). It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum.
+This step will take up to an hour.
 
 
-* Making the n-d interpolator. 
-That requires the path to the files created at previous step. 
+* Making the n-d interpolator.
+That requires the path to the files created at previous step.
 ```
 $ rvs_make_nd --prefix ${PREFIX}/ --setup myconf --revision=v2020x
 ```
