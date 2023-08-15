@@ -206,7 +206,9 @@ def process_all(setupInfo,
         lamgrid = np.exp(
             np.arange(np.log(lamleft / fac1), np.log(lamright * fac1),
                       np.log(1 + step / lamleft)))
-
+    if len(lamgrid) <= 1:
+        raise RuntimeError(
+            'Did you incorrectly specify wavelength range or step ? ')
     mat = read_grid.make_rebinner(templ_lam,
                                   lamgrid,
                                   resol_function,
