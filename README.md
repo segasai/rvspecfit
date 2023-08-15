@@ -46,30 +46,31 @@ The library is avialable here ftp://phoenix.astro.physik.uni-goettingen.de/v2.0/
 
 ## Preparation of PHOENIX library
 
-The preparation requires several steps (you can several examples of these steps in the surveys folder, i.e surveys/sdss/make_sdss.sh surveys/desi/make_desi.sh)
+The preparation requires several steps (you can find several examples of these steps in the surveys folder, i.e surveys/sdss/make_sdss.sh surveys/desi/make_desi.sh which prepare rvspecfit for processing SDSS or DESI spectra).
 
-* Creating a PHOENIX file sqlite database that will be used in the processing (you only need to do this 
-step once)
+The commands below all support --help option, so you can always run that to get more help on the meaning of different options.
 
-This is done with 
+* Creating a PHOENIX file sqlite database that will be used in the processing (you only need to do this step once)
+
+This is done with
 ```
 $ rvs_read_grid --prefix $PATH/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
 ```
 
-* Making interpolated spectra for your spectral configuration (if your instrument has multiple arms, 
-you may need to run this many times for each arm)
+* Making interpolated spectra for your spectral configuration (if your instrument has multiple arms, you will need to run this once for each arm)
+
 ```
 $ rvs_make_interpol --setup myconf --lambda0 4000 --lambda1 5000 \
     --resol_func '1000+2*x' --step 0.5 --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $PATH/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits \
     --air --revision=v2020x
 ```
-That will create the spectral configuration called myconf for spectra with wavelength range of 4000 to 5000, step 0.5 angstrom and resolution being 1000+2*x (where x is wavelength in angstroms). It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum. 
-This step will take up to an hour. 
+That will create the spectral configuration called myconf for spectra with wavelength range of 4000 to 5000, step 0.5 Angstrom and resolution being 1000+2*x (where x is wavelength in Angstroms). It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum. TEMPLPREF is the path to the PHOENIX library.
 
+This step can take up to an hour, depending on your machine.
 
-* Making the n-d interpolator. 
-That requires the path to the files created at previous step. 
+* Making the n-d interpolator.
+That requires the path to the files created at previous step.
 ```
 $ rvs_make_nd --prefix ${PREFIX}/ --setup myconf --revision=v2020x
 ```
@@ -115,22 +116,25 @@ config=utils.read_config('config.yaml') # optional
 
 
 # let's assume we have data stored in 1d arrays in a table
+# with wavelength being in Angstrom
+# espec being a vector of standard deviations
+
 tab=atpy.Table().read('spec.fits')
 wavelength = tab['wavelength']
 spec = tab['spec']
 espec = tab['espec']
-badmask = tab['badmask']
-
 
 # This constructs the specData object from wavelength, spectrum and error
-# spectrum arrays. The rvspecfit works on arrays of SpecData's
+# spectrum arrays. The rvspecfit works on arrays of SpecData's which may
+# represent multiple exposures or multiple spectral configurations
+# Here we just have one spectrum from the spectral configuration "myconf"
 
 specdata = [spec_fit.SpecData('myconf',
                                wavelength,
                                spec,
-                               espec,
-                               badmask=badmask)
+                               espec)
                               ]
+
 
 # this tries to get a sensible guess for the stellar parameters/velocity
 res = fitter_ccf.fit(specdata, config)
