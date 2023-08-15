@@ -363,10 +363,10 @@ def proc_onespec(
 
     if doplot:
         title = ('logg=%.1f teff=%.1f [Fe/H]=%.1f ' +
-                 '[alpha/Fe]=%.1f Vrad=%.1f+/-%.1f') % (
+                 '[alpha/Fe]=%.1f Vrad=%.1f+/-%.1f vsini=%.1f') % (
                      res1['param']['logg'], res1['param']['teff'],
                      res1['param']['feh'], res1['param']['alpha'], res1['vel'],
-                     res1['vel_err'])
+                     res1['vel_err'], res1['vsini'])
         if len(specdata) > len(setups):
             for i in range(len(specdata) // len(setups)):
                 sl = slice(i * len(setups), (i + 1) * len(setups))
