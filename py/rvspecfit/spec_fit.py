@@ -628,7 +628,7 @@ def get_chisq(specdata,
             logl += outside * badchi
 
         _overlap_check(templ_lam[0], templ_lam[-1], curdata.lam[0],
-                       curdata.lam[-1], min_vel, max_vel)
+                       curdata.lam[-1], min(min_vel, vel), max(max_vel, vel))
 
         # current template interpolator object
         if not fast_interp:
