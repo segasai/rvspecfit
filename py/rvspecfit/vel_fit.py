@@ -97,9 +97,14 @@ class VSiniMapper:
         self.max_vsini = max_vsini
 
     def forward(self, vsini):
+        """ Convert human normal vsini into
+        log-transformed clipped vsini """
         return np.log(np.clip(vsini, self.min_vsini, self.max_vsini))
 
     def inverse(self, x):
+        """ Undo the transformation.
+        Return proper vsini
+        """
         return np.clip(np.exp(x), self.min_vsini, self.max_vsini)
 
 
@@ -138,10 +143,18 @@ class ParamMapper:
         self.fitVsini = fitVsini
 
     def forward(self, p0):
-        """ Convert a vector into param dictionary """
+        """ Convert a parameter vector into param dictionary
+        Argument order in the vector
+        velocity [vsini] stellar parameters
+        vsini is optional
+        stellar parameters are in the order given by specParams
+        and the ones with fixParam are excluded
+        """
         ret = {}
         p0rev = list(p0)[::-1]
+
         ret['vel'] = p0rev.pop()
+
         if self.fitVsini:
             vsini = self.vsiniMapper.inverse(p0rev.pop())
             ret['vsini'] = vsini
@@ -217,7 +230,8 @@ def process(specdata,
             config=None,
             resolParams=None,
             priors=None):
-    """ Process spectra by doing maximum likelihood fit to spectral data
+    """
+    Process spectra by doing maximum likelihood fit to spectral data
 
     Parameters
     ----------
@@ -276,10 +290,11 @@ def process(specdata,
     curparam = spec_fit.param_dict_to_tuple(paramDict0,
                                             specdata[0].name,
                                             config=config)
-    specParams = spec_inter.getSpecParams(specdata[0].name, config)
+    specParamNames = spec_inter.getSpecParams(specdata[0].name, config)
     if fixParam is None:
         fixParam = []
 
+    vsiniMapper = None
     if 'vsini' not in paramDict0:
         rot_params = None
         fitVsini = False
@@ -289,6 +304,8 @@ def process(specdata,
             fitVsini = False
         else:
             fitVsini = True
+            vsiniMapper = VSiniMapper(min_vsini, max_vsini)
+
     t0 = time.time()
 
     # This takes the input template parameters and scans the velocity
@@ -306,13 +323,11 @@ def process(specdata,
     startParam = [best_vel]
     std_vec = [5]
 
-    vsiniMapper = VSiniMapper(min_vsini, max_vsini)
-
     if fitVsini:
         startParam.append(vsiniMapper.forward(paramDict0['vsini']))
         std_vec.append(0.1)
 
-    for x in specParams:
+    for x in specParamNames:
         if x not in fixParam:
             startParam.append(paramDict0[x])
             std_vec.append({
@@ -335,7 +350,7 @@ def process(specdata,
     simp[0, :] = curval
     simp[1:, :] = (curval[None, :] +
                    np.array(std_vec)[None, :] * R.normal(size=(ndim, ndim)))
-    paramMapper = ParamMapper(specParams,
+    paramMapper = ParamMapper(specParamNames,
                               paramDict0,
                               fixParam,
                               vsiniMapper,
@@ -379,7 +394,7 @@ def process(specdata,
     t3 = time.time()
     best_param = paramMapper.forward(res['x'])
     ret = {}
-    ret['param'] = dict(zip(specParams, best_param['params']))
+    ret['param'] = dict(zip(specParamNames, best_param['params']))
     if fitVsini:
         ret['vsini'] = best_param['vsini']
     ret['vel'] = best_param['vel']
@@ -410,7 +425,7 @@ def process(specdata,
              np.arange(best_vel + vel_step, max_vel, vel_step)))
         res1 = spec_fit.find_best(specdata,
                                   vels_grid,
-                                  [[ret['param'][_] for _ in specParams]],
+                                  [[ret['param'][_] for _ in specParamNames]],
                                   best_param['rot_params'],
                                   resolParams,
                                   config=config,
@@ -429,7 +444,8 @@ def process(specdata,
     ret['vel_skewness'] = res1['skewness']
     ret['vel_kurtosis'] = res1['kurtosis']
     outp = spec_fit.get_chisq(specdata,
-                              best_vel, [ret['param'][_] for _ in specParams],
+                              best_vel,
+                              [ret['param'][_] for _ in specParamNames],
                               best_param['rot_params'],
                               resolParams,
                               options=options,
@@ -450,10 +466,10 @@ def process(specdata,
         'alpha': 1,
         'teff': 100,
         'vrad': 10,
-    }[_] for _ in specParams]
+    }[_] for _ in specParamNames]
     hess_step = ndf.MinStepGenerator(base_step=hess_step, step_ratio=10)
-    hessian = ndf.Hessian(
-        hess_func_wrap, step=hess_step)([ret['param'][_] for _ in specParams])
+    hessian = ndf.Hessian(hess_func_wrap, step=hess_step)(
+        [ret['param'][_] for _ in specParamNames])
     try:
         hessian_inv = scipy.linalg.inv(hessian)
         diag_hess = np.array(np.diag(hessian_inv))
@@ -470,7 +486,7 @@ def process(specdata,
         logging.warning('The inversion of the Hessian failed')
         diag_err = np.zeros(hessian.shape[0]) + np.nan
         #
-    ret['param_err'] = dict(zip(specParams, diag_err))
+    ret['param_err'] = dict(zip(specParamNames, diag_err))
     ret['minimize_success'] = minimize_success
 
     ret['yfit'] = outp['models']

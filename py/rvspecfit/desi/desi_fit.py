@@ -261,9 +261,10 @@ def proc_onespec(
         paramDict0 = res
     t2 = time.time()
     fixParam = []
+
     if res['best_vsini'] is not None:
-        paramDict0['vsini'] = min(max(res['best_vsini'], config['min_vsini']),
-                                  config['max_vsini'])
+        paramDict0['vsini'] = np.clip(res['best_vsini'], config['min_vsini'],
+                                      config['max_vsini'])
 
     res1 = vel_fit.process(
         specdata,
