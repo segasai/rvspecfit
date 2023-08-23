@@ -41,8 +41,11 @@ which will install the latest version
 
 ## PHOENIX library
 
-The library is avialable here http://phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/
-(Make sure you get the v2.0 one!)
+The library is avialable here https://phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/
+(Make sure you get the v2.0 one!). If you want to download the whole thing you will likely need a command like
+`
+wget -r -np -l 10 https://phoenix.astro.physik.uni-goettingen.de/data/v2.0/HiResFITS/
+`
 
 ## Preparation of PHOENIX library
 
