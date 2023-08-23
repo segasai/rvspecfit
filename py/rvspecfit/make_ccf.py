@@ -138,12 +138,7 @@ def fit_resid(p, args=None, getModel=False):
     return (mod - spec) / espec
 
 
-def preprocess_model(logl,
-                     lammodel,
-                     model0,
-                     vsini=None,
-                     ccfconf=None,
-                     modid=None):
+def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
     """
     Take the input template model and return prepared for FFT vectors.
     That includes padding, apodizing and normalizing by continuum
@@ -418,7 +413,7 @@ def ccf_executor(spec_setup,
     inds = rng.permutation(np.arange(nspec))[:(nspec // every)]
     specs = specs[inds, :]
     vec = vec.T[inds, :]
-    nspec, lenspec = specs.shape
+    nspec = specs.shape[0]
 
     models, params, vsinis = preprocess_model_list(lam,
                                                    np.exp(specs),

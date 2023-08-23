@@ -275,7 +275,7 @@ def get_spec(logg,
     if len(fnames) == 0:
         raise Exception('No spectra found')
 
-    dat, hdr = pyfits.getdata(prefix + '/' + fnames[0][0], header=True)
+    dat = pyfits.getdata(prefix + '/' + fnames[0][0])
     speclen = len(dat)
     lams = np.arange(speclen) * 1.
     lams = pyfits.getdata(wavefile)
@@ -412,7 +412,6 @@ def rebin(lam0, spec0, newlam, resolution):
     >>> newlam = np.linspace(4000,9000,4000)
     >>> newspec=read_grid.rebin(lam, spec, newlam, 1800)
     """
-    lam, spec = get_spec(1, 5000, -1, 0.2)
 
     mat = make_rebinner(lam0, newlam, resolution)
     ret = apply_rebinner(mat, spec0)

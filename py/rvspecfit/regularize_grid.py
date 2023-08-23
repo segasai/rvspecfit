@@ -66,7 +66,7 @@ into the file with gaps filled and smaller step sizes
     teff, logg, feh, alpha = vec
 
     uteff, teffid = np.unique(teff, return_inverse=True)
-    ulogg, loggid = np.unique(logg, return_inverse=True)
+    ulogg = np.unique(logg)
     ufeh = np.unique(feh)
     ualpha = np.unique(alpha)
 

@@ -137,8 +137,9 @@ def extract_spectrum(logg,
     if log_spec:
         spec2 = np.log(spec2)  # log the spectrum
     if not np.isfinite(spec2).all():
-        raise Exception('The spectrum is not finite (has nans or infs) at '
-                        'parameter values: %s' % str((teff, logg, feh, alpha)))
+        raise RuntimeError('The spectrum is not finite (has nans or infs) at '
+                           'parameter values: %s' % str(
+                               (teff, logg, feh, alpha)))
     spec2 = spec2.astype(np.float32)
     return spec2, np.log(normnum)
 
@@ -172,10 +173,10 @@ def process_all(setupInfo,
                 revision='',
                 nthreads=8):
     if not os.path.exists(dbfile):
-        raise Exception('The template database file %s does not exist' %
-                        dbfile)
+        raise RuntimeError('The template database file %s does not exist' %
+                           dbfile)
     conn = sqlite3.connect(dbfile)
-    cur = conn.execute('''select id, teff, logg, met, alpha from files 
+    cur = conn.execute('''select id, teff, logg, met, alpha from files
     where not bad
     order by teff,logg, met, alpha''')
     tab = np.rec.fromrecords(cur.fetchall())
@@ -244,8 +245,8 @@ def process_all(setupInfo,
         try:
             os.mkdir(oprefix)
         except OSError:
-            raise Exception('Failed to create output directory: %s' %
-                            (oprefix, ))
+            raise RuntimeError('Failed to create output directory: %s' %
+                               (oprefix, ))
     with open(('%s/' + SPEC_PKL_NAME) % (oprefix, HR), 'wb') as fp:
         pickle.dump(
             dict(specs=specs,
