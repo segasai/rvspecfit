@@ -266,16 +266,16 @@ def _get_simplex_start(best_vel,
     return curval, simp
 
 
-def _find_best_vel(best_vel,
-                   min_vel,
-                   max_vel,
-                   specdata=None,
-                   vel_step0=None,
-                   best_param=None,
-                   resolParams=None,
-                   config=None,
-                   options=None,
-                   min_vel_step=None):
+def _find_best_vel_iterate(best_vel,
+                           min_vel,
+                           max_vel,
+                           vel_step0,
+                           specdata=None,
+                           best_param=None,
+                           resolParams=None,
+                           config=None,
+                           options=None,
+                           min_vel_step=None):
     """
     This function perform iterations around the current best_vel
     to make sure the velocity posterior is well sampled.
@@ -369,7 +369,7 @@ def process(specdata,
     """
 
     if config is None:
-        raise Exception('Config must be provided')
+        raise RuntimeError('Config must be provided')
     if isinstance(specdata, spec_fit.SpecData):
         specdata = [specdata]
 
@@ -480,12 +480,12 @@ def process(specdata,
 
     # For a given template measure the chi-square as a function of velocity
     # to get the uncertainty
-    best_vel, vel_err, vel_skewness, vel_kurtosis = _find_best_vel(
+    best_vel, vel_err, vel_skewness, vel_kurtosis = _find_best_vel_iterate(
         best_vel,
         min_vel,
         max_vel,
+        vel_step0,
         specdata=specdata,
-        vel_step0=vel_step0,
         best_param=best_param,
         resolParams=resolParams,
         config=config,
