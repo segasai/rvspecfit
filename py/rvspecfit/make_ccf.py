@@ -224,9 +224,8 @@ def preprocess_model_list(lammodels, models, params, ccfconf, vsinis=None):
         for vsini in vsinis:
             retparams.append(params[imodel])
             q.append(
-                pool.apply_async(
-                    preprocess_model,
-                    (logl, lammodels, m0, vsini, ccfconf, params[imodel])))
+                pool.apply_async(preprocess_model,
+                                 (logl, lammodels, m0, vsini, ccfconf)))
             vsinisList.append(vsini)
 
     for ii, curx in enumerate(q):
