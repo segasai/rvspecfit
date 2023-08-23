@@ -4,6 +4,7 @@ import argparse
 import scipy.stats
 import scipy.interpolate
 import numpy as np
+import scipy.version
 
 
 def findbestoverlaps(x, intervals):
@@ -66,8 +67,8 @@ into the file with gaps filled and smaller step sizes
 
     uteff, teffid = np.unique(teff, return_inverse=True)
     ulogg, loggid = np.unique(logg, return_inverse=True)
-    ufeh, fehid = np.unique(feh, return_inverse=True)
-    ualpha, alphaid = np.unique(alpha, return_inverse=True)
+    ufeh = np.unique(feh)
+    ualpha = np.unique(alpha)
 
     # important that I don't use the s=0
     mappers = [
@@ -149,7 +150,6 @@ into the file with gaps filled and smaller step sizes
 
 
 def check_scipy_version():
-    import scipy.version
     if [int(_) for _ in scipy.version.version.split('.')] < [1, 9, 0]:
         raise RuntimeError('scipy 1.9.0+ is required due to Rbf changes')
 

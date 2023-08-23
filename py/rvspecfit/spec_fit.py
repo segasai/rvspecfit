@@ -5,7 +5,6 @@ else:
     import functools
 import random
 import numpy as np
-import numpy.random
 import scipy
 import scipy.interpolate
 import scipy.constants as sci_con
@@ -724,9 +723,9 @@ def quadratic_interp_min(vel_grid, chisq, i):
         return vel_grid[i]
     x = vel_grid[i - 1:i + 2]
     y = chisq[i - 1:i + 2]
-    a2, a1, a0 = np.polyfit(x, y, 2)
+    a2, a1, _ = np.polyfit(x, y, 2)
     val = -a1 / 2 / a2
-    assert ((val < vel_grid[i + 1]) & (val > vel_grid[i - 1]))
+    assert (val < vel_grid[i + 1]) and (val > vel_grid[i - 1])
     return val
 
 
