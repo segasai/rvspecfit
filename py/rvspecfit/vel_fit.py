@@ -223,6 +223,49 @@ specParams is the list of names of parameters that we are varying
     return 0.5 * chisq_func0(pdict, args)
 
 
+def _get_simplex_start(best_vel,
+                       fixParam=None,
+                       specParamNames=None,
+                       paramDict0=None,
+                       vsiniMapper=None,
+                       fitVsini=None):
+    """
+    Create starting simplex and starting point for optimization
+    This is a determinstic simplex
+    """
+    # std_vec is the vector of standard deviations used to create
+    # a simplex for Nelder mead
+    startParam = [best_vel]
+    std_vec = [5]
+
+    # second parameter is vsini
+    if fitVsini:
+        startParam.append(vsiniMapper.forward(paramDict0['vsini']))
+        std_vec.append(0.1)
+
+    for x in specParamNames:
+        if x not in fixParam:
+            startParam.append(paramDict0[x])
+            std_vec.append({
+                'logg': 0.5,
+                'teff': 300,
+                'feh': 0.5,
+                'alpha': 0.25
+            }.get(x) or 0.5)
+
+    curval = np.array(startParam)
+    std_vec = np.array(std_vec)
+
+    ndim = len(curval)
+    R = np.random.RandomState(43434)
+    simp = np.zeros((ndim + 1, ndim))
+    # first point is a starting point
+    simp[0, :] = curval
+    simp[1:, :] = (curval[None, :] +
+                   np.array(std_vec)[None, :] * R.normal(size=(ndim, ndim)))
+    return curval, simp
+
+
 def process(specdata,
             paramDict0,
             fixParam=None,
@@ -318,38 +361,15 @@ def process(specdata,
                              options=options)
     best_vel = res['best_vel']
 
-    # std_vec is the vector of standard deviations used to create
-    # a simplex for Nelder mead
-    startParam = [best_vel]
-    std_vec = [5]
-
-    if fitVsini:
-        startParam.append(vsiniMapper.forward(paramDict0['vsini']))
-        std_vec.append(0.1)
-
-    for x in specParamNames:
-        if x not in fixParam:
-            startParam.append(paramDict0[x])
-            std_vec.append({
-                'logg': 0.5,
-                'teff': 300,
-                'feh': 0.5,
-                'alpha': 0.25
-            }.get(x) or 0.5)
-
-    std_vec = np.array(std_vec)
-
     t1 = time.time()
-    curval = np.array(startParam)
-    R = np.random.RandomState(43434)
-    curiter = 1
-    maxiter = 2
-    ndim = len(curval)
-    simp = np.zeros((ndim + 1, ndim))
-    minimize_success = True
-    simp[0, :] = curval
-    simp[1:, :] = (curval[None, :] +
-                   np.array(std_vec)[None, :] * R.normal(size=(ndim, ndim)))
+
+    curval, simplex = _get_simplex_start(best_vel,
+                                         fixParam=fixParam,
+                                         specParamNames=specParamNames,
+                                         paramDict0=paramDict0,
+                                         vsiniMapper=vsiniMapper,
+                                         fitVsini=fitVsini)
+
     paramMapper = ParamMapper(specParamNames,
                               paramDict0,
                               fixParam,
@@ -363,6 +383,10 @@ def process(specdata,
                 options=options,
                 config=config,
                 priors=priors)
+    minimize_success = True
+    curiter = 1
+    maxiter = 2
+
     while True:
         res = scipy.optimize.minimize(chisq_func,
                                       curval,
@@ -371,12 +395,12 @@ def process(specdata,
                                       options={
                                           'fatol': 1e-3,
                                           'xatol': 1e-2,
-                                          'initial_simplex': simp,
+                                          'initial_simplex': simplex,
                                           'maxiter': 10000,
                                           'maxfev': np.inf
                                       })
         curval = res['x']
-        simp = res['final_simplex'][0]
+        simplex = res['final_simplex'][0]
         if res['success']:
             break
         if curiter == maxiter:
@@ -425,7 +449,7 @@ def process(specdata,
              np.arange(best_vel + vel_step, max_vel, vel_step)))
         res1 = spec_fit.find_best(specdata,
                                   vels_grid,
-                                  [[ret['param'][_] for _ in specParamNames]],
+                                  best_param['params'],
                                   best_param['rot_params'],
                                   resolParams,
                                   config=config,
@@ -445,7 +469,7 @@ def process(specdata,
     ret['vel_kurtosis'] = res1['kurtosis']
     outp = spec_fit.get_chisq(specdata,
                               best_vel,
-                              [ret['param'][_] for _ in specParamNames],
+                              best_param['params'],
                               best_param['rot_params'],
                               resolParams,
                               options=options,
