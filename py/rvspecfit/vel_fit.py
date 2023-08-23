@@ -266,6 +266,60 @@ def _get_simplex_start(best_vel,
     return curval, simp
 
 
+def _find_best_vel(best_vel,
+                   min_vel,
+                   max_vel,
+                   specdata=None,
+                   vel_step0=None,
+                   best_param=None,
+                   resolParams=None,
+                   config=None,
+                   options=None,
+                   min_vel_step=None):
+    """
+    This function perform iterations around the current best_vel
+    to make sure the velocity posterior is well sampled.
+    It returns the best velocity, the uncertainty, skewness and kurtosis
+    """
+    # if the velocity is outside the range considered, something
+    # is likely wrong with the object , so to prevent future failure
+    # I just limit the velocity
+    if best_vel > max_vel or best_vel < min_vel:
+        logging.warning('Velocity too large...')
+        if best_vel > max_vel:
+            best_vel = max_vel
+        else:
+            best_vel = min_vel
+
+    crit_ratio = 5  # we want the step size to be at least crit_ratio
+    # times smaller than the uncertainty
+
+    # Here we are evaluating the chi-quares on the grid of
+    # velocities to get the uncertainty
+    vel_step = vel_step0
+    while True:
+        vels_grid = np.concatenate(
+            (np.arange(best_vel, min_vel, -vel_step)[::-1],
+             np.arange(best_vel + vel_step, max_vel, vel_step)))
+        res1 = spec_fit.find_best(specdata,
+                                  vels_grid, [best_param['params']],
+                                  best_param['rot_params'],
+                                  resolParams,
+                                  config=config,
+                                  options=options)
+        best_vel = res1['best_vel']
+        if vel_step < res1['vel_err'] / crit_ratio or vel_step < min_vel_step:
+            break
+        else:
+            # construct new velocity step
+            vel_step = max(res1['vel_err'], vel_step) / crit_ratio * 0.8
+            # make sure we have at least that much width around the posterior
+            new_width = max(res1['vel_err'], vel_step) * 10
+            min_vel = max(best_vel - new_width, min_vel)
+            max_vel = min(best_vel + new_width, max_vel)
+    return best_vel, res1['vel_err'], res1['skewness'], res1['kurtosis']
+
+
 def process(specdata,
             paramDict0,
             fixParam=None,
@@ -426,46 +480,23 @@ def process(specdata,
 
     # For a given template measure the chi-square as a function of velocity
     # to get the uncertainty
+    best_vel, vel_err, vel_skewness, vel_kurtosis = _find_best_vel(
+        best_vel,
+        min_vel,
+        max_vel,
+        specdata=specdata,
+        vel_step0=vel_step0,
+        best_param=best_param,
+        resolParams=resolParams,
+        config=config,
+        options=options,
+        min_vel_step=min_vel_step)
 
-    # if the velocity is outside the range considered, something
-    # is likely wrong with the object , so to prevent future failure
-    # I just limit the velocity
-    if best_vel > max_vel or best_vel < min_vel:
-        logging.warning('Velocity too large...')
-        if best_vel > max_vel:
-            best_vel = max_vel
-        else:
-            best_vel = min_vel
-
-    crit_ratio = 5  # we want the step size to be at least crit_ratio
-    # times smaller than the uncertainty
-
-    # Here we are evaluating the chi-quares on the grid of
-    # velocities to get the uncertainty
-    vel_step = vel_step0
-    while True:
-        vels_grid = np.concatenate(
-            (np.arange(best_vel, min_vel, -vel_step)[::-1],
-             np.arange(best_vel + vel_step, max_vel, vel_step)))
-        res1 = spec_fit.find_best(specdata,
-                                  vels_grid, [best_param['params']],
-                                  best_param['rot_params'],
-                                  resolParams,
-                                  config=config,
-                                  options=options)
-        best_vel = res1['best_vel']
-        if vel_step < res1['vel_err'] / crit_ratio or vel_step < min_vel_step:
-            break
-        else:
-            vel_step = max(res1['vel_err'], vel_step) / crit_ratio * 0.8
-            new_width = max(res1['vel_err'], vel_step) * 10
-            min_vel = max(best_vel - new_width, min_vel)
-            max_vel = min(best_vel + new_width, max_vel)
     t4 = time.time()
     ret['vel'] = best_vel
-    ret['vel_err'] = res1['vel_err']
-    ret['vel_skewness'] = res1['skewness']
-    ret['vel_kurtosis'] = res1['kurtosis']
+    ret['vel_err'] = vel_err
+    ret['vel_skewness'] = vel_skewness
+    ret['vel_kurtosis'] = vel_kurtosis
     outp = spec_fit.get_chisq(specdata,
                               best_vel,
                               best_param['params'],
