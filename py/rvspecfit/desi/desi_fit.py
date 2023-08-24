@@ -291,7 +291,6 @@ def proc_onespec(
         ALPHAFE_ERR=res1['param_err']['alpha'],
         FEH_ERR=res1['param_err']['feh'],
         VSINI=res1['vsini'] * auni.km / auni.s,
-        #        NEXP=len(specdata) // len(setups),
     )
 
     for i, curd in enumerate(specdata):
