@@ -410,6 +410,7 @@ def ccf_executor(spec_setup,
     nspec = specs.shape[0]
     rng = np.random.Generator(np.random.PCG64(44))
     inds = rng.permutation(np.arange(nspec))[:(nspec // every)]
+    # I randomly pickup the nspec//every spectra
     specs = specs[inds, :]
     vec = vec.T[inds, :]
     nspec = specs.shape[0]
