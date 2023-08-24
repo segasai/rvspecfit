@@ -125,7 +125,9 @@ def fit(specdata, config):
         ivar_fftconj[spec_setup] = ivar_fft.conj()
 
         cur_step = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
-        lspec = len(spec_fft)
+        lspec = len(proc_spec)
+        # Importantly this has to be length of the spectrum rather than
+        # length of the fft since we are using rfft
         cur_off = lspec // 2
         # this is the wrapping point
         cur_vels = -((np.arange(lspec) + cur_off) % lspec - cur_off) * cur_step
@@ -175,6 +177,7 @@ def fit(specdata, config):
             # we interpolate all the ccf from every arm
             # to the same velocity grid
         all_chisqs.append(cur_chisq)
+
     all_chisqs = np.array(all_chisqs)
     best_id = np.argmin(all_chisqs.min(axis=1))
     best_ccf = all_chisqs[best_id]
