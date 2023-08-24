@@ -95,7 +95,7 @@ def fit(specdata, config):
     proc_ivars = {}
     setups = []
     ccf_confs = []
-    if isinstance(specdata,SpecData):
+    if isinstance(specdata, SpecData):
         # if we got a single one put it in the list
         specdata = [specdata]
     for cursd in specdata:
