@@ -102,8 +102,8 @@ def pix_integrator(x1, x2, l1, l2, s):
 
 class ParamMapper:
     """
-    Class used to map stellar atmospheric parameters into more manageable grid
-    used for interpolation
+    Class used to map stellar atmospheric parameters into more suitable
+    space used for interpolation
     """
 
     def __init__(self):

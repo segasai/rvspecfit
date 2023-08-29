@@ -218,8 +218,9 @@ class SpecInterpolator:
         lam: ndarray
             Wavelength vector
         mapper: function
-            Function that does the mapping from scaled box parameters to
-            proper values
+            Function that does the mapping from external parameters to
+            internal represetnation, i.e. going from teff,logg to
+            logteff, logg
         parnames: tuple
             The list of parameter names ('logg', 'teff' ,.. ) etc
         revision: str
