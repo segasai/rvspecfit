@@ -244,7 +244,7 @@ def get_spec(params,
         1-D array of spectrum
     Example
     -------
-    >>> lam,spec=read_grid.get_spec(1,5250,-1,0.4)
+    >>> lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,met=-1,alpha=0.4))
 
     """
 
@@ -402,7 +402,7 @@ def rebin(lam0, spec0, newlam, resolution):
 
     Example
     -------
-    >>> lam,spec=read_grid.get_spec(1,5250,-1,0.4)
+    >>> lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,met=-1,alpha=0.4))
     >>> newlam = np.linspace(4000,9000,4000)
     >>> newspec=read_grid.rebin(lam, spec, newlam, 1800)
     """
