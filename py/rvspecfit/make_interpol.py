@@ -82,10 +82,7 @@ def initialize_matrix_cache(mat, lamgrid):
     si.lamgrid = lamgrid
 
 
-def extract_spectrum(logg,
-                     teff,
-                     feh,
-                     alpha,
+def extract_spectrum(param,
                      dbfile,
                      prefix,
                      wavefile,
@@ -98,14 +95,8 @@ def extract_spectrum(logg,
     Parameters
     -----------
 
-    logg: real
-        Surface gravity
-    teff: real
-        Effective Temperature
-    feh: real
-        Metallicity
-    alpha: real
-        Alpha/Fe
+    param: dict
+        The dictionary of key value pairs of parameters
     dbfile: string
         Path to the sqlite database
     prefix: string
@@ -116,10 +107,7 @@ def extract_spectrum(logg,
         Normalize the spectrum by a linear continuum
     """
 
-    lam, spec0 = read_grid.get_spec(logg,
-                                    teff,
-                                    feh,
-                                    alpha,
+    lam, spec0 = read_grid.get_spec(param,
                                     dbfile=dbfile,
                                     prefix=prefix,
                                     wavefile=wavefile)
@@ -138,8 +126,7 @@ def extract_spectrum(logg,
         spec2 = np.log(spec2)  # log the spectrum
     if not np.isfinite(spec2).all():
         raise RuntimeError('The spectrum is not finite (has nans or infs) at '
-                           'parameter values: %s' % str(
-                               (teff, logg, feh, alpha)))
+                           'parameter values: %s' % str(param))
     spec2 = spec2.astype(np.float32)
     return spec2, np.log(normnum)
 
@@ -176,23 +163,20 @@ def process_all(setupInfo,
         raise RuntimeError('The template database file %s does not exist' %
                            dbfile)
     conn = sqlite3.connect(dbfile)
-    cur = conn.execute('''select id, teff, logg, met, alpha from files
-    where not bad
-    order by teff,logg, met, alpha''')
-    tab = np.rec.fromrecords(cur.fetchall())
-    tab_id, tab_teff, tab_logg, tab_met, tab_alpha = (tab.f0, tab.f1, tab.f2,
-                                                      tab.f3, tab.f4)
-    ids = (tab_id).astype(int)
-    nspec = len(ids)
-    vec = np.array((tab_teff, tab_logg, tab_met, tab_alpha))
     parnames = ('teff', 'logg', 'feh', 'alpha')
+    parname_str = ','.join(list(parnames))
+    cur = conn.execute(f'''select id, {parname_str} from files
+    where not bad  order by f{parname_str}''')
+    tab = np.rec.fromrecords(cur.fetchall())
+    ids = tab['f0'].astype(int)
+
+    nspec = len(ids)
+    vec = np.array([tab['f%d' % _] for _ in range(1, len(parnames) + 1)])
     log_spec = True
     i = 0
 
-    templ_lam, spec = read_grid.get_spec(tab_logg[0],
-                                         tab_teff[0],
-                                         tab_met[0],
-                                         tab_alpha[0],
+    par0 = dict(zip(parnames, vec.T[0]))
+    templ_lam, spec = read_grid.get_spec(par0,
                                          dbfile=dbfile,
                                          prefix=prefix,
                                          wavefile=wavefile)
@@ -223,12 +207,13 @@ def process_all(setupInfo,
     else:
         pool = FakePool()
         initialize_matrix_cache(mat, lamgrid)
-    for curteff, curlogg, curfeh, curalpha in vec.T:
+    for curvec in vec.T:
         i += 1
+        param = zip(parnames, curvec)
         specs.append(
-            pool.apply_async(extract_spectrum,
-                             (curlogg, curteff, curfeh, curalpha, dbfile,
-                              prefix, wavefile, normalize, log_spec)))
+            pool.apply_async(
+                extract_spectrum,
+                (param, dbfile, prefix, wavefile, normalize, log_spec)))
     lam = lamgrid
     for i in range(len(specs)):
         print('%d/%d' % (i, len(specs)))

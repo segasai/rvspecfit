@@ -212,10 +212,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     DB.commit()
 
 
-def get_spec(logg,
-             temp,
-             met,
-             alpha,
+def get_spec(params,
              dbfile='/tmp/files.db',
              prefix='PHOENIX_PATH/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
              wavefile='PHOENIX_PATH/v2.0/HiResFITS/'
@@ -226,7 +223,7 @@ def get_spec(logg,
     ----------
     logg: real
         Surface gravity
-    temp: real
+    teff: real
         Temperature
     met: real
         [Fe/H]
@@ -253,18 +250,15 @@ def get_spec(logg,
 
     # We don't look for equality we look around the value with the following
     # deltas
-    deltalogg = 0.01
-    deltatemp = 1
-    deltaalpha = 0.01
-    deltamet = 0.01
 
-    query = '''select filename from files where
-    teff between %f and %f and
-    logg between %f and %f and
-    alpha between %f and %f and
-    met between %f and %f ''' % (
-        temp - deltatemp, temp + deltatemp, logg - deltalogg, logg + deltalogg,
-        alpha - deltaalpha, alpha + deltaalpha, met - deltamet, met + deltamet)
+    query = '''select filename from files where'''
+    for ii, k, v in enumerate(params.items()):
+        pad = 0.01
+        v1 = v - pad
+        v2 = v + pad
+        if ii > 0:
+            query += ' and '
+        query += (f'{k} between {v1} and {v2}')
 
     conn = sqlite3.connect(dbfile)
     cur = conn.cursor()
