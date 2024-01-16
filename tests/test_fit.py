@@ -1,4 +1,5 @@
 import os
+
 os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 import pytest
@@ -10,7 +11,9 @@ from rvspecfit import utils
 from rvspecfit import vel_fit
 from rvspecfit import spec_fit
 from rvspecfit import fitter_ccf
+
 path = str(pathlib.Path(__file__).parent.absolute())
+
 
 def test_config():
     with pytest.raises(RuntimeError):
@@ -22,6 +25,7 @@ def test_config():
     finally:
         os.chdir(cwd)
 
+
 def test_fit():
     config = utils.read_config(path + '/config.yaml')
 
@@ -29,7 +33,7 @@ def test_fit():
     dat = pyfits.getdata(path + '/data/spec-0266-51602-0031.fits')
     err = dat['ivar']
     err = 1. / err**.5
-    err[~np.isfinite(err)] = 1e40
+    err[~np.isfinite(err)] = 1e30
 
     # construct specdata object
     specdata = [

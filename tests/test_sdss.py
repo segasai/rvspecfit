@@ -24,7 +24,7 @@ def test_fits():
     dat = pyfits.getdata(path + '/data/spec-0266-51602-0031.fits')
     err = dat['ivar']
     err = 1. / err**.5
-    err[~np.isfinite(err)] = 1e40
+    err[~np.isfinite(err)] = 1e30
 
     # construct specdata object
     specdata = [
