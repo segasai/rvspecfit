@@ -199,7 +199,7 @@ def process_all(setupInfo,
                                          dbfile=dbfile,
                                          prefix=prefix,
                                          wavefile=wavefile)
-    mapper = read_grid.ParamMapper(log_parameters)
+    mapper = read_grid.LogParamMapper(log_parameters)
     HR, lamleft, lamright, resol_function, step, log = setupInfo
 
     deltav = 1000.  # extra padding

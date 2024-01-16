@@ -126,7 +126,7 @@ class LogParamMapper:
         ret: numpy array
             The vector of transformed parameters used in interpolation
         """
-        vec1 = np.array(vec)
+        vec1 = np.array(vec, dtype=np.float64)
         for i in self.log_ids:
             vec1[i] = np.log10(vec1[i])
         return vec1
@@ -148,7 +148,7 @@ class LogParamMapper:
         ret: numpy array
             The vector of original atmospheric parameters.
     """
-        vec1 = np.array(vec)
+        vec1 = np.array(vec, dtype=np.float64)
         for i in self.log_ids:
             vec1[i] = 10**(vec1[i])
         return vec1
