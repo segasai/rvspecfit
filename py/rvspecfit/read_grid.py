@@ -182,7 +182,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     else:
         extra_params = {}
     DB.execute(f'''CREATE TABLE files (filename varchar, teff real, logg real,
-        met real, alpha real,
+        feh real, alpha real,
         {extra_params_str}
         id int,
         bad bool);''')
@@ -221,14 +221,8 @@ def get_spec(params,
 
     Parameters
     ----------
-    logg: real
-        Surface gravity
-    teff: real
-        Temperature
-    met: real
-        [Fe/H]
-    alpha: real
-        [alpha/Fe]
+    params: dict
+        The dictionary of parameters
     dbfile: string
         The pathname to the database sqlite file of templates
     prefix: string
@@ -244,7 +238,7 @@ def get_spec(params,
         1-D array of spectrum
     Example
     -------
-    >>> lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,met=-1,alpha=0.4))
+    >>> lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,feh=-1,alpha=0.4))
 
     """
 
@@ -402,7 +396,7 @@ def rebin(lam0, spec0, newlam, resolution):
 
     Example
     -------
-    >>> lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,met=-1,alpha=0.4))
+    >>> lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,feh=-1,alpha=0.4))
     >>> newlam = np.linspace(4000,9000,4000)
     >>> newspec=read_grid.rebin(lam, spec, newlam, 1800)
     """
@@ -459,7 +453,7 @@ def main(args):
     keywords = dict(teff=args.keyword_teff,
                     logg=args.keyword_logg,
                     alpha=args.keyword_alpha,
-                    met=args.keyword_feh)
+                    feh=args.keyword_feh)
     if args.extra_params is None:
         extra_params = None
     else:
