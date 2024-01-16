@@ -100,14 +100,16 @@ def pix_integrator(x1, x2, l1, l2, s):
     return ret1, ret2
 
 
-class ParamMapper:
+class LogParamMapper:
     """
     Class used to map stellar atmospheric parameters into more suitable
     space used for interpolation
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, log_ids):
+        # Specify which parameter numbers to log() for
+        # interpolation
+        self.log_ids = log_ids
 
     def forward(self, vec):
         """
@@ -117,14 +119,17 @@ class ParamMapper:
         Parameters
         -----------
         vec: numpy array
-            The vector of atmospheric parameters Teff, logg, feh, alpha
+            The vector of atmospheric parameters i.e. Teff, logg, feh, alpha
 
         Returns
         ----------
         ret: numpy array
             The vector of transformed parameters used in interpolation
         """
-        return np.array([np.log10(vec[0]), vec[1], vec[2], vec[3]])
+        vec1 = np.array(vec)
+        for i in self.log_ids:
+            vec1[i] = np.log10(vec1[i])
+        return vec1
 
     def inverse(self, vec):
         """
@@ -143,7 +148,10 @@ class ParamMapper:
         ret: numpy array
             The vector of original atmospheric parameters.
     """
-        return np.array([10**vec[0], vec[1], vec[2], vec[3]])
+        vec1 = np.array(vec)
+        for i in self.log_ids:
+            vec1[i] = 10**(vec1[i])
+        return vec1
 
 
 def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',

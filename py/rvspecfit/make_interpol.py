@@ -149,7 +149,7 @@ class Resolution:
 
 
 def process_all(setupInfo,
-                postf='',
+                parnames=('teff', 'logg', 'feh', 'alpha'),
                 dbfile='/tmp/files.db',
                 oprefix='psavs/',
                 prefix=None,
@@ -158,12 +158,31 @@ def process_all(setupInfo,
                 resolution0=None,
                 normalize=True,
                 revision='',
-                nthreads=8):
+                nthreads=8,
+                log_parameters=None):
+    """
+    Process the whole library of spectra and prepare the pickle file
+    with arrays of convolved spectra, wavelength arrays, transformed
+    parameters
+    
+    Parameters
+    -----------
+    setupInfo: string
+        The name of spectral configuration
+    parnames: list of strings
+        The parameter names of spectra
+    log_parameters: integer positions of parameters that needs
+        to be log10() for interpolation. I.e. if the first parameter si teff
+        and we want to perform interpolation in log(teff) space
+        this needs to be [0]
+    air: boolean
+        Transform from vacuum to air
+    
+    """
     if not os.path.exists(dbfile):
         raise RuntimeError('The template database file %s does not exist' %
                            dbfile)
     conn = sqlite3.connect(dbfile)
-    parnames = ('teff', 'logg', 'feh', 'alpha')
     parname_str = ','.join(list(parnames))
     cur = conn.execute(f'''select id, {parname_str} from files
     where not bad  order by {parname_str}''')
@@ -180,7 +199,7 @@ def process_all(setupInfo,
                                          dbfile=dbfile,
                                          prefix=prefix,
                                          wavefile=wavefile)
-    mapper = read_grid.ParamMapper()
+    mapper = read_grid.ParamMapper(log_parameters)
     HR, lamleft, lamright, resol_function, step, log = setupInfo
 
     deltav = 1000.  # extra padding
@@ -281,6 +300,20 @@ def main(args):
                         help='The revision of the templates',
                         default='',
                         required=False)
+    parser.add_argument(
+        '--parameter_names',
+        type=str,
+        default='teff,logg,feh,alpha',
+        help=
+        'comma separated list of parameters defined to make the interpolator',
+        required=False)
+
+    parser.add_argument(
+        '--log_parameters',
+        type=str,
+        default='0',
+        help='Which parameters we are taking the log() of when interpolating',
+        required=False)
 
     parser.add_argument(
         '--resol_func',
@@ -365,8 +398,14 @@ def main(args):
     else:
         resol_func = Resolution(resol_func=args.resol_func)
 
+    log_parameters = [int(_) for _ in args.log_parameters.split(',')]
+
+    parnames = args.parameter_names.split(',')
+
     process_all((args.setup, args.lambda0, args.lambda1, resol_func, args.step,
                  args.log),
+                parnames=parnames,
+                log_parameters=log_parameters,
                 dbfile=args.templdb,
                 oprefix=args.oprefix,
                 prefix=args.templprefix,
