@@ -246,7 +246,7 @@ def get_spec(params,
     # deltas
 
     query = '''select filename from files where'''
-    for ii, k, v in enumerate(params.items()):
+    for ii, (k, v) in enumerate(params.items()):
         pad = 0.01
         v1 = v - pad
         v2 = v + pad
