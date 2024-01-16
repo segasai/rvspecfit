@@ -32,7 +32,7 @@ jobs:
           cd tests
           mkdir templ_data
           cd templ_data
-          wget -q -r -nd -np https://people.ast.cam.ac.uk/~koposov/files/rvspecfit_files/
+          wget -q -r -nd -np https://people.ast.cam.ac.uk/~koposov/files/rvspecfit_files/v2401/
           mv small_phoenix.tar.gz ../
           cd ..
           tar xfz small_phoenix.tar.gz
