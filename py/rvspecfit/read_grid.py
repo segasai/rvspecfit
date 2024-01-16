@@ -245,14 +245,14 @@ def get_spec(params,
     # We don't look for equality we look around the value with the following
     # deltas
 
-    query = '''select filename from files where'''
+    query = '''select filename from files where '''
     for ii, (k, v) in enumerate(params.items()):
         pad = 0.01
         v1 = v - pad
         v2 = v + pad
         if ii > 0:
             query += ' and '
-        query += (f'{k} between {v1} and {v2}')
+        query += (f' {k} between {v1} and {v2} ')
 
     conn = sqlite3.connect(dbfile)
     cur = conn.cursor()

@@ -209,7 +209,7 @@ def process_all(setupInfo,
         initialize_matrix_cache(mat, lamgrid)
     for curvec in vec.T:
         i += 1
-        param = zip(parnames, curvec)
+        param = dict(zip(parnames, curvec))
         specs.append(
             pool.apply_async(
                 extract_spectrum,
