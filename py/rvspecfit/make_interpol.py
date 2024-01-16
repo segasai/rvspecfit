@@ -166,7 +166,7 @@ def process_all(setupInfo,
     parnames = ('teff', 'logg', 'feh', 'alpha')
     parname_str = ','.join(list(parnames))
     cur = conn.execute(f'''select id, {parname_str} from files
-    where not bad  order by f{parname_str}''')
+    where not bad  order by {parname_str}''')
     tab = np.rec.fromrecords(cur.fetchall())
     ids = tab['f0'].astype(int)
 
