@@ -164,7 +164,7 @@ def process_all(setupInfo,
     Process the whole library of spectra and prepare the pickle file
     with arrays of convolved spectra, wavelength arrays, transformed
     parameters
-    
+
     Parameters
     -----------
     setupInfo: string
@@ -177,7 +177,7 @@ def process_all(setupInfo,
         this needs to be [0]
     air: boolean
         Transform from vacuum to air
-    
+
     """
     if not os.path.exists(dbfile):
         raise RuntimeError('The template database file %s does not exist' %
@@ -201,6 +201,11 @@ def process_all(setupInfo,
                                          wavefile=wavefile)
     mapper = read_grid.LogParamMapper(log_parameters)
     HR, lamleft, lamright, resol_function, step, log = setupInfo
+    if templ_lam.min() > lamleft or templ_lam.max() < lamright:
+        raise RuntimeError(f'''Cannot generate the spectra as the wavelength
+        range in the library does not cover the requested wavelengths
+        {lamleft} {lamright} {templ_lam.min()} {templ_lam.max()}
+        ''')
 
     deltav = 1000.  # extra padding
     fac1 = (1 + deltav / (scipy.constants.speed_of_light / 1e3))
@@ -304,8 +309,7 @@ def main(args):
         '--parameter_names',
         type=str,
         default='teff,logg,feh,alpha',
-        help=
-        'comma separated list of parameters defined to make the interpolator',
+        help='comma separated list of parameters to make the interpolator',
         required=False)
 
     parser.add_argument(
@@ -362,6 +366,7 @@ def main(args):
     parser.add_argument(
         '--wavefile',
         type=str,
+        required=True,
         help='The path to the fits file with the wavelength grid '
         'of templates')
     parser.add_argument('--resolution0',

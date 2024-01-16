@@ -85,6 +85,8 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
 
     vec = vec.astype(float)
     vec = mapper.forward(vec)
+    if not np.isfinite(vec.sum()):
+        raise RuntimeError('Something is broken the parameters are not finite')
     ndim = len(vec[:, 0])
     ret_dict = {}
 
