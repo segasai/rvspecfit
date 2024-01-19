@@ -34,7 +34,7 @@ def get_ccf_info(spec_setup, config):
 
     """
     if spec_setup not in CCFCache.ccfs:
-        prefix = config['template_lib']
+        prefix = config['template_lib'] + '/'
         ccf_continuum = config.get('ccf_continuum_normalize')
         if ccf_continuum is None:
             ccf_continuum = True

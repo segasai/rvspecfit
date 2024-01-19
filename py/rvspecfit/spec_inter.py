@@ -294,7 +294,7 @@ def getInterpolator(HR, config, warmup_cache=False):
     """
     if HR not in interp_cache.interps:
 
-        savefile = config['template_lib'] + make_nd.INTERPOL_PKL_NAME % HR
+        savefile = config['template_lib'] + '/' + make_nd.INTERPOL_PKL_NAME % HR
         with open(savefile, 'rb') as fd0:
             fd = pickle.load(fd0)
         log_spec = fd.get('log_spec') or True
@@ -314,7 +314,7 @@ def getInterpolator(HR, config, warmup_cache=False):
                 raise RuntimeError('Unrecognized interpolation file')
 
         if interp_type in ['triangulation', 'regulargrid']:
-            dats = np.load(config['template_lib'] +
+            dats = np.load(config['template_lib'] + '/' +
                            make_nd.INTERPOL_DAT_NAME % HR,
                            mmap_mode='r')
             if warmup_cache:
