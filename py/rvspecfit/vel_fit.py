@@ -517,7 +517,7 @@ def process(specdata,
         'vsini': 10,
         'logg': 1,
         'feh': 0.1,
-        'alpha': 1,
+        'alpha': .1,
         'teff': 100,
         'vrad': 10,
     }[_] for _ in specParamNames]
