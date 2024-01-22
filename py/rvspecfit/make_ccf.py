@@ -177,7 +177,14 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
         cont = np.maximum(cont, 1e-2 * np.median(cont))
     else:
         cont = 1
-    c_model = scipy.interpolate.interp1d(np.log(lammodel), m / cont)(logl)
+    if (not (lammodel[0] < logl[0] < lammodel[-1])) or (
+            not (lammodel[0] < logl[-1] < lammodel[-1])):
+        logging.warning('''The required wavelength range is bigger than the '''
+                        '''template wavelengths''')
+    c_model = scipy.interpolate.interp1d(np.log(lammodel),
+                                         m / cont,
+                                         bounds_error=False,
+                                         fill_value=1)(logl)
     return c_model
 
 
@@ -405,6 +412,7 @@ def ccf_executor(spec_setup,
         D = pickle.load(fp)
         vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D[
             'parnames']
+        log_spec = D['log_spec']
         del D
 
     nspec = specs.shape[0]
@@ -412,11 +420,13 @@ def ccf_executor(spec_setup,
     inds = rng.permutation(np.arange(nspec))[:(nspec // every)]
     # I randomly pickup the nspec//every spectra
     specs = specs[inds, :]
+    if log_spec:
+        specs = np.exp(specs)
     vec = vec.T[inds, :]
     nspec = specs.shape[0]
 
     models, params, vsinis = preprocess_model_list(lam,
-                                                   np.exp(specs),
+                                                   specs,
                                                    vec,
                                                    ccfconf,
                                                    vsinis=vsinis)
