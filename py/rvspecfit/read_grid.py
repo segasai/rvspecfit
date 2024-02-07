@@ -91,13 +91,16 @@ def pix_integrator(x1, x2, l1, l2, s):
     Results
     -------
     ret: tuple of ndarray
-        Two weights for the integral (a,b) i.e. if the fluxes at x1,x2 are
-        f1,f2 the result is a*f1+b*f2
+        Two weights for the integral (c1,c2) i.e. if the fluxes at x1,x2 are
+        f1, f2 the integral is c1*f1+c2*f2
 
     """
-    ret1 = gau_integrator(1 / (x1 - x2), -x2 / (x1 - x2), x1, x2, l1, l2, s)
-    ret2 = gau_integrator(1 / (x2 - x1), -x1 / (x2 - x1), x1, x2, l1, l2, s)
-    return ret1, ret2
+    # the reason for two integrations because we have a function
+    # (f1*(-x+x2)+ f2*(x-x1))/(x2-x1)
+    #
+    coeff1 = gau_integrator(-1. / (x2 - x1), x2 / (x2 - x1), x1, x2, l1, l2, s)
+    coeff2 = gau_integrator(1. / (x2 - x1), -x1 / (x2 - x1), x1, x2, l1, l2, s)
+    return coeff1, coeff2
 
 
 class LogParamMapper:
