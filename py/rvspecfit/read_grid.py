@@ -40,13 +40,13 @@ def gau_integrator(A, B, x1, x2, l1, l2, s):
     Erf = scipy.special.erf
     Pi = np.pi
     return (-((Sqrt(2 / Pi) * s *
-               (2 * B + A * (l1 + x1))) / E**((l1 - x1)**2 / (2. * s**2))) +
-            (Sqrt(2 / Pi) * s * (2 * B + A * (l2 + x1))) / E**((l2 - x1)**2 /
+               (2 * B + A * (l1 + x1))) * E**(-(l1 - x1)**2 / (2. * s**2))) +
+            (Sqrt(2 / Pi) * s * (2 * B + A * (l2 + x1))) * E**(-(l2 - x1)**2 /
                                                                (2. * s**2)) +
-            (Sqrt(2 / Pi) * s * (2 * B + A * (l1 + x2))) / E**((l1 - x2)**2 /
+            (Sqrt(2 / Pi) * s * (2 * B + A * (l1 + x2))) * E**(-(l1 - x2)**2 /
                                                                (2. * s**2)) -
             (Sqrt(2 / Pi) * s *
-             (2 * B + A * (l2 + x2))) / E**((l2 - x2)**2 / (2. * s**2)) + x1 *
+             (2 * B + A * (l2 + x2))) * E**(-(l2 - x2)**2 / (2. * s**2)) + x1 *
             (2 * B + A * x1) * Erf(
                 (l1 - x1) / (Sqrt(2) * s)) - x1 * (2 * B + A * x1) * Erf(
                     (l2 - x1) / (Sqrt(2) * s)) + 2 * B * l1 * Erf(
@@ -98,8 +98,15 @@ def pix_integrator(x1, x2, l1, l2, s):
     # the reason for two integrations because we have a function
     # (f1*(-x+x2)+ f2*(x-x1))/(x2-x1)
     #
-    coeff1 = gau_integrator(-1. / (x2 - x1), x2 / (x2 - x1), x1, x2, l1, l2, s)
-    coeff2 = gau_integrator(1. / (x2 - x1), -x1 / (x2 - x1), x1, x2, l1, l2, s)
+    offset = x1
+    # I put in offset, as integration is ambivalent to offsets, but
+    # gau_integrator has numerical issues when x1,x2 is large
+    coeff1 = gau_integrator(-1. / (x2 - x1), (x2 - offset) / (x2 - x1),
+                            x1 - offset, x2 - offset, l1 - offset, l2 - offset,
+                            s)
+    coeff2 = gau_integrator(1. / (x2 - x1), -(x1 - offset) / (x2 - x1),
+                            x1 - offset, x2 - offset, l1 - offset, l2 - offset,
+                            s)
     return coeff1, coeff2
 
 
