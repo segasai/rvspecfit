@@ -286,6 +286,13 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
     curInterp = spec_inter.getInterpolator(spec_setup, config)
     outside = float(curInterp.outsideFlag(atm_param))
     spec = curInterp.eval(atm_param)
+
+    MAX_VAL = 1e100
+    # DO NOT allow spectra that have values larger than MAX_VAL
+    if outside > 0:
+        maxspec = np.abs(spec).max()
+        if maxspec > MAX_VAL or not np.isfinite(maxspec):
+            outside = np.nan
     if not np.isfinite(outside):
         # The spectrum may be completely crap
         pass
@@ -618,7 +625,7 @@ def get_chisq(specdata,
         # add bad value and bail out
 
         if not np.isfinite(outside):
-            logl += badchi
+            logl += 1000 * badchi
             chisq_array.append(np.nan)
             red_chisq_array.append(np.nan)
             models.append(np.zeros(len(curdata.lam)) + np.nan)
