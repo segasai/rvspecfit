@@ -14,10 +14,27 @@ if [ -f $1 ] ; then
 update files set bad=true where (alpha+0.4)<0.01 and teff<4500;
 update files set bad=true where 
        abs(teff-3100)<1 and abs(logg-3)<0.01    and 
-       abs(met+.5)<0.01 and  abs(alpha-1.2)<0.01 ;
+       abs(feh+.5)<0.01 and  abs(alpha-1.2)<0.01 ;
 update files set bad=true where 
        abs(teff-3700)<1 and abs(logg-4)<0.01    and 
-       abs(met-.5)<0.01 and  abs(alpha-1.2)<0.01 ;
+       abs(feh-.5)<0.01 and  abs(alpha-1.2)<0.01 ;
+
+update files set bad=true where 
+       abs(teff-2500)<1 and abs(logg-3)<0.01    and 
+       abs(feh-1)<0.01 and  abs(alpha-1.2)<0.01 ;
+
+update files set bad=true where 
+       abs(teff-2900)<1 and abs(logg-1.5)<0.01    and 
+       abs(feh+1)<0.01 and  abs(alpha-0.6)<0.01 ;
+
+update files set bad=true where 
+       abs(teff-3000)<1 and abs(logg-2)<0.01    and 
+       abs(feh+.5)<0.01 and  abs(alpha-0.6)<0.01 ;
+
+update files set bad=true where 
+       abs(teff-3000)<1 and abs(logg-2.5)<0.01    and 
+       abs(feh-0)<0.01 and  abs(alpha-0.6)<0.01 ;
+
  '| sqlite3 $2
     }  ; else {
     echo ' the first argument needs to be an sqlite db'
