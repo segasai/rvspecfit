@@ -177,8 +177,8 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
         cont = np.maximum(cont, 1e-2 * np.median(cont))
     else:
         cont = 1
-    if (not (lammodel[0] < logl[0] < lammodel[-1])) or (
-            not (lammodel[0] < logl[-1] < lammodel[-1])):
+    if (not (lammodel[0] <= logl[0] <= lammodel[-1])) or (
+            not (lammodel[0] <= logl[-1] <= lammodel[-1])):
         logging.warning('''The required wavelength range is bigger than the '''
                         '''template wavelengths''')
     c_model = scipy.interpolate.interp1d(np.log(lammodel),
