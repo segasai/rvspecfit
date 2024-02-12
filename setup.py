@@ -50,7 +50,9 @@ setup(
     license="BSD",
     keywords="stellar spectra radial velocity",
     url="http://github.com/segasai/rvspecfit",
-    packages=['rvspecfit', 'rvspecfit/desi', 'rvspecfit/weave'],
+    packages=[
+        'rvspecfit', 'rvspecfit/desi', 'rvspecfit/weave', 'rvspecfit/nn'
+    ],
     scripts=[fname for fname in glob.glob(os.path.join('bin', '*'))],
     zip_safe=False,
     package_dir={'': 'py/'},

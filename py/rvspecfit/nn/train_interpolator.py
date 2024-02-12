@@ -9,7 +9,7 @@ import torch.nn.functional as tofu
 import sklearn.decomposition as skde
 import numpy as np
 import torch
-from NNInterpolator import Mapper, NNInterpolator
+from .NNInterpolator import Mapper, NNInterpolator
 
 git_rev = rvspecfit.__version__
 
@@ -323,10 +323,10 @@ def main(args):
             'log_spec': True,
             'logstep': True,
             'module': 'rvspecfit.nn.RVSInterpolator',
-            'class_name': 'rvspecfit.nn.RVSInterpolator',
+            'class_name': 'RVSInterpolator',
             'device': device_name,
             'class_kwargs': kwargs,
-            'outside_class_name': 'rvspecfit.nn.OutsideInterpolator',
+            'outside_class_name': 'OutsideInterpolator',
             'outside_kwargs': dict(pts=vecs),
             'nn_file': finalfile,
             'revision': revision,

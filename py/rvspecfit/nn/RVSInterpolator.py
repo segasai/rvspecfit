@@ -1,4 +1,4 @@
-import NNInterpolator
+from . import NNInterpolator
 import torch
 import scipy.spatial
 import numpy as np
