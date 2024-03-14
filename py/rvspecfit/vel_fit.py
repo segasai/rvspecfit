@@ -514,12 +514,12 @@ def process(specdata,
         return hess_func(p, best_param_TMP, args)
 
     hess_step = [{
-        'vsini': 10,
-        'logg': 1,
+        'vsini': 1,
+        'logg': 0.1,
         'feh': 0.1,
-        'alpha': .1,
-        'teff': 100,
-        'vrad': 10,
+        'alpha': .01,
+        'teff': 10,
+        'vrad': 1,
     }[_] for _ in specParamNames]
     hess_step = ndf.MinStepGenerator(base_step=hess_step, step_ratio=10)
     hessian = ndf.Hessian(hess_func_wrap, step=hess_step)(
