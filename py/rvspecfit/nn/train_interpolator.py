@@ -116,7 +116,7 @@ def main(args):
     tD_0 = torch.tensor(D_0)
     tSD_0 = torch.tensor(SD_0)
     nspec, npix = dats.shape
-    ids = np.arange(nspec)
+    # ids = np.arange(nspec)
     print(npix, nspec)
 
     if args.mask_ids is not None:
@@ -129,7 +129,7 @@ def main(args):
     nlayers = args.nlayers
     npc = args.npc
     lr0 = args.learning_rate0
-    nstack = 1
+    # nstack = 1
     batch = args.batch
     validation_frac = 0.05
     validation = args.validation
@@ -209,7 +209,7 @@ def main(args):
     losses = []
     counter = 0  # global counter
     deltat = 0
-    divstep = 0
+    # divstep = 0
     regul_eps = 0
     minlr = 1e-8
     batch_move = True
@@ -240,7 +240,7 @@ def main(args):
                     Tvecs = Tvecs.to(train_dev)
                 if batch_move:
                     optim.zero_grad()
-                Rfinal = myint(Tvecs) * tSD_0 + tD_0
+                # Rfinal = myint(Tvecs) * tSD_0 + tD_0
                 RfinalX = myint(Tvecs0) * tSD_0 + tD_0
                 if regul_eps > 0:
                     regul = regul_eps * torch.sum(
@@ -282,7 +282,7 @@ def main(args):
                   'regul %.5f' % regul_V, 'val %.5f' % val_loss, 'lr', curlr,
                   'time', deltat)
             loss_V = loss0_V + regul_V
-            lastloss = loss_V
+            # lastloss = loss_V
             losses.append(loss_V)
             # if counter > 10:
             #    # TEMP
@@ -313,7 +313,7 @@ def main(args):
         DD['vecs_orig'] = vecs_orig
     if os.path.exists(statefile_path):
         os.unlink(statefile_path)
-    import rvspecfit.nn.RVSInterpolator
+    import rvspecfit.nn.RVSInterpolator  # noqa
 
     with open(f'{directory}/interp_{setup}.pkl', 'wb') as fp:
         D = {
