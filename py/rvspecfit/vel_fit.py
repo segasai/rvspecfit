@@ -343,6 +343,10 @@ def process(specdata,
         Dictionary of options
     config: dict
         Configuration dictionary
+    priors: dict (optional)
+        Extra dictionary with Normal priors on paramaters
+        I.e. {'teff':(5000,10)} for N(5000,10) prior on the
+        effective temperature
     resolParams: tuple
         Tuple of parameters for the resolution of current spectrum.
 
