@@ -96,7 +96,8 @@ def get_zbest_fname(fname):
 def get_prim_header(versions={},
                     config=None,
                     cmdline=None,
-                    spectrum_header=None):
+                    spectrum_header=None,
+                    zbest_path=None):
     """ Return the Primary HDU with various info in the header
 
     """
@@ -113,7 +114,7 @@ def get_prim_header(versions={},
         header['RVS_CONF'] = config['config_file_path']
     if cmdline is not None:
         header['RVS_CMD'] = cmdline
-
+    header['RR_FILE'] = (zbest_path or '', 'Redrock redshift file')
     # keywords to copy from the header of the spectrum
     copy_keys = [
         'SPGRP', 'SPGRPVAL', 'TILEID', 'SPECTRO', 'PETAL', 'NIGHT', 'EXPID',
@@ -935,7 +936,8 @@ def proc_desi(fname,
             header=get_prim_header(versions=versions,
                                    config=config,
                                    cmdline=cmdline,
-                                   spectrum_header=spectrum_header))
+                                   spectrum_header=spectrum_header,
+                                   zbest_path=zbest_path))
     ]
 
     for curs in setups:
@@ -951,8 +953,10 @@ def proc_desi(fname,
 
     assert (len(fibermap_subset_hdu.data) == len(outtab))
     outtab_hdus = [
-        pyfits.PrimaryHDU(header=get_prim_header(
-            versions=versions, config=config, cmdline=cmdline)),
+        pyfits.PrimaryHDU(header=get_prim_header(versions=versions,
+                                                 config=config,
+                                                 cmdline=cmdline,
+                                                 zbest_path=zbest_path)),
         comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'), columnDesc),
         fibermap_subset_hdu, scores_subset_hdu
     ]
