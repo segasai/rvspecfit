@@ -823,7 +823,7 @@ def proc_desi(fname,
                 'does not match the size of the fibermap; file %s; skipping...'
             ) % (_, fname))
             return -1
-    if zbest_select:
+    if zbest_select or zbest_include:
         zbest_path, zbest_ext = get_zbest_fname(fname)
     else:
         zbest_path, zbest_ext = None, None
