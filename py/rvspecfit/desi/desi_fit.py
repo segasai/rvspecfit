@@ -555,7 +555,8 @@ def select_fibers_to_fit(fibermap,
             logging.warning(
                 'zbest selection requested, but the zbest file not found')
         else:
-            selecting_by_zbest = True
+            if zbest_select:
+                selecting_by_zbest = True
             logging.info('Using zbest file %s', zbest_path)
             zb = atpy.Table().read(zbest_path, format='fits', hdu=zbest_ext)
             rr_spectype = zb['SPECTYPE']
