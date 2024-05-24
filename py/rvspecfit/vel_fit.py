@@ -525,7 +525,7 @@ def process(specdata,
         'teff': 10,
         'vrad': 1,
     }[_] for _ in specParamNames]
-    hess_step = ndf.MinStepGenerator(base_step=hess_step, step_ratio=10)
+    hess_step = ndf.MaxStepGenerator(base_step=hess_step)
     hessian = ndf.Hessian(hess_func_wrap, step=hess_step)(
         [ret['param'][_] for _ in specParamNames])
     try:
