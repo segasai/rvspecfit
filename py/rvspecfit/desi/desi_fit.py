@@ -470,7 +470,8 @@ def select_fibers_to_fit(fibermap,
                          objtypes=None,
                          expid_range=None,
                          fit_targetid=None,
-                         zbest_select=False):
+                         zbest_select=False,
+                         zbest_include=False):
     """ Identify fibers to fit
 
     Parameters
@@ -548,7 +549,7 @@ def select_fibers_to_fit(fibermap,
     selecting_by_zbest = False
     rr_z = None
     rr_spectype = None
-    if zbest_select:
+    if zbest_select or zbest_include:
         if zbest_path is None:
             logging.warning(
                 'zbest selection requested, but the zbest file not found')
@@ -722,6 +723,7 @@ def proc_desi(fname,
               fitarm=None,
               cmdline=None,
               zbest_select=False,
+              zbest_include=False,
               ccfinit=True,
               npoly=10):
     """
@@ -824,15 +826,17 @@ def proc_desi(fname,
         zbest_path, zbest_ext = get_zbest_fname(fname)
     else:
         zbest_path, zbest_ext = None, None
-    subset, rr_z, rr_spectype = select_fibers_to_fit(fibermap,
-                                                     sns,
-                                                     minsn=minsn,
-                                                     objtypes=objtypes,
-                                                     expid_range=expid_range,
-                                                     fit_targetid=fit_targetid,
-                                                     zbest_path=zbest_path,
-                                                     zbest_ext=zbest_ext,
-                                                     zbest_select=zbest_select)
+    subset, rr_z, rr_spectype = select_fibers_to_fit(
+        fibermap,
+        sns,
+        minsn=minsn,
+        objtypes=objtypes,
+        expid_range=expid_range,
+        fit_targetid=fit_targetid,
+        zbest_path=zbest_path,
+        zbest_ext=zbest_ext,
+        zbest_select=zbest_select,
+        zbest_include=zbest_include)
 
     # skip if no need to fit anything
     if not (subset.any()):
@@ -1150,6 +1154,7 @@ def proc_many(files,
               fitarm=None,
               cmdline=None,
               zbest_select=False,
+              zbest_include=False,
               ccfinit=True,
               subdirs=True,
               ccf_continuum_normalize=True,
@@ -1263,6 +1268,7 @@ def proc_many(files,
                       fitarm=fitarm,
                       cmdline=cmdline,
                       zbest_select=zbest_select,
+                      zbest_include=zbest_include,
                       process_status_file=process_status_file,
                       npoly=npoly,
                       ccfinit=ccfinit,
@@ -1416,6 +1422,12 @@ def main(args):
 only potentially interesting targets''',
         action='store_true',
         default=False)
+    parser.add_argument(
+        '--zbest_include',
+        help='''If enabled the code will include the zbest/redrock info \
+in the table (but will not use for selection)''',
+        action='store_true',
+        default=False)
 
     parser.add_argument('--doplot',
                         help='Make plots',
@@ -1469,6 +1481,7 @@ only potentially interesting targets''',
     config_fname = args.config
     doplot = args.doplot
     zbest_select = args.zbest_select
+    zbest_include = args.zbest_include
     minsn = args.minsn
     objtypes = args.objtypes
     if objtypes is not None:
@@ -1549,6 +1562,7 @@ only potentially interesting targets''',
         fitarm=fitarm,
         cmdline=cmdline,
         zbest_select=zbest_select,
+        zbest_include=zbest_include,
         ccf_continuum_normalize=ccf_continuum_normalize,
         ccfinit=ccfinit,
         npoly=npoly,
