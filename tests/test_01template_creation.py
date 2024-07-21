@@ -5,6 +5,7 @@ import rvspecfit.read_grid
 import rvspecfit.make_ccf
 import rvspecfit.make_interpol
 import rvspecfit.regularize_grid
+import rvspecfit.nn.train_interpolator
 
 path = str(pathlib.Path(__file__).parent.absolute())
 
@@ -25,10 +26,13 @@ def run_script(script):
             rvspecfit.read_grid.main(args[1:])
         if script_name == 'rvs_regularize_grid':
             rvspecfit.regularize_grid.main(args[1:])
+        if script_name == 'rvs_train_nn_interpolator':
+            rvspecfit.nn.train_interpolator.main(args[1:])
 
 
 def test_scripts():
     run_script(path + '/make_templ.sh')
-    run_script(path + '/make_templ1.sh')
+    run_script(path + '/make_templ_regul.sh')
+    run_script(path + '/make_templ_nn.sh')
     run_script(path + '/gen_test_templ_grid.sh')
     run_script(path + '/gen_test_templ.sh')
