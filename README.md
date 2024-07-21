@@ -86,7 +86,9 @@ This requires running
 ```
 $ rvs_train_nn_interpolator  --dir ${PREFIX}/ --setup myconf
 ```
-
+instead of rvs_make_nd. 
+When doing the fitting, you may also set this
+environmental variable RVS_NN_DEVICE=cpu to force the code to run on cpu.
 
 * Making the cross-correlation files
 
@@ -231,7 +233,8 @@ To run on DESI data use rvs_desi_fit or rvs_weave_fit
 
 By default rvspecfit uses the multi-dimensional linear interpolation with Delaunay 
 triangulation. It also supports the multilinear interpolation if 
-the input grid is organized as a true n-D grid without gaps
+the input grid is organized as a true n-D grid without gaps.
+The alternative interpolation method is Neural Network based.
 
 ## Other template libraries
 
