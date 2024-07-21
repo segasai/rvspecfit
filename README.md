@@ -16,18 +16,21 @@ If something doesn't quite work, I'm happy to help
 Dependencies: 
 numpy, scipy, astropy, pyyaml, matplotlib, numdifftools, pandas
 
+Optional: torch, scikit-learn
+
+
 # Introduction
 
-The code here can perform radial velocity fitting and general spectral fitting 
-with templated to any spectroscopic data.
+The code here can perform radial velocity fitting and general spectral fitting
+with interpolated templates to any spectroscopic data.
 To get started you will need to
 
 * Install rvspecfit 
 * Download PHOENIX library 
-* Create PHOENIX processed files for your spectral configuration (such as spectra convolved to the 
-resolution of your instrument and interpolation files)
+* Create PHOENIX processed files for your spectral configuration. This involves convolving spectra to
+resolution of your instrument and producing interpolators.
 * Create a configuration file 
-* Run the code 
+* Run the code
 
 
 ## Installation
@@ -36,6 +39,7 @@ To install you can just do can just do
 `
  pip install https://github.com/segasai/rvspecfit/archive/master.zip
 `
+
 which will install the latest version
 
 
@@ -47,7 +51,7 @@ The library is avialable here https://phoenix.astro.physik.uni-goettingen.de/v2.
 wget -r -np -l 10 https://phoenix.astro.physik.uni-goettingen.de/data/v2.0/HiResFITS/
 `
 
-## Preparation of PHOENIX library
+## Preparation of PHOENIX templates
 
 The preparation requires several steps (you can find several examples of these steps in the surveys folder, i.e surveys/sdss/make_sdss.sh surveys/desi/make_desi.sh which prepare rvspecfit for processing SDSS or DESI spectra).
 
@@ -59,8 +63,10 @@ This is done with
 ```
 $ rvs_read_grid --prefix $PATH/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
 ```
+Some templates may be marked as bad there if you wish.
 
-* Making interpolated spectra for your spectral configuration (if your instrument has multiple arms, you will need to run this once for each arm)
+* Making interpolated spectra for your spectral configuration.
+If your instrument has multiple arms (i.e. blur/red), you will need to run this once for each arm.
 
 ```
 $ rvs_make_interpol --setup myconf --lambda0 4000 --lambda1 5000 \
@@ -71,7 +77,6 @@ $ rvs_make_interpol --setup myconf --lambda0 4000 --lambda1 5000 \
 That will create the spectral configuration called myconf for spectra with wavelength range of 4000 to 5000, step 0.5 Angstrom and resolution being 1000+2*x (where x is wavelength in Angstroms). It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum. TEMPLPREF is the path to the PHOENIX library.
 
 This step can take up to an hour, depending on your machine.
-
 
 * Making the n-d interpolator.
 That requires the path to the files created at previous step.
