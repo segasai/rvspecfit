@@ -4,42 +4,6 @@ from collections import OrderedDict
 import numpy as np
 
 
-class BigInterpolator(tonn.Module):
-
-    def __init__(self,
-                 indim=None,
-                 nlayers=None,
-                 width=None,
-                 npc=None,
-                 npix=None,
-                 nstack=None):
-        super(BigInterpolator, self).__init__()
-        self.stacks = tonn.ModuleList()
-        self.nstack = nstack
-        self.nlayers = nlayers
-        self.indim = indim
-        self.npix = npix
-        self.width = width
-        self.npc = npc
-        self.initLayers()
-
-    def initLayers(self):
-        for i in range(self.nstack):
-            curint = NNInterpolator(indim=self.indim,
-                                    nlayers=self.nlayers,
-                                    width=self.width,
-                                    npc=self.npc,
-                                    npix=self.npix)
-            self.stacks.append(curint)
-
-            # self.add_module('stack%d' % i, curint)
-
-    def forward(self, x):
-        mylist = [s(x) for s in self.stacks]
-        ret = torch.stack(mylist, dim=0).sum(dim=0)
-        return ret
-
-
 class NNInterpolator(tonn.Module):
 
     def __init__(self,
