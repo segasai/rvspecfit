@@ -23,4 +23,4 @@ $RVS_MAKE_INTERPOL --air --setup $BNAME --lambda0 $BLAM0 --lambda1 $BLAM1 --reso
 
 $RVS_MAKE_ND --prefix ${PREFIX}/ --setup $BNAME
 
-$RVS_MAKE_CCF --setup $BNAME --lambda0 $BLAM0 --lambda1 $BLAM1  --every 3 --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $BSTEP
+$RVS_MAKE_CCF --nthreads 1 --setup $BNAME --lambda0 $BLAM0 --lambda1 $BLAM1  --every 3 --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $BSTEP
