@@ -72,11 +72,21 @@ That will create the spectral configuration called myconf for spectra with wavel
 
 This step can take up to an hour, depending on your machine.
 
+
 * Making the n-d interpolator.
 That requires the path to the files created at previous step.
 ```
 $ rvs_make_nd --prefix ${PREFIX}/ --setup myconf --revision=v2020x
 ```
+This will create either a polylinear interpolator or Linear interpolator within Voronoi cells.
+
+* Neural network interpolator
+An alternative to polylinear interpolator is a neural network based interpolator.
+This requires running
+```
+$ rvs_train_nn_interpolator  --dir ${PREFIX}/ --setup myconf
+```
+
 
 * Making the cross-correlation files
 
