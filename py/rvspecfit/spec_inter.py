@@ -237,7 +237,7 @@ class SpecInterpolator:
         self.interper = interper
         self.extraper = extraper
         self.mapper = mapper
-        self.parnames = parnames
+        self.parnames = tuple(parnames)
         self.revision = revision
         self.filename = filename
         self.creation_soft_version = creation_soft_version
