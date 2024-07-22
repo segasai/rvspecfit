@@ -70,7 +70,14 @@ class SpecData:
     Class describing a single spectrocopic dataset
     '''
 
-    def __init__(self, name, lam, spec, espec, badmask=None, resolution=None):
+    def __init__(self,
+                 name,
+                 lam,
+                 spec,
+                 espec,
+                 badmask=None,
+                 resolution=None,
+                 dtype=np.float64):
         '''
         Construct the spectroscopic dataset
 
@@ -91,12 +98,12 @@ class SpecData:
         '''
         self.fd = {}
         self.fd['name'] = name
-        self.fd['lam'] = np.ascontiguousarray(lam, dtype=np.float64)
-        self.fd['spec'] = np.ascontiguousarray(spec, dtype=np.float64)
-        self.fd['espec'] = np.ascontiguousarray(espec, dtype=np.float64)
+        self.fd['lam'] = np.ascontiguousarray(lam, dtype=dtype)
+        self.fd['spec'] = np.ascontiguousarray(spec, dtype=dtype)
+        self.fd['espec'] = np.ascontiguousarray(espec, dtype=dtype)
         self.fd['resolution'] = resolution
         self.fd['spec_error_ratio'] = np.ascontiguousarray(spec / espec,
-                                                           dtype=np.float64)
+                                                           dtype=dtype)
         if badmask is None:
             badmask = np.zeros(len(spec), dtype=bool)
         self.fd['badmask'] = badmask
