@@ -335,12 +335,11 @@ def getInterpolator(HR, config, warmup_cache=False):
         elif interp_type == 'generic':
             mod_name = fd['module']
             class_name = fd['class_name']
-            outside_class = fd['outside_class_name']
+            outside_class_name = fd['outside_class_name']
             mod = importlib.import_module(mod_name)
             fd['template_lib'] = config['template_lib']
             interper = getattr(mod, class_name)(fd)
-            extraper = getattr(mod, outside_class)(fd)
-            # NOT FINISHED implementation of a generic interpolation function
+            extraper = getattr(mod, outside_class_name)(fd)
         else:
             raise RuntimeError('Unrecognized interpolation file')
 
