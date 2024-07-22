@@ -242,6 +242,11 @@ class SpecInterpolator:
         self.filename = filename
         self.creation_soft_version = creation_soft_version
         self.logstep = logstep
+        self.objid = hash((self.name, self.parnames, self.revision,
+                           self.filename, self.creation_soft_version))
+
+    def __hash__(self):
+        return self.objid
 
     def outsideFlag(self, param0):
         """Check if the point is outside the interpolation grid
@@ -294,7 +299,8 @@ def getInterpolator(HR, config, warmup_cache=False):
     """
     if HR not in interp_cache.interps:
 
-        savefile = config['template_lib'] + '/' + make_nd.INTERPOL_PKL_NAME % HR
+        savefile = (config['template_lib'] + '/' +
+                    make_nd.INTERPOL_PKL_NAME % HR)
         with open(savefile, 'rb') as fd0:
             fd = pickle.load(fd0)
         log_spec = fd.get('log_spec') or True
