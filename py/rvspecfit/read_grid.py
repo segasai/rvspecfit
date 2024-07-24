@@ -9,6 +9,7 @@ import scipy.sparse
 import numpy as np
 import argparse
 import itertools
+import warnings
 
 
 def gau_integrator(A, B, x1, x2, l1, l2, s):
@@ -334,6 +335,7 @@ def make_rebinner(lam00,
     xs = []
     ys = []
     vals = []
+    size_warning = False
     for i in range(len(lam)):
         # we iterate over the output pixels
         curlam = lam[i]
@@ -353,6 +355,13 @@ def make_rebinner(lam00,
 
         left = np.searchsorted(lam0, curl0) - 1
         right = np.searchsorted(lam0, curl1)
+        if left < 0:
+            size_warning = True
+            left = 0
+        if right > len(lam0) - 2:
+            size_warning = True
+            right = len(lam0) - 2
+        # I limit by the edges of the input spectrum
 
         curx = np.arange(left, right + 1)
         # these are pixel positions in the input template that
@@ -376,7 +385,10 @@ def make_rebinner(lam00,
         xs.append(curx + 1)
         vals.append(coeff2 / curstep)
         # we divide by the step to preserve the units of 'per wavelength'
-
+    if size_warning:
+        warnings.warn(
+            'The input spectrum is not wide enough to do LSF convolution. '
+            'The edges of the spectrum will be corrupted.')
     xs = np.concatenate(xs)
     ys = np.concatenate(ys)
     vals = np.concatenate(vals)
