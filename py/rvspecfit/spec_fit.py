@@ -550,7 +550,7 @@ def _overlap_check(templ_l0, templ_l1, spec_l0, spec_l1, min_vel, max_vel):
 def get_chisq(specdata,
               vel,
               atm_params,
-              rot_params,
+              rot_params=None,
               resol_params=None,
               options=None,
               config=None,
