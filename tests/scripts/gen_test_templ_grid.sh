@@ -1,5 +1,5 @@
 #!/bin/bash -e
-DIR=`dirname $0`
+DIR=`dirname $0`/../
 DBFILE=$DIR/files_config1_grid.db
 PREF=$DIR/tmp/
 PREF1=$DIR/templ_data_test/

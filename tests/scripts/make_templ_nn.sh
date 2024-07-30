@@ -1,5 +1,5 @@
 #!/bin/bash -e
-DIR=`dirname $0`
+DIR=`dirname $0`/../
 PREFIX=$DIR//templ_data
 TEMPLPREF=$DIR/small_phoenix/
 WAVEFILE=$DIR/small_phoenix/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
