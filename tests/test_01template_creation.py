@@ -33,8 +33,9 @@ def run_script(script):
 def test_scripts():
     run_script(path + '/scripts/make_templ_nn.sh')
 
-    run_script(path + '/scripts/make_templ.sh')
-    run_script(path + '/scripts/gen_test_templ.sh')
+    run_script(path + '/scripts/make_templ_aat_triang.sh')
 
     run_script(path + '/scripts/make_templ_regul.sh')
+
+    run_script(path + '/scripts/gen_test_templ.sh')
     run_script(path + '/scripts/gen_test_templ_grid.sh')
