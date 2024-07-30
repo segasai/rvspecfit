@@ -600,7 +600,13 @@ def select_fibers_to_fit(fibermap,
     return subset, rr_z, rr_spectype
 
 
-def get_specdata(waves, fluxes, ivars, masks, seqid, setups):
+def get_specdata(waves,
+                 fluxes,
+                 ivars,
+                 masks,
+                 seqid,
+                 setups,
+                 mask_dicroic=True):
     """ Return the list of SpecDatas for one single object
 
     Parameters
@@ -625,10 +631,13 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, setups):
         List of specfit.SpecData objects or None if failed
 
     """
-    large_error = 1000
-    sds = []
-    minerr_frac = 0.3  # if the error is smaller than this times median error
+    large_error = 1000  # This used to set the bad error in masked pixels
+    minerr_frac = 0.3
+    # if the error is smaller than this times median error
     # clamp the uncertainty
+
+    sds = []
+
     for s in setups:
         spec = fluxes[s][seqid] * 1
         curivars = ivars[s][seqid] * 1
@@ -642,7 +651,10 @@ def get_specdata(waves, fluxes, ivars, masks, seqid, setups):
             # TODO make the logic clearer
             return None
         baddat = ~np.isfinite(spec + curivars)
-        dicroicmask = (waves[s] > 4300) & (waves[s] < 4450)
+        if mask_dicroic:
+            dicroicmask = (waves[s] > 4300) & (waves[s] < 4450)
+        else:
+            dicroicmask = np.zeros(len(waves[s]), dtype=bool)
         badmask = (masks[s][seqid] > 0)
         baderr = curivars <= 0
         badall = baddat | badmask | baderr | dicroicmask
