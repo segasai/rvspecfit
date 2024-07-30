@@ -169,7 +169,8 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
            dbfile='files.db',
            keywords=None,
            mask=None,
-           extra_params=None):
+           extra_params=None,
+           name_metallicity=None):
     """ Create an sqlite database of the templates
 
     Parameters
@@ -200,8 +201,11 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
             extra_keys.append(v)
     else:
         extra_params = {}
-    DB.execute(f'''CREATE TABLE files (filename varchar, teff real, logg real,
-        feh real, alpha real,
+    DB.execute(f'''CREATE TABLE files (filename varchar, 
+        teff real,
+        logg real,
+        {name_metallicity} real,
+        alpha real,
         {extra_params_str}
         id int,
         bad bool);''')
@@ -457,10 +461,15 @@ def main(args):
                         type=str,
                         default='PHXALPHA',
                         help='The keyword for alpha in the header')
-    parser.add_argument('--keyword_feh',
+    parser.add_argument('--keyword_metallicity',
                         type=str,
                         default='PHXM_H',
-                        help='The keyword for feh in the header')
+                        help='The keyword for metallicity in the header')
+    parser.add_argument('--name_metallicity',
+                        type=str,
+                        default='feh',
+                        help='The keyword for metallicity in the header')
+
     parser.add_argument(
         '--extra_params',
         type=str,
@@ -483,7 +492,7 @@ def main(args):
     keywords = dict(teff=args.keyword_teff,
                     logg=args.keyword_logg,
                     alpha=args.keyword_alpha,
-                    feh=args.keyword_feh)
+                    metallicity=args.keyword_metallicity)
     if args.extra_params is None:
         extra_params = None
     else:
@@ -498,7 +507,8 @@ def main(args):
            dbfile=args.templdb,
            keywords=keywords,
            mask=args.glob_mask,
-           extra_params=extra_params)
+           extra_params=extra_params,
+           metallicity=args.name_metallicity)
 
 
 if __name__ == '__main__':
