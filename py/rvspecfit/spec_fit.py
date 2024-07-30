@@ -597,6 +597,7 @@ def get_chisq(specdata,
         If full_output is False, ret is float = -2*log(L) of the whole data
         If full_output is True ret is a dictionary with the following keys
         chisq -- this is the -2*log(L) of the whole dataset
+        logl -- this is the log(L) of the whole dataset
         chisq_array -- this is the array of chi-squares (proper ones)
         for each of the fited spectra
         redchisq_array -- this is the array of reduced chi-squares
@@ -606,7 +607,7 @@ def get_chisq(specdata,
     """
     npoly = options.get('npoly') or 5
     rbf = options.get('rbf_continuum') or True
-    logl = 0
+    chisq_accum = 0
     badchi = 1e6
     if rot_params is not None:
         rot_params = tuple(rot_params)
@@ -632,13 +633,13 @@ def get_chisq(specdata,
         # add bad value and bail out
 
         if not np.isfinite(outside):
-            logl += 1000 * badchi
+            chisq_accum += 1000 * badchi
             chisq_array.append(np.nan)
             red_chisq_array.append(np.nan)
             models.append(np.zeros(len(curdata.lam)) + np.nan)
             continue
         else:
-            logl += outside * badchi
+            chisq_accum += outside * badchi
 
         _overlap_check(templ_lam[0], templ_lam[-1], curdata.lam[0],
                        curdata.lam[-1], min(min_vel, vel), max(max_vel, vel))
@@ -683,13 +684,13 @@ def get_chisq(specdata,
                 curespec = np.sqrt(espec_systematic**2 + curdata.espec**2)
         else:
             curespec = curdata.espec
-        curlogl = get_chisq0(curdata.spec,
-                             evalTempl,
-                             polys,
-                             get_coeffs=full_output,
-                             espec=curespec)
+        cur_chisq = get_chisq0(curdata.spec,
+                               evalTempl,
+                               polys,
+                               get_coeffs=full_output,
+                               espec=curespec)
         if full_output:
-            curlogl, coeffs = curlogl
+            cur_chisq, coeffs = cur_chisq
             curmodel = np.dot(coeffs, polys * evalTempl)
             raw_models.append(evalTempl)
             models.append(curmodel)
@@ -697,23 +698,24 @@ def get_chisq(specdata,
             chisq_array.append(XCHISQ)
             red_chisq_array.append(XCHISQ / len(curdata.espec))
 
-        if not np.isfinite(float(curlogl)):
+        if not np.isfinite(float(cur_chisq)):
             raise RuntimeError(
                 f'The log(likelihood) value is not finite'
                 f'when processing spectral configuration {name}\n'
                 f'velocity {vel}, atm parameters {atm_params}')
-        logl += float(curlogl)
+        chisq_accum += float(cur_chisq)
 
     if full_output:
         ret = {}
-        ret['chisq'] = logl
+        ret['chisq'] = chisq_accum
         # chisq here is the -2*log(L)
+        ret['logl'] = -0.5 * chisq_accum
         ret['chisq_array'] = chisq_array
         ret['red_chisq_array'] = red_chisq_array
         ret['models'] = models
         ret['raw_models'] = raw_models
     else:
-        ret = logl
+        ret = chisq_accum
     return ret
 
 
