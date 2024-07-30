@@ -294,7 +294,7 @@ def proc_onespec(
         'feh': ('FEH', 1),
         'alpha': ('ALPHAFE', 1)
     }
-    for name1, (name2, unit) in name_mappings:
+    for name1, (name2, unit) in name_mappings.items():
         outdict[name2] = fit_res['param'][name1] * unit
         outdict[name2 + '_ERR'] = fit_res['param_err'][name1] * unit
 
