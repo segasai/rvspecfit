@@ -550,6 +550,7 @@ def process(specdata,
     ret['yfit'] = outp['models']
     ret['raw_models'] = outp['raw_models']
     ret['chisq'] = outp['chisq']
+    ret['logl'] = outp['logl']
     ret['chisq_array'] = outp['chisq_array']
     t6 = time.time()
     logging.debug('Timings process: %.4f %.4f %.4f %.4f, %.4f %.4f' %
