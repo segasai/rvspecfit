@@ -17,7 +17,7 @@ path = str(pathlib.Path(__file__).parent.absolute())
 
 def test_config():
     with pytest.raises(RuntimeError):
-        config = utils.read_config('xx.yaml')
+        config = utils.read_config('not_existing.yaml')
     cwd = os.getcwd()
     os.chdir(path)
     try:
