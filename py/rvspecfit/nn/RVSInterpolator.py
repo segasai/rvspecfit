@@ -22,7 +22,8 @@ class RVSInterpolator:
             self.device = torch.device(device_env)
         self.nni.load_state_dict(
             torch.load(kwargs['template_lib'] + '/' + kwargs['nn_file'],
-                       map_location=self.device))
+                       map_location=self.device,
+                       weights_only=True))
         # self.device = list(self.nni.children())[0][0].pc_layer.weight.device
 
         self.nni.to(self.device)
