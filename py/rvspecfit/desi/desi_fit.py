@@ -1005,41 +1005,6 @@ def write_hdulist(fname, hdulist):
     os.rename(fname_tmp, fname)
 
 
-def merge_hdus(hdus, ofile, keepmask, columnDesc, setups):
-    allowed = ['FIBERMAP', 'RVTAB'] + [
-        '%s_MODEL' % _.upper() for _ in setups
-    ] + ['%s_WAVELENGTH' % _.upper() for _ in setups]
-
-    for i in range(len(hdus)):
-        if i == 0:
-            continue
-        curhdu = hdus[i]
-        curhduname = curhdu.name
-
-        if curhduname not in allowed:
-            raise Exception('Weird extension', curhduname)
-        if curhduname in ['FIBERMAP', 'RVTAB']:
-            newdat = atpy.Table(curhdu.data)
-            olddat = atpy.Table().read(ofile, hdu=curhduname)
-            tab = atpy.vstack((olddat[keepmask], newdat))
-            curouthdu = comment_filler(
-                pyfits.BinTableHDU(tab, name=curhduname), columnDesc)
-            hdus[i] = curouthdu
-            continue
-        if curhduname[-10:] == 'WAVELENGTH':
-            continue
-        if curhduname[-5:] == 'MODEL':
-            newdat = curhdu.data
-            olddat = pyfits.getdata(ofile, curhduname)
-            hdus[i] = pyfits.ImageHDU(np.concatenate(
-                (olddat[keepmask], newdat), axis=0),
-                                      name=curhduname)
-            continue
-        raise Exception('I should not be here')
-
-    write_hdulist(ofile, pyfits.HDUList(hdus))
-
-
 def proc_desi_wrapper(*args, **kwargs):
     status = ProcessStatus.SUCCESS
     status_file = kwargs['process_status_file']
