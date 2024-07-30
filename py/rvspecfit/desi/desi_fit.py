@@ -35,6 +35,9 @@ class ProcessStatus(enum.Enum):
         return self.name
 
 
+bitmasks = {'CHISQ_WARN': 1, 'RV_WARN': 2, 'RVERR_WARN': 4, 'PARAM_WARN': 8}
+
+
 def update_process_status_file(status_fname,
                                processed_file,
                                status,
@@ -267,7 +270,7 @@ def proc_onespec(
         paramDict0['vsini'] = np.clip(res['best_vsini'], config['min_vsini'],
                                       config['max_vsini'])
 
-    res1 = vel_fit.process(
+    fit_res = vel_fit.process(
         specdata,
         paramDict0,
         fixParam=fixParam,
@@ -278,27 +281,28 @@ def proc_onespec(
     chisq_cont_array = spec_fit.get_chisq_continuum(
         specdata, options=options)['chisq_array']
     t4 = time.time()
-    outdict = dict(
-        VRAD=res1['vel'] * auni.km / auni.s,
-        VRAD_ERR=res1['vel_err'] * auni.km / auni.s,
-        VRAD_SKEW=res1['vel_skewness'],
-        VRAD_KURT=res1['vel_kurtosis'],
-        LOGG=res1['param']['logg'],
-        TEFF=res1['param']['teff'] * auni.K,
-        ALPHAFE=res1['param']['alpha'],
-        FEH=res1['param']['feh'],
-        LOGG_ERR=res1['param_err']['logg'],
-        TEFF_ERR=res1['param_err']['teff'] * auni.K,
-        ALPHAFE_ERR=res1['param_err']['alpha'],
-        FEH_ERR=res1['param_err']['feh'],
-        VSINI=res1['vsini'] * auni.km / auni.s,
-    )
+    outdict = dict(VRAD=fit_res['vel'] * auni.km / auni.s,
+                   VRAD_ERR=fit_res['vel_err'] * auni.km / auni.s,
+                   VRAD_SKEW=fit_res['vel_skewness'],
+                   VRAD_KURT=fit_res['vel_kurtosis'],
+                   VSINI=fit_res['vsini'] * auni.km / auni.s)
+
+    # values are name and unit
+    name_mappings = {
+        'logg': ('LOGG', 1),
+        'teff': ('TEFF', auni.K),
+        'feh': ('FEH', 1),
+        'alpha': ('ALPHAFE', 1)
+    }
+    for name1, (name2, unit) in name_mappings:
+        outdict[name2] = fit_res['param'][name1] * unit
+        outdict[name2 + '_ERR'] = fit_res['param_err'][name1] * unit
 
     for i, curd in enumerate(specdata):
         if curd.name not in chisqs:
             chisqs[curd.name] = 0
             chisqs_c[curd.name] = 0
-        chisqs[curd.name] += res1['chisq_array'][i]
+        chisqs[curd.name] += fit_res['chisq_array'][i]
         chisqs_c[curd.name] += chisq_cont_array[i]
 
     outdict['CHISQ_TOT'] = sum(chisqs.values())
@@ -309,6 +313,31 @@ def proc_onespec(
         outdict['CHISQ_C_%s' % s.replace('desi_', '').upper()] = float(
             chisqs_c[s])
 
+    outdict['RVS_WARN'] = get_rvs_warn(fit_res, outdict, config)
+
+    if doplot:
+        title = ('logg=%.1f teff=%.1f [Fe/H]=%.1f ' +
+                 '[alpha/Fe]=%.1f Vrad=%.1f+/-%.1f vsini=%.1f') % (
+                     fit_res['param']['logg'], fit_res['param']['teff'],
+                     fit_res['param']['feh'], fit_res['param']['alpha'],
+                     fit_res['vel'], fit_res['vel_err'], fit_res['vsini'])
+        if len(specdata) > len(setups):
+            for i in range(len(specdata) // len(setups)):
+                sl = slice(i * len(setups), (i + 1) * len(setups))
+                make_plot(specdata[sl], fit_res['yfit'][sl], title,
+                          fig_fname.replace('.png', '_%d.png' % i))
+        else:
+            make_plot(specdata, fit_res['yfit'], title, fig_fname)
+    versions = {}
+    for i, (k, v) in enumerate(spec_inter.interp_cache.interps.items()):
+        versions[k] = dict(revision=v.revision,
+                           creation_soft_version=v.creation_soft_version)
+    outdict['versions'] = versions
+    logging.debug('Timing: %.4f %.4f %.4f' % (t2 - t1, t3 - t2, t4 - t3))
+    return outdict, fit_res['yfit']
+
+
+def get_rvs_warn(fit_res, outdict, config):
     chisq_thresh = 50
     # if the delta-chisq between continuum is smaller than this we
     # set a warning flag
@@ -327,61 +356,39 @@ def proc_onespec(
     # If the error is larger than this we warn
 
     rvs_warn = 0
-    bitmasks = {
-        'CHISQ_WARN': 1,
-        'RV_WARN': 2,
-        'RVERR_WARN': 4,
-        'PARAM_WARN': 8
-    }
+
     dchisq = outdict['CHISQ_C_TOT'] - outdict['CHISQ_TOT']  # should be >0
 
     if (dchisq < chisq_thresh):
         rvs_warn |= bitmasks['CHISQ_WARN']
     kms = auni.km / auni.s
     cur_vrad = outdict['VRAD'].to_value(kms)
-    if (cur_vrad > config['max_vel'] - rvedge_thresh
-            or cur_vrad < config['min_vel'] + rvedge_thresh):
+    if _bad_edge_check(cur_vrad, [config['min_vel'], config['max_vel']],
+                       rvedge_thresh):
         rvs_warn |= bitmasks['RV_WARN']
 
     if (outdict['VRAD_ERR'].to_value(kms) > rverr_thresh):
         rvs_warn |= bitmasks['RVERR_WARN']
 
-    for cur_param, cur_edges, cur_thresh in [['teff', teff_edges, teff_thresh],
-                                             ['feh', feh_edges, feh_thresh]]:
-        for xid, cur_oper in [[0, operator.lt], [1, operator.gt]]:
-            # if for left edge we are doing < i.e the value is less than
-            # the left edge this is bad
-            # for right we are doing >
-            if xid == 0:
-                # left_edge shift to the right
-                cur_val = cur_edges[xid] + cur_thresh
-            if xid == 1:
-                # right edge shift to the left
-                cur_val = cur_edges[xid] - cur_thresh
-            if cur_oper(res1['param'][cur_param], cur_val):
-                rvs_warn |= bitmasks['PARAM_WARN']
-    outdict['RVS_WARN'] = rvs_warn
+    # Here we check if the parameter is within the threshold of the edge or
+    # beyond the edge.
+    parameter_limits = [['teff', teff_edges, teff_thresh],
+                        ['feh', feh_edges, feh_thresh]]
+    for cur_param, cur_edges, cur_thresh in parameter_limits:
+        if _bad_edge_check(fit_res['param'][cur_param], cur_edges, cur_thresh):
+            rvs_warn |= bitmasks['PARAM_WARN']
+    return rvs_warn
 
-    if doplot:
-        title = ('logg=%.1f teff=%.1f [Fe/H]=%.1f ' +
-                 '[alpha/Fe]=%.1f Vrad=%.1f+/-%.1f vsini=%.1f') % (
-                     res1['param']['logg'], res1['param']['teff'],
-                     res1['param']['feh'], res1['param']['alpha'], res1['vel'],
-                     res1['vel_err'], res1['vsini'])
-        if len(specdata) > len(setups):
-            for i in range(len(specdata) // len(setups)):
-                sl = slice(i * len(setups), (i + 1) * len(setups))
-                make_plot(specdata[sl], res1['yfit'][sl], title,
-                          fig_fname.replace('.png', '_%d.png' % i))
-        else:
-            make_plot(specdata, res1['yfit'], title, fig_fname)
-    versions = {}
-    for i, (k, v) in enumerate(spec_inter.interp_cache.interps.items()):
-        versions[k] = dict(revision=v.revision,
-                           creation_soft_version=v.creation_soft_version)
-    outdict['versions'] = versions
-    logging.debug('Timing: %.4f %.4f %.4f' % (t2 - t1, t3 - t2, t4 - t3))
-    return outdict, res1['yfit']
+
+def _bad_edge_check(value, edges, threshold):
+    """
+    Return true if value is outside the edge or within the
+    threshold to the edge
+    """
+    bad = False
+    if ((value < edges[0] + threshold) or (value > edges[1] - threshold)):
+        bad = True
+    return bad
 
 
 def get_sns(data, ivars, masks):
