@@ -55,10 +55,10 @@ class ResolMatrix:
         self.fd = {}
         self.fd['mat'] = mat
         # id of the object to ensure that I can cache calls on a given data
-        self.id = random.getrandbits(128)
+        self.objid = random.getrandbits(128)
 
     def __hash__(self):
-        return self.id
+        return self.objid
 
     @property
     def mat(self):
@@ -109,7 +109,7 @@ class SpecData:
         self.fd['badmask'] = badmask
         self.fd = utils.freezeDict(self.fd)
         # id of the object to ensure that I can cache calls on a given data
-        self.id = random.getrandbits(128)
+        self.objid = random.getrandbits(128)
 
     @property
     def name(self):
@@ -140,7 +140,7 @@ class SpecData:
         return self.fd['resolution']
 
     def __hash__(self):
-        return self.id
+        return self.objid
 
 
 def get_poly_basis(lam, npoly, rbf=True):
