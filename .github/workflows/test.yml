@@ -28,6 +28,7 @@ jobs:
           pip install pytest-cov
           pip install coveralls
           pip install scikit-learn torch
+          pip install wheel
           pip install .
           pip install git+https://github.com/desihub/desiutil@3.2.2
           pip install  --no-build-isolation git+https://github.com/desihub/desitarget@2.7.0
