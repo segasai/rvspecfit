@@ -278,7 +278,7 @@ class interp_cache:
     interps = {}
 
 
-def getInterpolator(HR, config, warmup_cache=False):
+def getInterpolator(HR, config, warmup_cache=False, cache=None):
     """ Return the spectrum interpolation object for a given instrument
     setup HR and config. This function also checks the cache
 
@@ -288,6 +288,9 @@ def getInterpolator(HR, config, warmup_cache=False):
         Spectral configuration
     config: dict
         Configuration
+    cache: dict or None
+        Dictionary like object with the cache. If None, internal cache is 
+        used instead.
     warmup_cache: bool
         If True we read the whole file to warm up the OS cache
 
@@ -297,8 +300,9 @@ def getInterpolator(HR, config, warmup_cache=False):
         The spectral interpolator
 
     """
-    if HR not in interp_cache.interps:
-
+    if cache is None:
+        cache = interp_cache.interps
+    if HR not in cache:
         savefile = (config['template_lib'] + '/' +
                     make_nd.INTERPOL_PKL_NAME % HR)
         with open(savefile, 'rb') as fd0:
@@ -362,10 +366,8 @@ def getInterpolator(HR, config, warmup_cache=False):
             creation_soft_version=creation_soft_version,
             filename=savefile,
             logstep=logstep)
-        interp_cache.interps[HR] = interpObj
-    else:
-        interpObj = interp_cache.interps[HR]
-    return interpObj
+        cache[HR] = interpObj
+    return cache[HR]
 
 
 def getSpecParams(setup, config):
