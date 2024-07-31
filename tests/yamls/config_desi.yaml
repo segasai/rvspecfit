@@ -1,0 +1,7 @@
+template_lib: 'tests/templ_data_desi/'
+min_vel: -1000
+max_vel: 1000
+min_vel_step: 0.2
+vel_step0: 5
+min_vsini: 0.1
+max_vsini: 500
