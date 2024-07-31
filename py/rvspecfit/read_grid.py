@@ -468,7 +468,7 @@ def main(args):
     parser.add_argument('--name_metallicity',
                         type=str,
                         default='feh',
-                        help='The keyword for metallicity in the header')
+                        help='The internal name for the metallicity')
 
     parser.add_argument(
         '--extra_params',
@@ -491,8 +491,8 @@ def main(args):
     args = parser.parse_args(args)
     keywords = dict(teff=args.keyword_teff,
                     logg=args.keyword_logg,
-                    alpha=args.keyword_alpha,
-                    metallicity=args.keyword_metallicity)
+                    alpha=args.keyword_alpha)
+    keywords[args.name_metallicity] = args.keyword_metallicity
     if args.extra_params is None:
         extra_params = None
     else:
@@ -508,7 +508,7 @@ def main(args):
            keywords=keywords,
            mask=args.glob_mask,
            extra_params=extra_params,
-           metallicity=args.name_metallicity)
+           name_metallicity=args.name_metallicity)
 
 
 if __name__ == '__main__':
