@@ -209,6 +209,7 @@ def valid_file(FP):
     reqnames = names0 + [
         '%s_%s' % (_, __) for _, __ in itertools.product(arms, prefs)
     ]
+    reqnames = reqnames + ['FIBERMAP']
     missing = []
     for curn in reqnames:
         if curn not in extnames:
