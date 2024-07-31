@@ -1,4 +1,5 @@
 import os
+
 os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 import astropy.io.fits as pyfits
@@ -13,14 +14,14 @@ import mktemps
 
 
 class si:
-    fname = 'tests/test.yaml'
+    fname = 'tests/yamls/test.yaml'
     config = utils.read_config(fname)
 
 
 def doone(seed,
           sn=100,
           nlam=400,
-          config_name='tests/test.yaml',
+          config_name='tests/yamls/test.yaml',
           doplot=False,
           resol=1000):
 

@@ -1,4 +1,5 @@
 import os
+
 os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 import astropy.io.fits as pyfits
@@ -14,7 +15,7 @@ path = str(pathlib.Path(__file__).parent.absolute())
 
 
 def test_fit_fake():
-    config = utils.read_config(path + '/test.yaml')
+    config = utils.read_config(path + '/yamls/test.yaml')
     # read data
     lam = np.linspace(4600, 5400, 800)
     v0 = np.random.normal(0, 100)

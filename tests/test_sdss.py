@@ -18,7 +18,7 @@ path = str(pathlib.Path(__file__).parent.absolute())
 
 
 def test_fits():
-    config = utils.read_config(path + '/config.yaml')
+    config = utils.read_config(path + '/yamls/config_sdss.yaml')
 
     # read data
     dat = pyfits.getdata(path + '/data/spec-0266-51602-0031.fits')

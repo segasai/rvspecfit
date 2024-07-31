@@ -1,4 +1,5 @@
 import os
+
 os.environ['OMP_NUM_THREADS'] = '1'
 import sys
 import astropy.io.fits as pyfits
@@ -10,11 +11,12 @@ from rvspecfit import spec_fit
 import pathlib
 
 from mktemps import getspec
+
 path = str(pathlib.Path(__file__).parent.absolute())
 
 
 def test_fake_grid():
-    config = utils.read_config(path + '/test.yaml')
+    config = utils.read_config(path + '/yamls/test.yaml')
 
     # read data
     lam = np.linspace(4600, 5400, 800)

@@ -32,11 +32,17 @@ jobs:
         run: |
           cd tests
           mkdir templ_data
-          cd templ_data
-          wget -q -r -nd -np https://people.ast.cam.ac.uk/~koposov/files/rvspecfit_files/v2401/
-          mv small_phoenix.tar.gz ../
-          cd ..
+          wget -q https://people.ast.cam.ac.uk/~koposov/files/rvspecfit_files/v2407/small_phoenix.tar.gz
           tar xfz small_phoenix.tar.gz
+          mkdir templ_data_desi
+          cd templ_data_desi/
+          wget -q -r -np -nd https://people.ast.cam.ac.uk/~koposov/files/rvspecfit_files/v2407/templ_data_desi/
+          cd ..
+          mkdir templ_data_sdss
+          cd templ_data_sdss/
+          wget -q -r -np -nd https://people.ast.cam.ac.uk/~koposov/files/rvspecfit_files/v2407/templ_data_sdss/
+          cd ../data/
+          wget https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/healpix/sv1/bright/103/10378/coadd-sv1-bright-10378.fits
           cd ..
       - name: Testing
         run: |

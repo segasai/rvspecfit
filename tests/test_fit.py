@@ -27,7 +27,7 @@ def test_config():
 
 
 def test_fit():
-    config = utils.read_config(path + '/config.yaml')
+    config = utils.read_config(path + '/yamls/config_sdss.yaml')
 
     # read data
     dat = pyfits.getdata(path + '/data/spec-0266-51602-0031.fits')
