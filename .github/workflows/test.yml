@@ -19,6 +19,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
+          cache: 'pip'
       - name: Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -29,7 +30,7 @@ jobs:
           pip install scikit-learn torch
           pip install .
           pip install git+https://github.com/desihub/desiutil@3.2.2
-          pip install git+https://github.com/desihub/desitarget@2.7.0
+          pip install  --no-build-isolation git+https://github.com/desihub/desitarget@2.7.0
       - name: Fetching data
         run: |
           cd tests
