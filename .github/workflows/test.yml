@@ -42,7 +42,8 @@ jobs:
           cd templ_data_sdss/
           wget -q -r -np -nd https://people.ast.cam.ac.uk/~koposov/files/rvspecfit_files/v2407/templ_data_sdss/
           cd ../data/
-          wget https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/healpix/sv1/bright/103/10378/coadd-sv1-bright-10378.fits
+          wget -q https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/healpix/sv1/bright/103/10378/coadd-sv1-bright-10378.fits
+          wget -q https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/healpix/sv1/bright/104/10402/redrock-sv1-bright-10402.fits
           cd ..
       - name: Testing
         run: |
