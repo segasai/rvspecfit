@@ -14,6 +14,18 @@ echo 39628422531515839 >> /tmp/targetids
 $RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=DEBUG --targetid_file_from=/tmp/targetids --doplot tests/data/coadd-sv1-bright-10378.fits
 
 
+$RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=INFO --fit_arm=B --targetid_file_from=/tmp/targetids --doplot tests/data/coadd-sv1-bright-10378.fits
+
+# skip existing
+$RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=INFO --skipexisting tests/data/coadd-sv1-bright-10378.fits
+
+# nonexisting
+$RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=INFO tests/data/X.fits
+
+# empty file
+$RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=INFO --targetid=-1 tests/data/X.fits
+
+
 echo tests/data/coadd-sv1-bright-10378.fits > /tmp/queue.list
 # queue
 $RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=DEBUG --queue_file --input_file_from=/tmp/queue.list
