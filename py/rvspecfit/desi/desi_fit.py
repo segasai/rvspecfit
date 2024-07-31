@@ -506,10 +506,11 @@ def select_fibers_to_fit(fibermap,
     zbest_maxvel = 1500  # maximum velocity to consider a star
     zbest_type = 'STAR'
 
-    try:
-        import desitarget.targets as DT
-    except ImportError:
-        DT = None
+    # try:
+    #    import desitarget.targets as DT
+    # except ImportError:
+    #    DT = None
+    import desitarget.targets as DT
 
     subset = np.ones(len(fibermap), dtype=bool)
 
