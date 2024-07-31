@@ -28,6 +28,8 @@ jobs:
           pip install coveralls
           pip install scikit-learn torch
           pip install .
+          pip install git+https://github.com/desihub/desiutil@3.2.2
+          pip install git+https://github.com/desihub/desitarget@2.7.0
       - name: Fetching data
         run: |
           cd tests
@@ -44,7 +46,7 @@ jobs:
           cd ../data/
           wget -q https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/healpix/sv1/bright/103/10378/coadd-sv1-bright-10378.fits
           wget -q https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/healpix/sv1/bright/104/10402/redrock-sv1-bright-10402.fits
-          cd ..
+          cd ../../
       - name: Testing
         run: |
           pytest --cov=rvspecfit
