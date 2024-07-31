@@ -6,8 +6,12 @@ import rvspecfit.make_ccf
 import rvspecfit.make_interpol
 import rvspecfit.regularize_grid
 import rvspecfit.nn.train_interpolator
+import rvspecfit.desi.desi_fit
 
 path = str(pathlib.Path(__file__).parent.absolute())
+
+# the goal of this file is to convert regular bash script into
+# python calls where we could get coverage
 
 
 def run_script(script):
@@ -28,6 +32,8 @@ def run_script(script):
             rvspecfit.regularize_grid.main(args[1:])
         if script_name == 'rvs_train_nn_interpolator':
             rvspecfit.nn.train_interpolator.main(args[1:])
+        if script_name == 'rvs_desi_fit':
+            rvspecfit.desi.desi_fit.main(args[1:])
 
 
 def test_scripts():
