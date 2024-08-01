@@ -14,7 +14,7 @@ echo 39628422531515839 >> /tmp/targetids
 $RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=DEBUG --targetid_file_from=/tmp/targetids --doplot tests/data/coadd-sv1-bright-10378.fits
 
 # this should create an internal exception
-$RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=INFO --fig_prefix='/a/a/fig' --targetid_file_from=/tmp/targetids --doplot tests/data/coadd-sv1-bright-10378.fits
+$RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=INFO --figure_prefix='/a/a/fig' --targetid_file_from=/tmp/targetids --doplot tests/data/coadd-sv1-bright-10378.fits
 
 # fit arm
 $RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=INFO --fitarm=B --targetid_file_from=/tmp/targetids tests/data/coadd-sv1-bright-10378.fits
