@@ -680,7 +680,7 @@ def get_specdata(waves,
                                espec,
                                badmask=badall)
         sds.append(sd)
-    return sds
+    return tuple(sds)
 
 
 def comment_filler(tab, desc):
