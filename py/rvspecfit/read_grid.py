@@ -202,6 +202,14 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
             extra_keys.append(v)
     else:
         extra_params = {}
+
+    # Create a table listing what grid parameters we have
+    DB.execute('''CREATE TABLE grid_parameters(
+    id int, name varchar, explanation varchar)''')
+    for counter, k in enumerate(
+            itertools.chain(keywords.keys(), extra_params.keys())):
+        DB.execute('INSERT INTO grid_parameters (id, name) values (?, ?)',
+                   (counter, k))
     DB.execute(f'''CREATE TABLE files (filename varchar,
         teff real,
         logg real,
