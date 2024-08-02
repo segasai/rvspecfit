@@ -170,7 +170,8 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
            keywords=None,
            mask=None,
            extra_params=None,
-           name_metallicity=None):
+           name_metallicity=None,
+           name_alpha=None):
     """ Create an sqlite database of the templates
 
     Parameters
@@ -201,11 +202,11 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
             extra_keys.append(v)
     else:
         extra_params = {}
-    DB.execute(f'''CREATE TABLE files (filename varchar, 
+    DB.execute(f'''CREATE TABLE files (filename varchar,
         teff real,
         logg real,
         {name_metallicity} real,
-        alpha real,
+        {name_alpha} real,
         {extra_params_str}
         id int,
         bad bool);''')
@@ -469,6 +470,10 @@ def main(args):
                         type=str,
                         default='feh',
                         help='The internal name for the metallicity')
+    parser.add_argument('--name_alpha',
+                        type=str,
+                        default='alpha',
+                        help='The internal name for the metallicity')
 
     parser.add_argument(
         '--extra_params',
@@ -489,10 +494,9 @@ def main(args):
         help='The filename where the SQLite database describing the '
         'template library will be stored')
     args = parser.parse_args(args)
-    keywords = dict(teff=args.keyword_teff,
-                    logg=args.keyword_logg,
-                    alpha=args.keyword_alpha)
+    keywords = dict(teff=args.keyword_teff, logg=args.keyword_logg)
     keywords[args.name_metallicity] = args.keyword_metallicity
+    keywords[args.name_alpha] = args.keyword_alpha
     if args.extra_params is None:
         extra_params = None
     else:
@@ -508,7 +512,8 @@ def main(args):
            keywords=keywords,
            mask=args.glob_mask,
            extra_params=extra_params,
-           name_metallicity=args.name_metallicity)
+           name_metallicity=args.name_metallicity,
+           name_alpha=args.name_alpha)
 
 
 if __name__ == '__main__':
