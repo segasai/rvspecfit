@@ -244,11 +244,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     DB.commit()
 
 
-def get_spec(params,
-             dbfile='/tmp/files.db',
-             prefix='PHOENIX_PATH/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/',
-             wavefile='PHOENIX_PATH/v2.0/HiResFITS/'
-             'WAVE_PHOENIX-ACES-AGSS-COND-2011.fits'):
+def get_spec(params, dbfile=None, prefix=None, wavefile=None):
     """ Returns individual spectra for a given spectral parameters
 
     Parameters
