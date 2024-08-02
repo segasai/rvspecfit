@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import pickle
+import logging
 import scipy.constants
 import scipy.optimize
 import numpy as np
@@ -148,6 +149,37 @@ class Resolution:
             return self.resol
 
 
+def _fetch_all_parameters(dbfile, parnames):
+    """
+    Read the vector of template parameters corresponding to parnames
+    """
+    if not os.path.exists(dbfile):
+        raise RuntimeError('The template database file %s does not exist' %
+                           dbfile)
+
+    parname_str = ','.join(list(parnames))
+    with sqlite3.connect(dbfile) as conn:
+        table_exists = conn.execute('''SELECT count(*) FROM
+        sqlite_schema WHERE type='table' AND name='grid_parameters' '''
+                                    ).fetchall()[0][0] == 1
+        if table_exists:
+            nparam = conn.execute(
+                'select count(*) from grid_parameters').fetchall()[0][0]
+            if nparam != len(parnames):
+                raise RuntimeError(
+                    'You did not specify the correct number of grid '
+                    f'parameters (the database says there are {nparam})')
+        else:
+            logging.warning(
+                'You are using an older format database it may be wise '
+                'to upgrade by rerunning read_grid')
+        cur = conn.execute(f'''select id, {parname_str} from files
+        where not bad  order by {parname_str}''')
+        tab = np.rec.fromrecords(cur.fetchall())
+    vec = np.array([tab['f%d' % _] for _ in range(1, len(parnames) + 1)])
+    return vec
+
+
 def process_all(setupInfo,
                 parnames=('teff', 'logg', 'feh', 'alpha'),
                 dbfile='/tmp/files.db',
@@ -179,18 +211,8 @@ def process_all(setupInfo,
         Transform from vacuum to air
 
     """
-    if not os.path.exists(dbfile):
-        raise RuntimeError('The template database file %s does not exist' %
-                           dbfile)
-    conn = sqlite3.connect(dbfile)
-    parname_str = ','.join(list(parnames))
-    cur = conn.execute(f'''select id, {parname_str} from files
-    where not bad  order by {parname_str}''')
-    tab = np.rec.fromrecords(cur.fetchall())
-    ids = tab['f0'].astype(int)
-
-    nspec = len(ids)
-    vec = np.array([tab['f%d' % _] for _ in range(1, len(parnames) + 1)])
+    vec = _fetch_all_parameters(dbfile, parnames)
+    nspec = vec.shape[1]
     log_spec = True
     i = 0
 
