@@ -23,6 +23,10 @@ Optional: torch, scikit-learn
 
 The code here can perform radial velocity fitting and general spectral fitting
 with interpolated templates to any spectroscopic data.
+
+The library is primarily used with the PHOENIX library, but you can also use
+your own library of synthetic spectra (see below)
+
 To get started you will need to
 
 * Install rvspecfit 
@@ -243,5 +247,4 @@ The alternative interpolation method is Neural Network based.
 
 ## Other template libraries
 
-By default the code only supports the PHOENIX library, but it could 
-be easily adapted for other libraries.
+You can substitute PHOENIX by your own library of synthetic spectra. The only thing needed there is a wavelength file and a collection of fits files with spectra and stellar parameter information in the headers. You can then use rvs_read_grid to create a database of spectra and then follow the same steps as with PHOENIX

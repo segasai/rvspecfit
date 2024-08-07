@@ -394,6 +394,34 @@ def _minimum_sampler(func,
     return best_vel, cur_err, res1
 
 
+def _uncertainties_from_hessian(hessian):
+    diag_hessian = np.diag(hessian)
+    inv_diag_hessian = 1. / (diag_hessian + (diag_hessian == 0))
+    inv_diag_hessian[diag_hessian == 0] = np.inf
+    try:
+        hessian_inv = scipy.linalg.inv(hessian)
+    except (np.linalg.LinAlgError, ValueError):
+        logging.warning('The inversion of the Hessian failed')
+        # trying to invert the diagonal
+        hessian_inv = np.diag(inv_diag_hessian)
+
+    # this the default one
+    diag_err0 = np.array(np.diag(hessian_inv))
+
+    # this is just inverting the diagonal
+    diag_err1 = inv_diag_hessian
+    bad_err0 = diag_err0 < 0
+    bad_err1 = diag_err1 < 0
+    sub1 = bad_err0 & (~bad_err1)
+    sub2 = bad_err0 & bad_err1
+
+    diag_err0[sub1] = diag_err1[sub1]
+    diag_err0[sub2] = 0
+    diag_err = np.sqrt(diag_err0)
+    diag_err[sub2] = np.nan
+    return diag_err
+
+
 def process(specdata,
             paramDict0,
             fixParam=None,
@@ -602,22 +630,7 @@ def process(specdata,
     hess_step = ndf.MaxStepGenerator(base_step=hess_step)
     hessian = ndf.Hessian(hess_func_wrap, step=hess_step)(
         [ret['param'][_] for _ in specParamNames])
-    try:
-        hessian_inv = scipy.linalg.inv(hessian)
-        diag_hess = np.array(np.diag(hessian_inv))
-        diag_hess1 = 1. / np.diag(hessian)
-        bad_diag_hess = diag_hess < 0
-        bad_diag_hess1 = diag_hess1 < 0
-        sub1 = bad_diag_hess & (~bad_diag_hess1)
-        sub2 = bad_diag_hess & (bad_diag_hess1)
-        diag_hess[sub1] = diag_hess1[sub1]
-        diag_hess[sub2] = 0
-        diag_err = np.sqrt(diag_hess)
-        diag_err[sub2] = np.nan
-    except np.linalg.LinAlgError:
-        logging.warning('The inversion of the Hessian failed')
-        diag_err = np.zeros(hessian.shape[0]) + np.nan
-        #
+    diag_err = _uncertainties_from_hessian(hessian)
     ret['param_err'] = dict(zip(specParamNames, diag_err))
     ret['minimize_success'] = minimize_success
 
