@@ -748,12 +748,13 @@ def quadratic_interp_min(vel_grid, chisq, i):
 def find_best(specdata,
               vel_grid,
               params_list,
-              rot_params,
-              resol_params,
+              rot_params=None,
+              resol_params=None,
               options=None,
               config=None,
               quadratic=True):
-    """ Find the best fit template and velocity from a grid
+    """ 
+    Find the best fit template and velocity from a grid
 
     Parameters
     ----------
@@ -781,7 +782,7 @@ def find_best(specdata,
         best_vel -- velocity
         vel_err -- velocity error
         best_param -- best param
-        kurtosis -- kurtosi of velocity distribution
+        kurtosis -- kurtosis of velocity distribution
         skewness -- skewness of velocity distribution
         probs -- vector of 'posterior' probabilities over the grid
 
