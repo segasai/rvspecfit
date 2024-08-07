@@ -66,8 +66,8 @@ def read_config(fname=None, override_options=None):
     for k in D0.keys():
         if k not in D:
             logging.debug(
-                'Keyword {} not found in configuration file. ' +
-                'Using default value {}', k, D0[k])
+                'Keyword %s not found in configuration file. ' +
+                'Using default value %s', k, D0[k])
             D[k] = D0[k]
     D['config_file_path'] = os.path.abspath(fname)
     if override_options is not None:
