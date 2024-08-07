@@ -1,12 +1,13 @@
 import time
+import logging
+import copy
+import math
 import itertools
 import numpy as np
 import scipy.optimize
 import numdifftools as ndf
 from rvspecfit import spec_fit
 from rvspecfit import spec_inter
-import logging
-import copy
 
 
 def firstguess(specdata,
@@ -298,9 +299,14 @@ def _find_best_vel_iterate(best_vel,
     # velocities to get the uncertainty
     vel_step = vel_step0
     while True:
-        vels_grid = np.concatenate(
-            (np.arange(best_vel, min_vel, -vel_step)[::-1],
-             np.arange(best_vel + vel_step, max_vel, vel_step)))
+        # at each iteration I update two things
+        # step size and min,max values of the velocity window
+
+        # velocity grid that goes from min_vel to max_vel and goes
+        # exactly through best_vel
+        vels_grid = np.arange(
+            math.ceil((min_vel - best_vel) / vel_step) * vel_step,
+            max_vel - best_vel, vel_step) + best_vel
         res1 = spec_fit.find_best(specdata,
                                   vels_grid, [best_param['params']],
                                   best_param['rot_params'],
@@ -308,13 +314,16 @@ def _find_best_vel_iterate(best_vel,
                                   config=config,
                                   options=options)
         best_vel = res1['best_vel']
-        if vel_step < res1['vel_err'] / crit_ratio or vel_step < min_vel_step:
+        cur_err = res1['vel_err']
+        # I stop if the step becomes smaller than the some fraction of the
+        # velocity error or if step is just too small
+        if vel_step < cur_err / crit_ratio or vel_step < min_vel_step:
             break
         else:
             # construct new velocity step
-            vel_step = max(res1['vel_err'], vel_step) / crit_ratio * 0.8
+            vel_step = max(cur_err, vel_step) / crit_ratio * 0.8
             # make sure we have at least that much width around the posterior
-            new_width = max(res1['vel_err'], vel_step) * 10
+            new_width = max(cur_err, vel_step) * 10
             min_vel = max(best_vel - new_width, min_vel)
             max_vel = min(best_vel + new_width, max_vel)
     return best_vel, res1['vel_err'], res1['skewness'], res1['kurtosis']
