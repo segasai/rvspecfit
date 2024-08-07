@@ -719,7 +719,7 @@ def get_chisq(specdata,
     return ret
 
 
-def quadratic_interp_min(vel_grid, chisq, i):
+def _quadratic_interp_min(vel_grid, chisq, i):
     """Find the minimum using quadratic interpolation
 
     Parameters
@@ -753,7 +753,7 @@ def find_best(specdata,
               options=None,
               config=None,
               quadratic=True):
-    """ 
+    """
     Find the best fit template and velocity from a grid
 
     Parameters
@@ -804,7 +804,7 @@ def find_best(specdata,
     probs = np.exp(-0.5 * (chisq[:, i2] - chisq[i1, i2]))
     probs = probs / probs.sum()
     if quadratic:
-        best_vel = quadratic_interp_min(vel_grid, chisq[:, i2], i1)
+        best_vel = _quadratic_interp_min(vel_grid, chisq[:, i2], i1)
     else:
         best_vel = vel_grid[i1]
     best_err = np.sqrt((probs * (vel_grid - best_vel)**2).sum())
