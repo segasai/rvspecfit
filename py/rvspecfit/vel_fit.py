@@ -77,8 +77,8 @@ def firstguess(specdata,
         res = spec_fit.find_best(specdata,
                                  vels_grid,
                                  params,
-                                 rot_params,
-                                 resolParams,
+                                 rot_params=rot_params,
+                                 resol_params=resolParams,
                                  config=config,
                                  options=options)
         if res['best_chi'] < best_chisq:
@@ -295,8 +295,8 @@ def _find_best_vel_iterate(best_vel,
     def func(vels_grid):
         res1 = spec_fit.find_best(specdata,
                                   vels_grid, [best_param['params']],
-                                  best_param['rot_params'],
-                                  resolParams,
+                                  rot_params=best_param['rot_params'],
+                                  resol_params=resolParams,
                                   config=config,
                                   options=options)
         best_vel = res1['best_vel']
@@ -487,8 +487,8 @@ def process(specdata,
     # grid with it
     res = spec_fit.find_best(specdata,
                              vels_grid, [curparam],
-                             rot_params,
-                             resolParams,
+                             rot_params=rot_params,
+                             resol_params=resolParams,
                              config=config,
                              options=options)
     best_vel = res['best_vel']
