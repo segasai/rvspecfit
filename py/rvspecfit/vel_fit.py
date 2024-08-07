@@ -292,21 +292,7 @@ def _find_best_vel_iterate(best_vel,
         else:
             best_vel = min_vel
 
-    crit_ratio = 5  # we want the step size to be at least crit_ratio
-    # times smaller than the uncertainty
-
-    # Here we are evaluating the chi-quares on the grid of
-    # velocities to get the uncertainty
-    vel_step = vel_step0
-    while True:
-        # at each iteration I update two things
-        # step size and min,max values of the velocity window
-
-        # velocity grid that goes from min_vel to max_vel and goes
-        # exactly through best_vel
-        vels_grid = np.arange(
-            math.ceil((min_vel - best_vel) / vel_step) * vel_step,
-            max_vel - best_vel, vel_step) + best_vel
+    def func(vels_grid):
         res1 = spec_fit.find_best(specdata,
                                   vels_grid, [best_param['params']],
                                   best_param['rot_params'],
@@ -315,18 +301,97 @@ def _find_best_vel_iterate(best_vel,
                                   options=options)
         best_vel = res1['best_vel']
         cur_err = res1['vel_err']
+        return best_vel, cur_err, res1
+
+    best_vel, best_err, res1 = _minimum_sampler(func, best_vel, min_vel,
+                                                max_vel, vel_step0,
+                                                min_vel_step)
+
+    return best_vel, best_err, res1['skewness'], res1['kurtosis']
+
+
+def _minimum_sampler(func,
+                     best_vel,
+                     min_vel,
+                     max_vel,
+                     vel_step0,
+                     min_vel_step,
+                     crit_ratio=5,
+                     goal_width=10):
+    """
+    This function tries to find the minimum value and the error.
+    The key point is that it tries to ensure the step on the grid
+    is small enough. Also crucially we start from broad range of velocities
+    to ensure we can capture multiple peaks in the CCF.
+
+    Parameters:
+    -----------
+    func: function
+        This function should return the tuple where the first two items
+        are best value, uncertainty.
+    best_vel: float
+        Initial best guess
+    min_vel: float
+        Lower boundary to consider
+    max_vel: float
+        Upper boundary to consider
+    vel_step0: float
+        Starting step size
+    min_vel_step: float
+        Stop if the step size is below the value
+    crit_ratio: float
+        Require that the uncertainty/step size is bigger than that
+    goal_width: float
+        make sure the grid is at leas that many sigma wide
+    """
+    # we want the step size to be at least crit_ratio
+    # times smaller than the uncertainty
+
+    # Here we are evaluating the chi-quares on the grid of
+    # velocities to get the uncertainty
+    vel_step = vel_step0
+    for it in range(10):
+        # at each iteration I update two things
+        # step size and min,max values of the velocity window
+
+        # velocity grid that goes from min_vel to max_vel and goes
+        # exactly through best_vel
+        vels_grid = np.arange(
+            math.ceil((min_vel - best_vel) / vel_step) * vel_step,
+            max_vel - best_vel, vel_step) + best_vel
+        best_vel, cur_err, res1 = func(vels_grid)
         # I stop if the step becomes smaller than the some fraction of the
         # velocity error or if step is just too small
         if vel_step < cur_err / crit_ratio or vel_step < min_vel_step:
             break
         else:
-            # construct new velocity step
-            vel_step = max(cur_err, vel_step) / crit_ratio * 0.8
-            # make sure we have at least that much width around the posterior
-            new_width = max(cur_err, vel_step) * 10
-            min_vel = max(best_vel - new_width, min_vel)
-            max_vel = min(best_vel + new_width, max_vel)
-    return best_vel, res1['vel_err'], res1['skewness'], res1['kurtosis']
+            # construct new velocity step and width
+            # When choosing the width there are two things to consider
+            # At first the error may be incorrect if the step is too large
+            # so I need be careful that the width is not based on that.
+            if vel_step > cur_err:
+                # we are not resolving the uncertainty properly so the
+                # uncertainty is essentially not correct
+                # so I essentially use vel_step as indicator of the velocity
+                vel_step_new = vel_step / crit_ratio
+                width_new = vel_step * goal_width
+            else:
+                # vel_step < cur_err
+                # normally resolved regime
+                vel_step_new = cur_err / crit_ratio * 0.8
+                # 0.8 is there to ensure that I satisfy the
+                # err/step > crit_ratio from first iteration
+                width_new = cur_err * goal_width
+            # It is guaranteed that the new velocity step is smaller than
+            # before
+
+            min_vel = max(best_vel - width_new, min_vel)
+            max_vel = min(best_vel + width_new, max_vel)
+            vel_step = vel_step_new
+    if it > 5:
+        logging.warning(
+            'More than 5 iterations we used in finding the velocity error')
+    return best_vel, cur_err, res1
 
 
 def process(specdata,
