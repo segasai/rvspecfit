@@ -530,8 +530,9 @@ def select_fibers_to_fit(fibermap,
     elif 'COADD_FIBERSTATUS' in fibermap.columns.names:
         subset = subset & (fibermap['COADD_FIBERSTATUS'] == 0)
 
-    # Exclude skys but include anything else
-    subset = subset & (fibermap['OBJTYPE'] != 'SKY')
+    # Exclude skys and bad but include anything else
+    subset = subset & (fibermap['OBJTYPE'] != 'SKY') & (fibermap['OBJTYPE']
+                                                        != 'BAD')
 
     # Always apply TARGETID selection if provided
     if fit_targetid is not None:
