@@ -1028,13 +1028,10 @@ def main(args):
         type=str, default=None)
 
     for arg_name_prefix, arg_name_descr in zip(
-        ["input_file", "eff_temp_kelvin_normal_prior_mean",
-         "eff_temp_kelvin_normal_prior_st_dev",
-         "lg_g_normal_prior_mean",
-         "lg_g_normal_prior_st_dev",
-         "fe_h_normal_prior_mean",
-         "fe_h_normal_prior_st_dev", "alpha_fe_normal_prior_mean",
-         "alpha_fe_normal_prior_st_dev"],
+        ["input_file", "teff_nprior_mean", "teff_nprior_stdev",
+         "lg_g_nprior_mean", "lg_g_nprior_stdev",
+         "fe_h_nprior_mean", "fe_h_nprior_stdev", "alpha_nprior_mean",
+         "alpha_nprior_stdev"],
          ["spectral files",
           "means of normal priors of effective temperature in Kelviqn"
           " for each star",
@@ -1199,38 +1196,22 @@ def main(args):
     targetid_file_from = namespace_obj.targetid_file_from
     targetid = namespace_obj.targetid
     npoly = namespace_obj.npoly
-    eff_temp_kelvin_normal_prior_means = (
-        namespace_obj.eff_temp_kelvin_normal_prior_means)
-    eff_temp_kelvin_normal_prior_mean_from = (
-        namespace_obj.eff_temp_kelvin_normal_prior_mean_from)
-    eff_temp_kelvin_normal_prior_st_devs = (
-        namespace_obj.eff_temp_kelvin_normal_prior_st_devs)
-    eff_temp_kelvin_normal_prior_st_dev_from = (
-        namespace_obj.eff_temp_kelvin_normal_prior_st_dev_from)
-    lg_g_normal_prior_means = (
-        namespace_obj.lg_g_normal_prior_means)
-    lg_g_normal_prior_mean_from = (
-        namespace_obj.lg_g_normal_prior_mean_from)
-    lg_g_normal_prior_st_devs = (
-        namespace_obj.lg_g_normal_prior_st_devs)
-    lg_g_normal_prior_st_dev_from = (
-        namespace_obj.lg_g_normal_prior_st_dev_from)
-    fe_h_normal_prior_means = (
-        namespace_obj.fe_h_normal_prior_means)
-    fe_h_normal_prior_mean_from = (
-        namespace_obj.fe_h_normal_prior_mean_from)
-    fe_h_normal_prior_st_devs = (
-        namespace_obj.fe_h_normal_prior_st_devs)
-    fe_h_normal_prior_st_dev_from = (
-        namespace_obj.fe_h_normal_prior_st_dev_from)
-    alpha_fe_normal_prior_means = (
-        namespace_obj.alpha_fe_normal_prior_means)
-    alpha_fe_normal_prior_mean_from = (
-        namespace_obj.alpha_fe_normal_prior_mean_from)
-    alpha_fe_normal_prior_st_devs = (
-        namespace_obj.alpha_fe_normal_prior_st_devs)
-    alpha_fe_normal_prior_st_dev_from = (
-        namespace_obj.alpha_fe_normal_prior_st_dev_from)
+    teff_nprior_means = namespace_obj.teff_nprior_means
+    teff_nprior_mean_from = namespace_obj.teff_nprior_mean_from
+    teff_nprior_stdevs = namespace_obj.teff_nprior_stdevs
+    teff_nprior_stdev_from = namespace_obj.teff_nprior_stdev_from
+    lg_g_nprior_means = namespace_obj.lg_g_nprior_means
+    lg_g_nprior_mean_from = namespace_obj.lg_g_nprior_mean_from
+    lg_g_nprior_stdevs = namespace_obj.lg_g_nprior_stdevs
+    lg_g_nprior_stdev_from = namespace_obj.lg_g_nprior_stdev_from
+    fe_h_nprior_means = namespace_obj.fe_h_nprior_means
+    fe_h_nprior_mean_from = namespace_obj.fe_h_nprior_mean_from
+    fe_h_nprior_stdevs = namespace_obj.fe_h_nprior_stdevs
+    fe_h_nprior_stdev_from = namespace_obj.fe_h_nprior_stdev_from
+    alpha_nprior_means = namespace_obj.alpha_nprior_means
+    alpha_nprior_mean_from = namespace_obj.alpha_nprior_mean_from
+    alpha_nprior_stdevs = namespace_obj.alpha_nprior_stdevs
+    alpha_nprior_stdev_from = namespace_obj.alpha_nprior_stdev_from
     if namespace_obj.param_init == "CCF":
         ccfinit = True
     elif namespace_obj.param_init == "bruteforce":
@@ -1262,24 +1243,18 @@ def main(args):
     dct_ilsts = {}
     dct_ofile_queue_objs = {}
     for lst_arg_name, file_arg_name, oname in zip(
-        ["eff_temp_kelvin_normal_prior_means",
-         "eff_temp_kelvin_normal_prior_st_devs",
-         "lg_g_normal_prior_means",
-         "lg_g_normal_prior_st_devs", "fe_h_normal_prior_means",
-         "fe_h_normal_prior_st_devs", "alpha_fe_normal_prior_means",
-         "alpha_fe_normal_prior_st_devs"],
-        ["eff_temp_kelvin_normal_prior_mean_from",
-         "eff_temp_kelvin_normal_prior_st_dev_from",
-         "lg_g_normal_prior_mean_from", "lg_g_normal_prior_st_dev_from",
-         "fe_h_normal_prior_mean_from", "fe_h_normal_prior_st_dev_from",
-         "alpha_fe_normal_prior_mean_from",
-         "alpha_fe_normal_prior_st_dev_from"],
-        ["eff_temp_kelvin_normal_prior_means",
-         "eff_temp_kelvin_normal_prior_st_devs",
-         "lg_g_normal_prior_means", "lg_g_normal_prior_st_devs",
-         "fe_h_normal_prior_means", "fe_h_normal_prior_st_devs",
-         "alpha_fe_normal_prior_means",
-         "alpha_fe_normal_prior_st_devs"]):
+        ["teff_nprior_means", "teff_nprior_stdevs", "lg_g_nprior_means",
+         "lg_g_nprior_stdevs", "fe_h_nprior_means",
+         "fe_h_nprior_stdevs", "alpha_nprior_means",
+         "alpha_nprior_stdevs"],
+        ["teff_nprior_mean_from", "teff_nprior_stdev_from",
+         "lg_g_nprior_mean_from", "lg_g_nprior_stdev_from",
+         "fe_h_nprior_mean_from", "fe_h_nprior_stdev_from",
+         "alpha_nprior_mean_from", "alpha_nprior_stdev_from"],
+        ["teff_nprior_means", "teff_nprior_stdevs", "lg_g_nprior_means",
+         "lg_g_nprior_stdevs", "fe_h_nprior_means",
+         "fe_h_nprior_stdevs", "alpha_nprior_means",
+         "alpha_nprior_stdevs"]):
         if locals()[lst_arg_name] and locals()[file_arg_name]:
             raise RuntimeError(
                 "".join(
@@ -1332,21 +1307,21 @@ def main(args):
         throw_exceptions=namespace_obj.throw_exceptions, npoly=npoly,
         doplot=doplot, ccfinit=ccfinit,
         eff_temp_kelvin_normal_prior_means=(
-            dct_ofile_queue_objs["eff_temp_kelvin_normal_prior_means"]),
+            dct_ofile_queue_objs["teff_nprior_means"]),
         eff_temp_kelvin_normal_prior_st_devs=(
-            dct_ofile_queue_objs["eff_temp_kelvin_normal_prior_st_devs"]),
+            dct_ofile_queue_objs["teff_nprior_stdevs"]),
         lg_g_normal_prior_means=(
-            dct_ofile_queue_objs["lg_g_normal_prior_means"]),
+            dct_ofile_queue_objs["lg_g_nprior_means"]),
         lg_g_normal_prior_st_devs=(
-            dct_ofile_queue_objs["lg_g_normal_prior_st_devs"]),
+            dct_ofile_queue_objs["lg_g_nprior_stdevs"]),
         fe_h_normal_prior_means=(
-            dct_ofile_queue_objs["fe_h_normal_prior_means"]),
+            dct_ofile_queue_objs["fe_h_nprior_means"]),
         fe_h_normal_prior_st_devs=(
-            dct_ofile_queue_objs["fe_h_normal_prior_st_devs"]),
+            dct_ofile_queue_objs["fe_h_nprior_stdevs"]),
         alpha_fe_normal_prior_means=(
-            dct_ofile_queue_objs["alpha_fe_normal_prior_means"]),
+            dct_ofile_queue_objs["alpha_nprior_means"]),
         alpha_fe_normal_prior_st_devs=(
-            dct_ofile_queue_objs["alpha_fe_normal_prior_st_devs"])
+            dct_ofile_queue_objs["alpha_nprior_stdevs"])
     )
 
 
