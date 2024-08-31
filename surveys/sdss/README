@@ -1,0 +1,58 @@
+This is set of files for SDSS processing
+
+make_sdss.sh -- is the script that prepares the template libraries
+
+sdss_fit.py is the main program that fits the data
+Usage: sdss_fit.py [-h] [--no_threads NO_THREADS] [--config CONFIG]
+                   [--input_files INPUT_FILES]
+                   [--input_file_from INPUT_FILE_FROM]
+                   [--teff_nprior_means TEFF_NPRIOR_MEAN]
+                   [--teff_nprior_mean_from TEFF_NPRIOR_MEAN_FROM]
+                   [--teff_nprior_stdevs TEFF_NPRIOR_STDEVS]
+                   [--teff_nprior_stdev_from TEFF_NPRIOR_STDEV_FROM]
+                   [--lg_g_nprior_means LG_G_NPRIOR_MEANS]
+                   [--lg_g_nprior_mean_from LG_G_NPRIOR_MEAN_FROM]
+                   [--lg_g_nprior_stdevs LG_G_NPRIOR_STDEVS]
+                   [--lg_g_nprior_stdev_from LG_G_NPRIOR_STDEV_FROM]
+                   [--fe_h_nprior_means FE_H_NPRIOR_MEANS]
+                   [--fe_h_nprior_mean_from FE_H_NPRIOR_MEAN_FROM]
+                   [--fe_h_nprior_stdevs FE_H_NPRIOR_STDEVS]
+                   [--fe_h_nprior_stdev_from FE_H_NPRIOR_STDEV_FROM]
+                   [--alpha_nprior_means alpha_NPRIOR_MEANS]
+                   [--alpha_nprior_mean_from alpha_NPRIOR_MEAN_FROM]
+                   [--alpha_nprior_stdevs alpha_NPRIOR_STDEVS]
+                   [--alpha_nprior_stdev_from alpha_NPRIOR_STDEV_FROM]
+                   [--queue_file QUEUE_FILE] [--setup SETUP]
+                   [--output_dir OUTPUT_DIR] [--targetid TARGETID]
+                   [--targetid_file_from TARGETID_FILE_FROM]
+                   [--npoly NPOLY]
+                   [--output_tab_prefix OUTPUT_TAB_PREFIX]
+                   [--output_mod_prefix OUTPUT_MOD_PREFIX]
+                   [--fig_dir FIG_DIR] [--fig_prefix FIG_PREFIX]
+                   [--log LOG] [--log_level LOG_LEVEL]
+                   [--param_init PARAM_INIT]
+                   [--proc_status_file PROC_STATUS_FILE]
+                   [--overwrite] [--vers] [--skipexisting] [--doplot]
+                   [--no_ccf_continuum_normalize] [--no_subdirs]
+                   [--throw_exceptions]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --no_threads NO_THREADS
+                        Number of threads for the fits
+  --config CONFIG       The filename of the configuration file
+  --input_files INPUT_FILES
+                        Space separated list of spectral files to process
+  --input_file_from INPUT_FILE_FROM
+                        Read the list of spectral files from the text
+                        file
+  --output_dir OUTPUT_DIR
+                        Output directory for the tables
+  --output_tab_prefix OUTPUT_TAB_PREFIX
+                        Prefix of output table files
+  --fig_prefix FIG_PREFIX
+                        Prefix for the fit figures, i.e. fig_folder/im
+  --overwrite           If enabled the code will overwrite the existing
+                        products, otherwise it will skip them
+
+python desi_fit.py --nthreads 24 --input_file_mask '/home/skoposov/science/desi/dc17a2/spectra-64/*/*/spectra-*.fits' --output_dir ./outtab/ --fig_prefix outfig/fig_
