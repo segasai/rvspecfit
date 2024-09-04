@@ -1033,7 +1033,7 @@ def main(args):
          "fe_h_nprior_mean", "fe_h_nprior_stdev", "alpha_nprior_mean",
          "alpha_nprior_stdev"],
          ["spectral files",
-          "means of normal priors of effective temperature in Kelviqn"
+          "means of normal priors of effective temperature in Kelvin"
           " for each star",
           "standard deviations of normal priors of effective"
           " temperature in Kelvin for each star",
@@ -1044,8 +1044,8 @@ def main(args):
           "means of normal priors of [Fe/H] for each star",
           "standard deviations of normal priors of [Fe/H] for each"
           " star",
-          "means of normal priors of [/Fe] for each star",
-          "standard deviations of normal priors of [/Fe] for each"
+          "means of normal priors of [alpha/Fe] for each star",
+          "standard deviations of normal priors of [alpha/Fe] for each"
           " star"]):
         arg_parser_obj.add_argument(
             "--{}s".format(arg_name_prefix), nargs="*", default=None, 
@@ -1092,7 +1092,7 @@ def main(args):
         type=str, default="vel_mod", required=False)
     arg_parser_obj.add_argument(
         "--fig_dir",
-        help="Path for the fit figures, i.e. fig_folder/", type=str,
+        help="Path for the fit figures, i.e., fig_folder/", type=str,
         default="./")
     arg_parser_obj.add_argument(
         "--fig_prefix",
