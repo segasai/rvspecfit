@@ -259,7 +259,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     #  so I need to invert the matrix1. I can do it using svd
     v2 = v.T @ (
         (1. / s)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
-    chisq = -vector1.T @ v2 - ldetI + 2 * logl_z + np.dot(normspec, normspec)
+    chisq = -ldetI + 2 * logl_z + np.linalg.norm(normspec - v2 @ polys1)**2
     if get_coeffs:
         coeffs = v2.flatten()
         return chisq, coeffs
