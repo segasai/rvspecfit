@@ -521,6 +521,9 @@ def get_chisq_continuum(specdata, options=None):
         # name = curdata.name
         polys = get_basis(curdata, npoly, rbf=rbf)
         templ = np.ones(len(curdata.spec))
+        if curdata.resolution is not None:
+            # this is needed if the resolution is resolution matrix
+            templ = convolve_resol(templ, curdata.resolution)
         curchisq, coeffs = get_chisq0(curdata.spec,
                                       templ,
                                       polys,

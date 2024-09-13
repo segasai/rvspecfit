@@ -225,6 +225,7 @@ def proc_onespec(
     setups,
     config,
     options,
+    resolution_matrix=None,
     fig_fname='fig.png',
     ccfinit=True,
     doplot=True,
@@ -434,12 +435,14 @@ def read_data(FP, setups):
     ivars = {}
     waves = {}
     masks = {}
+    resolutions = {}
     for s in setups:
         fluxes[s] = FP['%s_FLUX' % s.upper()].data
         ivars[s] = FP['%s_IVAR' % s.upper()].data
         masks[s] = FP['%s_MASK' % s.upper()].data
         waves[s] = FP['%s_WAVELENGTH' % s.upper()].data
-    return fluxes, ivars, masks, waves
+        resolutions[s] = FP['%s_RESOLUTION' % s.upper()].data
+    return fluxes, ivars, masks, waves, resolutions
 
 
 def filter_fibermap(fibermapT, DT, objtypes=None):
@@ -602,12 +605,33 @@ def select_fibers_to_fit(fibermap,
     return subset, rr_z, rr_spectype
 
 
+def construct_resolution_sparse_matrix(mat):
+    width, npix = mat.shape
+    from scipy.sparse import dia_matrix
+    sig = 0.451  # Angstrom
+    sig_pix = sig / 0.8
+    xs = np.arange(width)
+    mat0 = np.array([
+        1 / np.sqrt(2 * np.pi) / sig * np.exp(-0.5 * ((xs - i) / sig_pix)**2)
+        for i in range(len(xs))
+    ])
+
+    qmat = scipy.linalg.solve(mat0, mat)
+    # qmat = mat
+    M = dia_matrix((qmat, np.arange(width // 2, -(width // 2) - 1, -1)),
+                   (npix, npix))
+    return M
+    # return spdiags(mat1, -(np.arange(width) - center), npix, npix)
+
+
 def get_specdata(waves,
                  fluxes,
                  ivars,
                  masks,
+                 resolutions,
                  seqid,
                  setups,
+                 use_resolution_matrix=True,
                  mask_dicroic=True):
     """ Return the list of SpecDatas for one single object
 
@@ -675,11 +699,18 @@ def get_specdata(waves,
             # logging.debug("Clamped error on %d pixels" % (replace_idx.sum()))
             espec[replace_idx] = goodespec_thresh
 
+        if use_resolution_matrix:
+            cur_resol = spec_fit.ResolMatrix(
+                construct_resolution_sparse_matrix(resolutions[s][seqid]))
+        else:
+            cur_resol = None
         sd = spec_fit.SpecData('desi_%s' % s,
                                waves[s],
                                spec,
                                espec,
+                               resolution=cur_resol,
                                badmask=badall)
+
         sds.append(sd)
     return tuple(sds)
 
@@ -747,6 +778,7 @@ def proc_desi(fname,
               cmdline=None,
               zbest_select=False,
               zbest_include=False,
+              use_resolution_matrix=False,
               ccfinit=True,
               npoly=10):
     """
@@ -822,7 +854,7 @@ def proc_desi(fname,
             FP.close()
             return 0
 
-    fluxes, ivars, masks, waves = read_data(FP, setups)
+    fluxes, ivars, masks, waves, resolutions = read_data(FP, setups)
     FP.close()
     # extract SN from the fibermap or compute ourselves
     if 'MEDIAN_CALIB_SNR_' + setups[0].upper() in scores.columns.names:
@@ -900,7 +932,14 @@ def proc_desi(fname,
     for cur_rr_z, cur_rr_spectype, curseqid in zip(rr_z, rr_spectype,
                                                    seqid_to_fit):
         # collect data
-        specdatas = get_specdata(waves, fluxes, ivars, masks, curseqid, setups)
+        specdatas = get_specdata(waves,
+                                 fluxes,
+                                 ivars,
+                                 masks,
+                                 resolutions,
+                                 curseqid,
+                                 setups,
+                                 use_resolution_matrix=use_resolution_matrix)
         curFiberRow = fibermap[curseqid]
         if specdatas is None:
             logging.warning(
@@ -1150,6 +1189,7 @@ def proc_many(files,
               subdirs=True,
               ccf_continuum_normalize=True,
               process_status_file=None,
+              use_resolution_matrix=None,
               npoly=None,
               throw_exceptions=None):
     """
@@ -1263,6 +1303,7 @@ def proc_many(files,
                       process_status_file=process_status_file,
                       npoly=npoly,
                       ccfinit=ccfinit,
+                      use_resolution_matrix=use_resolution_matrix,
                       throw_exceptions=throw_exceptions)
         proc_desi_wrapper(*args, **kwargs)
 
@@ -1390,6 +1431,12 @@ def main(args):
                         type=str,
                         default=None,
                         required=False)
+    parser.add_argument('--resolution_matrix', action='store_true')
+    parser.add_argument('--no-resolution_matrix',
+                        dest='resolution_matrix',
+                        action='store_false')
+    parser.set_defaults(resolution_matrix=False)
+
     parser.add_argument(
         '--overwrite',
         help='''If enabled the code will overwrite the existing products,
@@ -1555,6 +1602,7 @@ in the table (but will not use for selection)''',
         zbest_select=zbest_select,
         zbest_include=zbest_include,
         ccf_continuum_normalize=ccf_continuum_normalize,
+        use_resolution_matrix=args.resolution_matrix,
         ccfinit=ccfinit,
         npoly=npoly,
         throw_exceptions=args.throw_exceptions,
