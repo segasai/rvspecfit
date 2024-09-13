@@ -35,3 +35,7 @@ $RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests
 echo tests/data/coadd-sv1-bright-10378.fits > /tmp/queue.list
 # queue
 $RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=DEBUG --queue_file --input_file_from=/tmp/queue.list
+
+echo tests/data/coadd-sv1-bright-10378.fits > /tmp/queue.list
+# input file 
+$RVS_FIT  --output_dir ./tests_desi_output --no_subdirs --minsn=2 --config tests/yamls/config_desi.yaml --objtypes='SCND_ANY,MWS_ANY,STD_*' --throw_exceptions --zbest_include --nthreads=1 --process_status_file /tmp/tests_desi.status  --log_level=DEBUG --input_file_from=/tmp/queue.list
