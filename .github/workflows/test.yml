@@ -51,6 +51,9 @@ jobs:
           wget -q https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/healpix/sv1/bright/103/10378/coadd-sv1-bright-10378.fits
           wget -q https://data.desi.lbl.gov/public/edr/spectro/redux/fuji/healpix/sv1/bright/103/10378/redrock-sv1-bright-10378.fits
           cd ../../
+      - name: EnvVar
+        run: |
+          echo "RVS_NN_DEVICE=cpu" >> "$GITHUB_ENV"
       - name: Testing
         run: |
           pytest --cov=rvspecfit
