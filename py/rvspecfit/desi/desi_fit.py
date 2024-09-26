@@ -605,23 +605,77 @@ def select_fibers_to_fit(fibermap,
     return subset, rr_z, rr_spectype
 
 
-def construct_resolution_sparse_matrix(mat):
-    width, npix = mat.shape
-    from scipy.sparse import dia_matrix
-    sig = 0.451  # Angstrom
-    sig_pix = sig / 0.8
+def resolution_mat_torows(mat):
+    w = mat.shape[0]
+    w2 = w // 2
+    return np.array([np.roll(mat[_], _ - w2) for _ in range(w)])[::-1]
+
+
+def resolution_mat_tocolumns(mat):
+    w = mat.shape[0]
+    w2 = w // 2
+    return np.array([np.roll(mat[::-1][_], w2 - _) for _ in range(w)])
+
+
+def deconvolve_resolution_matrix(mat0, sig=0.451):
+    width, npix = mat0.shape
+    pix_size = 0.8  # Angstrom, desi
+    sig_pix = sig / pix_size
     xs = np.arange(width)
-    mat0 = np.array([
-        1 / np.sqrt(2 * np.pi) / sig * np.exp(-0.5 * ((xs - i) / sig_pix)**2)
+    gau_mat = np.array([
+        1. / np.sqrt(2 * np.pi) / sig * np.exp(-0.5 * ((xs - i) / sig_pix)**2)
         for i in range(len(xs))
     ])
+    w2 = width // 2
+    mat_rows = resolution_mat_torows(mat0)
+    # Now this stores rows of the banded matrix rather than columns
+    for i in range(w2):
+        mat_rows[:w2 - i - 1, i] = 0
+        # mat_rows[:, i] = mat_rows[:, i] / mat_rows[:, i].sum()
+        j = npix - 1 - i
+        mat_rows[w2 + 1 + i:, j] = 0
+        # mat_rows[:, j] = mat_rows[:, j] / mat_rows[:, j].sum()
 
-    qmat = scipy.linalg.solve(mat0, mat)
-    # qmat = mat
-    M = dia_matrix((qmat, np.arange(width // 2, -(width // 2) - 1, -1)),
-                   (npix, npix))
+    mat_rows1 = scipy.linalg.solve(gau_mat, mat_rows)
+    # shift backward
+    mat = resolution_mat_tocolumns(mat_rows1)
+    # this a hack no deconvolution of edges
+    # mat[:, :w2] = mat0[:, :w2]
+    # mat[:, -w2:] = mat0[:, -w2:]
+    return mat
+
+
+def construct_resolution_sparse_matrix(mat):
+    width, npix = mat.shape
+    w2 = width // 2
+    from scipy.sparse import dia_matrix
+    mat = mat.copy()
+    if False:
+        # this is because the resolution matrix is incorrect in the edges
+        mat_rows = resolution_mat_torows(mat)
+        for i in range(w2):
+            N1 = mat_rows[w2 - i:, i].sum()
+            mat_rows[:, i] = mat_rows[:, i] / (N1 + (N1 == 0))
+            j = npix - 1 - i
+            N2 = mat_rows[:w2 + 1 + i, j].sum()
+            mat_rows[:, j] = mat_rows[:, j] / (N2 + (N2 == 0))
+        mat = resolution_mat_tocolumns(mat_rows)
+    if True:
+        mat = deconvolve_resolution_matrix(mat)
+        # this is because the resolution matrix is incorrect in the edges
+        mat_rows = resolution_mat_torows(mat)
+        mult = np.median(mat_rows.sum(axis=0))
+        if mult == 0:
+            mult = 1
+        for i in range(w2):
+            N1 = mat_rows[w2 - i:, i].sum()
+            mat_rows[:, i] = mat_rows[:, i] / (N1 + (N1 == 0)) * mult
+            j = npix - 1 - i
+            N2 = mat_rows[:w2 + 1 + i, j].sum()
+            mat_rows[:, j] = mat_rows[:, j] / (N2 + (N2 == 0)) * mult
+        mat = resolution_mat_tocolumns(mat_rows)
+    M = dia_matrix((mat, np.arange(w2, -w2 - 1, -1)), (npix, npix))
     return M
-    # return spdiags(mat1, -(np.arange(width) - center), npix, npix)
 
 
 def get_specdata(waves,
