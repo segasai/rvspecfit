@@ -232,16 +232,16 @@ def main(args):
             lossAccum = 0
             if not batch_move:
                 optim.zero_grad()
-            for Tdat, Tvecs0 in Tbatchdat:
-                Tvecs = Tvecs0 + torch.rand(
-                    size=Tvecs0.size()).to(train_dev) * layer_noise
+            for Tdat, Tvecs00 in Tbatchdat:
+                Tvecs = Tvecs00 + torch.rand(
+                    size=Tvecs00.size()).to(train_dev) * layer_noise
                 if batch_on_dev:
                     Tdat = Tdat.to(train_dev)
                     Tvecs = Tvecs.to(train_dev)
                 if batch_move:
                     optim.zero_grad()
                 # Rfinal = myint(Tvecs) * tSD_0 + tD_0
-                RfinalX = myint(Tvecs0) * tSD_0 + tD_0
+                RfinalX = myint(Tvecs00) * tSD_0 + tD_0
                 if regul_eps > 0:
                     regul = regul_eps * torch.sum(
                         torch.linalg.vector_norm(
@@ -289,10 +289,10 @@ def main(args):
             #    break
             if curlr < minlr:
                 break
-            if np.ptp(losses[-30:]) / loss_V < 1e-3 and counter > 30:
+            # if np.ptp(losses[-30:]) / loss_V < 1e-3 and counter > 30:
 
-                print('break2')
-                break
+            #     print('break2')
+            #    break
 
             if counter % 32 == 0 and counter > 0:
                 print('saving')
