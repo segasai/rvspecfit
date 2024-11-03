@@ -678,6 +678,37 @@ def construct_resolution_sparse_matrix(mat):
     return M
 
 
+def interpolate_bad_regions(spec, mask):
+    """
+    Interpolate bad regions
+    """
+    xind = np.nonzero(mask)[0]
+    if len(xind) == 0:
+        return spec
+    elif len(xind) == len(spec):
+        return spec
+    edges = np.nonzero(np.diff(xind, prepend=-10) > 1)[0]
+    n_edges = len(edges)
+    spec1 = spec * 1
+    for i in range(n_edges):
+        if i == n_edges - 1:
+            rh = xind[-1]
+        else:
+            rh = xind[edges[i + 1] - 1]
+        lh = xind[edges[i]]
+        # lh rh inclusive
+        print(lh, rh)
+        if lh == 0:
+            spec1[:rh + 1] = spec[rh + 1]
+        elif rh == len(spec) - 1:
+            spec1[lh:] = spec[lh - 1]
+        else:
+            spec1[lh:rh + 1] = np.interp(np.arange(lh,
+                                                   rh + 1), [lh - 1, rh + 1],
+                                         [spec[lh - 1], spec[rh + 1]])
+    return spec1
+
+
 def get_specdata(waves,
                  fluxes,
                  ivars,
@@ -685,7 +716,7 @@ def get_specdata(waves,
                  resolutions,
                  seqid,
                  setups,
-                 use_resolution_matrix=True,
+                 use_resolution_matrix=False,
                  mask_dicroic=True):
     """ Return the list of SpecDatas for one single object
 
@@ -737,9 +768,23 @@ def get_specdata(waves,
             dicroicmask = np.zeros(len(waves[s]), dtype=bool)
         badmask = (masks[s][seqid] > 0)
         baderr = curivars <= 0
-        badall = baddat | badmask | baderr | dicroicmask
+        edge_mask = np.zeros(len(spec), dtype=bool)
+        if use_resolution_matrix:
+            cur_resol = spec_fit.ResolMatrix(
+                construct_resolution_sparse_matrix(resolutions[s][seqid]))
+            edge_pixels = 5
+            edge_mask[:edge_pixels] = True
+            edge_mask[-edge_pixels:] = True
+            # this is because resolution matrix is corrupted
+            # edges
+        else:
+            cur_resol = None
+
+        badall = baddat | badmask | baderr | dicroicmask | edge_mask
+        badall_interp = baddat | badmask | baderr
+        # do not interpolate edges or dicroic
         curivars[badall] = 1. / medspec**2 / large_error**2
-        spec[badall] = medspec
+        spec[:] = interpolate_bad_regions(spec, badall_interp)
         espec = 1. / curivars**.5
         if badall.all():
             logging.warning('The whole spectrum was masked...')
@@ -753,11 +798,6 @@ def get_specdata(waves,
             # logging.debug("Clamped error on %d pixels" % (replace_idx.sum()))
             espec[replace_idx] = goodespec_thresh
 
-        if use_resolution_matrix:
-            cur_resol = spec_fit.ResolMatrix(
-                construct_resolution_sparse_matrix(resolutions[s][seqid]))
-        else:
-            cur_resol = None
         sd = spec_fit.SpecData('desi_%s' % s,
                                waves[s],
                                spec,
