@@ -697,7 +697,6 @@ def interpolate_bad_regions(spec, mask):
             rh = xind[edges[i + 1] - 1]
         lh = xind[edges[i]]
         # lh rh inclusive
-        print(lh, rh)
         if lh == 0:
             spec1[:rh + 1] = spec[rh + 1]
         elif rh == len(spec) - 1:
