@@ -202,7 +202,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     '''
     Get the chi-square values for the vector of velocities and grid of
     templates after marginalizing over continuum
-    If espec is not provided we assume data and template are alreay normalized
+    If espec is not provided we assume data and template are already normalized
     Importantly the returned chi-square is not the true chi-square, but instead
     the -2*log(L)
 
@@ -282,7 +282,7 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
     rot_params: tuple
         The parameters of stellar rotation models (could be None)
     resol_params: object
-        The object that descibe the resolution convolution (could be None)
+        The object that describe the resolution convolution (could be None)
     config: dict
         The configuration dictionary
 
@@ -622,6 +622,7 @@ def get_chisq(specdata,
     raw_models = []
     chisq_array = []
     red_chisq_array = []
+    npix_array = []
     min_vel = config['min_vel']
     max_vel = config['max_vel']
 
@@ -697,9 +698,17 @@ def get_chisq(specdata,
             curmodel = np.dot(coeffs, polys * evalTempl)
             raw_models.append(evalTempl)
             models.append(curmodel)
-            XCHISQ = (((curmodel - curdata.spec) / curdata.espec)**2).sum()
-            chisq_array.append(XCHISQ)
-            red_chisq_array.append(XCHISQ / len(curdata.espec))
+
+            cur_deviation = ((curmodel - curdata.spec) / curdata.espec)
+            if curdata.badmask is not None:
+                cur_mask = curdata.badmask
+            else:
+                cur_mask = np.zeros(len(cur_deviation), dtype=bool)
+            cur_true_chisq = np.sum(cur_deviation[cur_mask]**2)
+            chisq_array.append(cur_true_chisq)
+            cur_npix = cur_mask.sum()
+            npix_array.append(cur_npix)
+            red_chisq_array.append(cur_true_chisq / cur_npix)
 
         if not np.isfinite(float(cur_chisq)):
             raise RuntimeError(
@@ -715,6 +724,7 @@ def get_chisq(specdata,
         ret['logl'] = -0.5 * chisq_accum
         ret['chisq_array'] = chisq_array
         ret['red_chisq_array'] = red_chisq_array
+        ret['npix_array'] = npix_array
         ret['models'] = models
         ret['raw_models'] = raw_models
     else:

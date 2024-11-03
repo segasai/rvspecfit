@@ -16,7 +16,7 @@ def gau_integrator(A, B, x1, x2, l1, l2, s):
     """ This computes the integral of (Ax+B)/sqrt(2pi)/s*exp(-1/2*(x-y)^2/s^2
     for x=x1..x2 y=l1..l2
 
-    Here is the mathematica code
+    Here is the Mathematica code
     FortranForm[
     Simplify[Integrate[(A*x + B)/Sqrt[2*Pi]/s*
     Exp[-1/2*(x - y)^2/s^2], {x, x1, x2}, {y, l1, l2}]]]
