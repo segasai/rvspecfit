@@ -701,9 +701,9 @@ def get_chisq(specdata,
 
             cur_deviation = ((curmodel - curdata.spec) / curdata.espec)
             if curdata.badmask is not None:
-                cur_mask = curdata.badmask
+                cur_mask = ~curdata.badmask
             else:
-                cur_mask = np.zeros(len(cur_deviation), dtype=bool)
+                cur_mask = np.ones(len(cur_deviation), dtype=bool)
             cur_true_chisq = np.sum(cur_deviation[cur_mask]**2)
             chisq_array.append(cur_true_chisq)
             cur_npix = cur_mask.sum()
