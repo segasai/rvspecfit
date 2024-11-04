@@ -650,30 +650,21 @@ def construct_resolution_sparse_matrix(mat):
     w2 = width // 2
     from scipy.sparse import dia_matrix
     mat = mat.copy()
-    if False:
-        # this is because the resolution matrix is incorrect in the edges
-        mat_rows = resolution_mat_torows(mat)
-        for i in range(w2):
-            N1 = mat_rows[w2 - i:, i].sum()
-            mat_rows[:, i] = mat_rows[:, i] / (N1 + (N1 == 0))
-            j = npix - 1 - i
-            N2 = mat_rows[:w2 + 1 + i, j].sum()
-            mat_rows[:, j] = mat_rows[:, j] / (N2 + (N2 == 0))
-        mat = resolution_mat_tocolumns(mat_rows)
-    if True:
+    deconvolve=True
+    if deconvolve:
         mat = deconvolve_resolution_matrix(mat)
-        # this is because the resolution matrix is incorrect in the edges
-        mat_rows = resolution_mat_torows(mat)
-        mult = np.median(mat_rows.sum(axis=0))
-        if mult == 0:
-            mult = 1
-        for i in range(w2):
-            N1 = mat_rows[w2 - i:, i].sum()
-            mat_rows[:, i] = mat_rows[:, i] / (N1 + (N1 == 0)) * mult
-            j = npix - 1 - i
-            N2 = mat_rows[:w2 + 1 + i, j].sum()
-            mat_rows[:, j] = mat_rows[:, j] / (N2 + (N2 == 0)) * mult
-        mat = resolution_mat_tocolumns(mat_rows)
+    # this is because the resolution matrix is incorrect in the edges
+    mat_rows = resolution_mat_torows(mat)
+    mult = np.median(mat_rows.sum(axis=0))
+    if mult == 0:
+        mult = 1
+    for i in range(w2):
+        N1 = mat_rows[w2 - i:, i].sum()
+        mat_rows[:, i] = mat_rows[:, i] / (N1 + (N1 == 0)) * mult
+        j = npix - 1 - i
+        N2 = mat_rows[:w2 + 1 + i, j].sum()
+        mat_rows[:, j] = mat_rows[:, j] / (N2 + (N2 == 0)) * mult
+    mat = resolution_mat_tocolumns(mat_rows)
     M = dia_matrix((mat, np.arange(w2, -w2 - 1, -1)), (npix, npix))
     return M
 
