@@ -1,5 +1,4 @@
 import torch.nn as tonn
-import torch
 from collections import OrderedDict
 import numpy as np
 
@@ -11,13 +10,15 @@ class NNInterpolator(tonn.Module):
                  nlayers=None,
                  width=None,
                  npc=None,
-                 npix=None):
+                 npix=None,
+                 widthbn=True):
         super(NNInterpolator, self).__init__()
         self.indim = indim
         self.nlayers = nlayers
         self.width = width
         self.npc = npc
         self.npix = npix
+        self.widthbn = widthbn
         self.initLayers()
 
     def initLayers(self):
@@ -50,7 +51,7 @@ class NNInterpolator(tonn.Module):
         batchnorm_after_nl = True
 
         for i in range(len(shapes)):
-            withbn = True
+            withbn = self.widthbn
             if i == 0 or i == len(shapes) - 1:
                 withbn = False
             if batchnorm_after_nl:
