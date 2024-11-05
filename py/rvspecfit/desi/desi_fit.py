@@ -650,7 +650,7 @@ def construct_resolution_sparse_matrix(mat):
     w2 = width // 2
     from scipy.sparse import dia_matrix
     mat = mat.copy()
-    deconvolve=True
+    deconvolve = True
     if deconvolve:
         mat = deconvolve_resolution_matrix(mat)
     # this is because the resolution matrix is incorrect in the edges
