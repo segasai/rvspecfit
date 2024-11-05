@@ -11,14 +11,14 @@ class NNInterpolator(tonn.Module):
                  width=None,
                  npc=None,
                  npix=None,
-                 widthbn=True):
+                 withbn=True):
         super(NNInterpolator, self).__init__()
         self.indim = indim
         self.nlayers = nlayers
         self.width = width
         self.npc = npc
         self.npix = npix
-        self.widthbn = widthbn
+        self.withbn = withbn
         self.initLayers()
 
     def initLayers(self):
@@ -51,7 +51,7 @@ class NNInterpolator(tonn.Module):
         batchnorm_after_nl = True
 
         for i in range(len(shapes)):
-            withbn = self.widthbn
+            withbn = self.withbn
             if i == 0 or i == len(shapes) - 1:
                 withbn = False
             if batchnorm_after_nl:
