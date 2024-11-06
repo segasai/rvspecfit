@@ -1,4 +1,5 @@
 import torch.nn as tonn
+import torch.nn.modules.activation as tonnact
 from collections import OrderedDict
 import numpy as np
 
@@ -11,7 +12,8 @@ class NNInterpolator(tonn.Module):
                  width=None,
                  npc=None,
                  npix=None,
-                 withbn=True):
+                 withbn=True,
+                 nonlinearity='SiLU'):
         super(NNInterpolator, self).__init__()
         self.indim = indim
         self.nlayers = nlayers
@@ -19,6 +21,7 @@ class NNInterpolator(tonn.Module):
         self.npc = npc
         self.npix = npix
         self.withbn = withbn
+        self.nonlinearity = nonlinearity
         self.initLayers()
 
     def initLayers(self):
@@ -29,12 +32,7 @@ class NNInterpolator(tonn.Module):
                                                          ]
         # self.L0 = tonn.Linear(self.indim, self.width)
         layer_dict = OrderedDict()
-        # NL = tonn.Tanh
-        # NL = tonn.LeakyReLU
-        NL = tonn.ReLU
-        NL = tonn.SiLU
-        # NL = tonn.CELU
-        # NL = tonn.LeakyReLU
+        NL = getattr(tonnact, self.nonlinearity)
         """ sequence here is
         * is (indim x width) layer with bias
         * Nonlinearity
