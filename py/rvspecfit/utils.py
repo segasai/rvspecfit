@@ -101,5 +101,7 @@ def freezeDict(d):
         for k, v in d.items():
             d1[k] = freezeDict(v)
         return frozendict.frozendict(d1)
+    if isinstance(d, list):
+        return tuple(d)
     else:
         return d
