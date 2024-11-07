@@ -536,7 +536,7 @@ def get_chisq_continuum(specdata, options=None):
         else:
             cur_mask = np.ones(len(cur_deviation), dtype=bool)
         cur_true_chisq = np.sum(cur_deviation[cur_mask]**2)
-        cur_redchisq = cur_true_chisq / len(cur_mask.sum())
+        cur_redchisq = cur_true_chisq / cur_mask.sum()
         chisq_array[i] = cur_true_chisq
         redchisq_array[i] = cur_redchisq
     return dict(chisq_array=chisq_array, redchisq_array=redchisq_array)
