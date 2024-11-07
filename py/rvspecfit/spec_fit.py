@@ -515,9 +515,9 @@ def get_chisq_continuum(specdata, options=None):
     '''
     npoly = options.get('npoly') or 5
     rbf = options.get('rbf_continuum') or True
-    ret = []
-    ret1 = []
-    for curdata in specdata:
+    chisq_array = np.zeros(len(specdata))
+    redchisq_array = np.zeros(len(specdata))
+    for i, curdata in enumerate(specdata):
         # name = curdata.name
         polys = get_basis(curdata, npoly, rbf=rbf)
         templ = np.ones(len(curdata.spec))
@@ -529,14 +529,17 @@ def get_chisq_continuum(specdata, options=None):
                                       polys,
                                       get_coeffs=True,
                                       espec=curdata.espec)
-        model = np.dot(coeffs, polys * templ)
-        curchisq = (((model - curdata.spec) / curdata.espec)**2).sum()
-        redchisq = curchisq / len(curdata.espec)
-        ret.append(curchisq)
-        ret1.append(redchisq)
-    ret = np.array(ret)
-    ret1 = np.array(ret1)
-    return dict(chisq_array=ret, redchisq_array=ret1)
+        curmodel = np.dot(coeffs, polys * templ)
+        cur_deviation = ((curmodel - curdata.spec) / curdata.espec)
+        if curdata.badmask is not None:
+            cur_mask = ~curdata.badmask
+        else:
+            cur_mask = np.ones(len(cur_deviation), dtype=bool)
+        cur_true_chisq = np.sum(cur_deviation[cur_mask]**2)
+        cur_redchisq = cur_true_chisq / len(cur_mask.sum())
+        chisq_array[i] = cur_true_chisq
+        redchisq_array[i] = cur_redchisq
+    return dict(chisq_array=chisq_array, redchisq_array=redchisq_array)
 
 
 def _overlap_check(templ_l0, templ_l1, spec_l0, spec_l1, min_vel, max_vel):
