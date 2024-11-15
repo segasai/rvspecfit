@@ -276,6 +276,7 @@ class interp_cache:
     """ Singleton object caching the interpolators
     """
     interps = {}
+    template_lib = None
 
 
 def getInterpolator(HR, config, warmup_cache=False, cache=None):
@@ -289,7 +290,7 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
     config: dict
         Configuration
     cache: dict or None
-        Dictionary like object with the cache. If None, internal cache is 
+        Dictionary like object with the cache. If None, internal cache is
         used instead.
     warmup_cache: bool
         If True we read the whole file to warm up the OS cache
@@ -302,6 +303,13 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
     """
     if cache is None:
         cache = interp_cache.interps
+        system_cache = True
+        if config['template_lib'] != interp_cache.template_lib:
+            # clear old cache
+            interp_cache.template_lib = config['template_lib']
+            interp_cache.interps = {}
+    else:
+        system_cache = False
     if HR not in cache:
         savefile = (config['template_lib'] + '/' +
                     make_nd.INTERPOL_PKL_NAME % HR)
@@ -367,6 +375,8 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
             filename=savefile,
             logstep=logstep)
         cache[HR] = interpObj
+        if system_cache:
+            interp_cache.template_lib = config['template_lib']
     return cache[HR]
 
 
