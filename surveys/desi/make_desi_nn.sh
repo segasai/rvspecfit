@@ -15,16 +15,17 @@ BRESOL='x/1.55'
 RRESOL='x/1.55'
 ZRESOL='x/1.8'
 VSINIS=0,300
-REVISION=v240212_phoenn
+REVISION=v241115_phoenn
 EVERY=200
 SMOOTH=0.0
 PREFIX=../../..//templ_data/desi/${REVISION}/
 
+mkdir -p $PREFIX
+rvs_read_grid --prefix /home/skoposov/science/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb $PREFIX/files.db
+## /home/skoposov/science/specfit/rvspecfit/surveys/mask_phoenix_grid.sh ../../..//templ_data/desi/v230209/files.db ../../..//templ_data/desi/v230209/files_masked.db
 # rvs_read_grid --prefix /home/skoposov/science/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
-# /home/skoposov/science/specfit/rvspecfit/surveys/mask_phoenix_grid.sh ../../..//templ_data/desi/v230209/files.db ../../..//templ_data/desi/v230209/files_masked.db
-# rvs_read_grid --prefix /home/skoposov/science/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
-# ../mask_phoenix_grid.sh  ./files.db ./files_masked_240212.db 
-DBFILE=${PREFIX}/files_masked_240212.db
+/home/skoposov/science/specfit/rvspecfit/surveys/mask_phoenix_grid.sh  $PREFIX/files.db $PREFIX/files_masked.db 
+DBFILE=${PREFIX}/files_masked.db
 
 # B
 

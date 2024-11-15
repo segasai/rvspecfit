@@ -35,6 +35,34 @@ def get_ccf_mod_name(setup, continuum=True):
     return 'ccfmod_' + get_continuum_prefix(continuum) + '%s.npy' % setup
 
 
+def interleave_bits(X):
+    """
+    Take the 2d array
+    with shape nsamp,ndim with values between 0 and 1
+    and convert into integer z-curve number (Morton curve)
+    """
+    assert (X.min() >= 0) and (X.max() <= 1)
+    nsamp, ndim = X.shape
+
+    max_bits = 64 // ndim
+    maxv = 2**max_bits
+    Xint = np.minimum((X * maxv).astype(np.int64), maxv - 1)
+    # if X=1, we still put at 2**maxv-1
+    result = np.zeros(nsamp, dtype=np.int64)
+    for bit in range(max_bits):
+        for i in range(ndim):
+            result += ((Xint[:, i] >> bit) & 1) << (bit * ndim + i)
+    return result
+
+
+def get_mortoncurve_id(X):
+    # Return integer id for the  according to the morton curve
+    # this produces a more uniform sub-sampling of the sample
+    Xr = np.array([scipy.stats.rankdata(_, method='dense') - 1 for _ in X.T]).T
+    Xf = Xr / (Xr.max(axis=0))
+    return interleave_bits(Xf)
+
+
 class CCFConfig:
     """ Configuration class for cross-correlation functions """
 
@@ -427,15 +455,14 @@ def ccf_executor(spec_setup,
         log_spec = D['log_spec']
         del D
 
-    nspec = specs.shape[0]
-    rng = np.random.Generator(np.random.PCG64(44))
-    inds = rng.permutation(np.arange(nspec))[:(nspec // every)]
-    # I randomly pickup the nspec//every spectra
+    morton_id = get_mortoncurve_id(vec.T)
+    inds = np.argsort(morton_id)[::every]
+    # I "randomly" pickup the nspec//every spectra
+    # by first sorting by spatial hash
     specs = specs[inds, :]
     if log_spec:
         specs = np.exp(specs)
     vec = vec.T[inds, :]
-    nspec = specs.shape[0]
 
     models, params, vsinis = preprocess_model_list(lam,
                                                    specs,
