@@ -182,7 +182,17 @@ def fit(specdata, config):
     best_id = np.argmin(all_chisqs.min(axis=1))
     best_ccf = all_chisqs[best_id]
     best_pix = np.argmin(best_ccf)
-    best_vel = vel_grid[best_pix]
+    if best_pix not in [0, len(best_ccf) - 1]:
+        coeffs = np.polyfit(vel_grid[best_pix - 1:best_pix + 2],
+                            best_ccf[best_pix - 1:best_pix + 2],
+                            deg=2)
+        if coeffs[0] > 0:
+            best_vel = -coeffs[1] / (2 * coeffs[0])
+        else:
+            best_vel = vel_grid[best_pix]
+        # -b/2a
+    else:
+        best_vel = vel_grid[best_pix]
 
     if not np.isfinite(all_chisqs[best_id, best_pix]):
         logging.error('Cross-correlation failed')
