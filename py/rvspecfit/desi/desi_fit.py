@@ -21,6 +21,7 @@ import astropy.io.fits as pyfits  # noqa: E402
 import astropy.units as auni  # noqa: E402
 import numpy as np  # noqa: E402
 import scipy.stats  # noqa: E402
+import scipy.sparse  # noqa: E402
 import rvspecfit  # noqa: E402
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, \
     spec_inter  # noqa: E402
@@ -308,15 +309,18 @@ def proc_onespec(
         outdict[name2] = fit_res['param'][name1] * unit
         outdict[name2 + '_ERR'] = fit_res['param_err'][name1] * unit
 
+    npixes = {}
     for i, curd in enumerate(specdata):
         if curd.name not in chisqs:
             chisqs[curd.name] = 0
             chisqs_c[curd.name] = 0
         chisqs[curd.name] += fit_res['chisq_array'][i]
+        chisqs[curd.name] += fit_res['npix_array'][i]
         chisqs_c[curd.name] += chisq_cont_array[i]
 
     outdict['CHISQ_TOT'] = sum(chisqs.values())
     outdict['CHISQ_C_TOT'] = sum(chisqs_c.values())
+    outdict['NPIX_TOT'] = sum(npixes.values())
 
     for s in chisqs.keys():
         outdict['CHISQ_%s' % s.replace('desi_', '').upper()] = chisqs[s]
@@ -632,7 +636,7 @@ def resolution_mat_tocolumns(mat):
 
 def deconvolve_resolution_matrix(mat0, sig=0.451):
     width, npix = mat0.shape
-    pix_size = 0.8  # Angstrom, desi
+    pix_size = 0.8  # Angstrom DESI
     sig_pix = sig / pix_size
     xs = np.arange(width)
     gau_mat = np.array([
@@ -661,7 +665,6 @@ def deconvolve_resolution_matrix(mat0, sig=0.451):
 def construct_resolution_sparse_matrix(mat):
     width, npix = mat.shape
     w2 = width // 2
-    from scipy.sparse import dia_matrix
     mat = mat.copy()
     deconvolve = True
     if deconvolve:
@@ -678,7 +681,8 @@ def construct_resolution_sparse_matrix(mat):
         N2 = mat_rows[:w2 + 1 + i, j].sum()
         mat_rows[:, j] = mat_rows[:, j] / (N2 + (N2 == 0)) * mult
     mat = resolution_mat_tocolumns(mat_rows)
-    M = dia_matrix((mat, np.arange(w2, -w2 - 1, -1)), (npix, npix))
+    M = scipy.sparse.dia_matrix((mat, np.arange(w2, -w2 - 1, -1)),
+                                (npix, npix))
     return M
 
 
@@ -755,9 +759,13 @@ def get_specdata(waves,
     for s in setups:
         spec = fluxes[s][seqid] * 1
         curivars = ivars[s][seqid] * 1
+        badmask = (masks[s][seqid] > 0)
         medspec = np.nanmedian(spec)
+        if badmask.all():
+            # skip bad data
+            continue
         if medspec == 0:
-            medspec = np.nanmedian(spec[spec > 0])
+            medspec = np.nanmedian(spec[(spec > 0) & (~badmask)])
             if not np.isfinite(medspec):
                 medspec = np.nanmedian(np.abs(spec))
         if not np.isfinite(medspec) or medspec == 0:
@@ -769,7 +777,6 @@ def get_specdata(waves,
             dicroicmask = (waves[s] > 4300) & (waves[s] < 4450)
         else:
             dicroicmask = np.zeros(len(waves[s]), dtype=bool)
-        badmask = (masks[s][seqid] > 0)
         baderr = curivars <= 0
         edge_mask = np.zeros(len(spec), dtype=bool)
         if use_resolution_matrix:
@@ -815,7 +822,7 @@ def get_specdata(waves,
 def comment_filler(tab, desc):
     """ Fill comments in the FITS header """
     for i, k in enumerate(tab.data.columns):
-        tab.header['TCOMM%d' % (i + 1)] = desc.get(k.name) or ''
+        tab.header['TCOMM%d' % (i + 1)] = desc.get(k.name)[1] or ''
     return tab
 
 
@@ -831,31 +838,41 @@ def get_column_desc(setups):
     when we fitting a given set of configurations
     """
     columnDesc = dict([
-        ('VRAD', 'Radial velocity'), ('VRAD_ERR', 'Radial velocity error'),
-        ('VRAD_SKEW', 'Radial velocity posterior skewness'),
-        ('VRAD_KURT', 'Radial velocity posterior kurtosis'),
-        ('VSINI', 'Stellar rotation velocity'),
-        ('LOGG', 'Log of surface gravity'), ('TEFF', 'Effective temperature'),
-        ('FEH', '[Fe/H] from template fitting'),
-        ('ALPHAFE', '[alpha/Fe] from template fitting'),
-        ('LOGG_ERR', 'Log of surface gravity uncertainty'),
-        ('TEFF_ERR', 'Effective temperature uncertainty'),
-        ('FEH_ERR', '[Fe/H] uncertainty from template fitting'),
-        ('ALPHAFE_ERR', '[alpha/Fe] uncertainty from template fitting'),
-        ('CHISQ_TOT', 'Total chi-square for all arms'),
-        ('CHISQ_C_TOT',
+        ('VRAD', np.float32, 'Radial velocity'),
+        ('VRAD_ERR', np.float32, 'Radial velocity error'),
+        ('VRAD_SKEW', np.float32, 'Radial velocity posterior skewness'),
+        ('VRAD_KURT', np.float32, 'Radial velocity posterior kurtosis'),
+        ('VSINI', np.float32, 'Stellar rotation velocity'),
+        ('LOGG', np.float32, 'Log of surface gravity'),
+        ('TEFF', np.float32, 'Effective temperature'),
+        ('FEH', np.float32, '[Fe/H] from template fitting'),
+        ('ALPHAFE', np.float32, '[alpha/Fe] from template fitting'),
+        ('LOGG_ERR', np.float32, 'Log of surface gravity uncertainty'),
+        ('TEFF_ERR', np.float32, 'Effective temperature uncertainty'),
+        ('FEH_ERR', np.float32, '[Fe/H] uncertainty from template fitting'),
+        ('ALPHAFE_ERR', np.float32,
+         '[alpha/Fe] uncertainty from template fitting'),
+        ('CHISQ_TOT', np.float64, 'Total chi-square for all arms'),
+        ('NPIX_TOT', np.float64, 'Total number of unmasked pixels fitted'),
+        ('CHISQ_C_TOT', np.float64,
          'Total chi-square for all arms for polynomial only fit'),
-        ('TARGETID', 'DESI targetid'), ('EXPID', 'DESI exposure id'),
-        ('SUCCESS', "Did we succeed or fail"),
-        ('RVS_WARN', "RVSpecFit warning flag"), ('RR_Z', 'Redrock redshift'),
-        ('RR_SPECTYPE', 'Redrock spectype')
+        ('VRAD_CCF', np.float32, 'Initial velocity from cross-correlation'),
+        ('TARGETID', np.int64, 'DESI targetid'),
+        ('EXPID', np.int64, 'DESI exposure id'),
+        ('SUCCESS', bool, "Did we succeed or fail"),
+        ('RVS_WARN', np.int64, "RVSpecFit warning flag"),
+        ('RR_Z', np.float64, 'Redrock redshift'),
+        ('RR_SPECTYPE', np.str, 'Redrock spectype')
     ])
 
     for curs in setups:
         curs = curs.upper()
-        columnDesc['SN_%s' % curs] = ('Median S/N in the %s arm' % curs)
-        columnDesc['CHISQ_%s' % curs] = ('Chi-square in the %s arm' % curs)
+        columnDesc['SN_%s' % curs] = (np.float32,
+                                      'Median S/N in the %s arm' % curs)
+        columnDesc['CHISQ_%s' % curs] = (np.float64,
+                                         'Chi-square in the %s arm' % curs)
         columnDesc['CHISQ_C_%s' % curs] = (
+            np.float64,
             'Chi-square in the %s arm after fitting continuum only' % curs)
     return columnDesc
 
