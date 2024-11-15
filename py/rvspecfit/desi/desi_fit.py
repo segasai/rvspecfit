@@ -255,12 +255,14 @@ def proc_onespec(
     yfit: list
         List of best-fit models
     """
+    outdict = {}
     chisqs = {}
     chisqs_c = {}
     t1 = time.time()
     if ccf_init:
         res = fitter_ccf.fit(specdata, config)
         paramDict0 = res['best_par']
+        vrad_ccf = res['best_vel']
     else:
         res = vel_fit.firstguess(specdata, config=config, options=options)
         res['best_vsini'] = res.get('vsini')
@@ -314,6 +316,8 @@ def proc_onespec(
         outdict['CHISQ_%s' % s.replace('desi_', '').upper()] = chisqs[s]
         outdict['CHISQ_C_%s' % s.replace('desi_', '').upper()] = float(
             chisqs_c[s])
+    if ccf_init:
+        outdict['VRAD_CCF'] = vrad_ccf * auni.km / auni.s
 
     outdict['RVS_WARN'] = get_rvs_warn(fit_res, outdict, config)
 
