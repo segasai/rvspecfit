@@ -20,14 +20,14 @@ EVERY=200
 SMOOTH=0.0
 PREFIX=../../..//templ_data/desi/${REVISION}/
 
-mkdir -p $PREFIX
-rvs_read_grid --prefix /home/skoposov/science/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb $PREFIX/files.db
-## /home/skoposov/science/specfit/rvspecfit/surveys/mask_phoenix_grid.sh ../../..//templ_data/desi/v230209/files.db ../../..//templ_data/desi/v230209/files_masked.db
-# rvs_read_grid --prefix /home/skoposov/science/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
-/home/skoposov/science/specfit/rvspecfit/surveys/mask_phoenix_grid.sh  $PREFIX/files.db $PREFIX/files_masked.db 
+DBFILE0=${PREFIX}/files.db
 DBFILE=${PREFIX}/files_masked.db
 
-# B
+mkdir -p $PREFIX
+
+rvs_read_grid --prefix /home/skoposov/science/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb $DBFILE0
+../mask_phoenix_grid.sh $DBFILE0 $DBFILE
+
 
 LAM0=($BLAM0 $RLAM0 $ZLAM0)
 LAM1=($BLAM1 $RLAM1 $ZLAM1)
@@ -50,6 +50,7 @@ for i in 0 1 2; do {
     rvs_make_ccf --setup $CURCONF --lambda0 $CURLAM0 --lambda1 $CURLAM1  --every $EVERY \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $CURSTEP \
     --revision=$REVISION
+
     rvs_make_ccf --setup $CURCONF --lambda0 $CURLAM0 --lambda1 $CURLAM1  --every $EVERY \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $CURSTEP \
     --revision=$REVISION --nocontinuum
