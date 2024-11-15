@@ -35,7 +35,13 @@ class ProcessStatus(enum.Enum):
         return self.name
 
 
-bitmasks = {'CHISQ_WARN': 1, 'RV_WARN': 2, 'RVERR_WARN': 4, 'PARAM_WARN': 8}
+bitmasks = {
+    'CHISQ_WARN': 1,  # delta chi-square vs continuum is too larger
+    'RV_WARN': 2,  # rv is to close to the edge
+    'RVERR_WARN': 4,  # RV error is too large
+    'PARAM_WARN': 8,  # parameters are too close to the edge
+    'VSINI_WARN': 16  # vsini is too large
+}
 
 
 def update_process_status_file(status_fname,
@@ -361,6 +367,8 @@ def get_rvs_warn(fit_res, outdict, config):
     rverr_thresh = 100
     # If the error is larger than this we warn
 
+    vsini_thresh = 20
+
     rvs_warn = 0
 
     dchisq = outdict['CHISQ_C_TOT'] - outdict['CHISQ_TOT']  # should be >0
@@ -372,7 +380,8 @@ def get_rvs_warn(fit_res, outdict, config):
     if _bad_edge_check(cur_vrad, [config['min_vel'], config['max_vel']],
                        rvedge_thresh):
         rvs_warn |= bitmasks['RV_WARN']
-
+    if outdict['VSINI'].to_value(kms) > vsini_thresh:
+        rvs_warn |= bitmasks['VSINI_WARN']
     if (outdict['VRAD_ERR'].to_value(kms) > rverr_thresh):
         rvs_warn |= bitmasks['RVERR_WARN']
 
