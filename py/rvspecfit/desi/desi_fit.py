@@ -227,7 +227,7 @@ def proc_onespec(
     options,
     resolution_matrix=None,
     fig_fname='fig.png',
-    ccfinit=True,
+    ccf_init=True,
     doplot=True,
 ):
     """Process one single Specdata object
@@ -244,7 +244,7 @@ def proc_onespec(
         Filename for the plot
     doplot: bool
         Do plotting or not
-    ccfinit: bool
+    ccf_init: bool
         If true, the starting point for the fit will be determined
         through CCF rather than bruteforce grid search
 
@@ -258,7 +258,7 @@ def proc_onespec(
     chisqs = {}
     chisqs_c = {}
     t1 = time.time()
-    if ccfinit:
+    if ccf_init:
         res = fitter_ccf.fit(specdata, config)
         paramDict0 = res['best_par']
     else:
@@ -863,7 +863,7 @@ def proc_desi(fname,
               zbest_select=False,
               zbest_include=False,
               use_resolution_matrix=False,
-              ccfinit=True,
+              ccf_init=True,
               npoly=10):
     """
     Process One single file with desi spectra
@@ -893,7 +893,7 @@ def proc_desi(fname,
          it can be none
     zbest_select: bool
          If true then the zbest file is used to preselect targets
-    ccfinit: bool
+    ccf_init: bool
          If true (default the starting point will be determined from
          crosscorrelation as opposed to bruteforce grid search
     poolex: Executor
@@ -1039,7 +1039,7 @@ def proc_desi(fname,
             fig_fname = None
         rets.append((poolex.submit(
             proc_onespec, *(specdatas, setups, config, options),
-            **dict(fig_fname=fig_fname, doplot=doplot, ccfinit=ccfinit)),
+            **dict(fig_fname=fig_fname, doplot=doplot, ccf_init=ccf_init)),
                      curFiberRow, curseqid, cur_rr_z, cur_rr_spectype))
     timers.append(time.time())
     if nfibers_good == 0:
@@ -1269,7 +1269,7 @@ def proc_many(files,
               cmdline=None,
               zbest_select=False,
               zbest_include=False,
-              ccfinit=True,
+              ccf_init=True,
               subdirs=True,
               ccf_continuum_normalize=True,
               process_status_file=None,
@@ -1386,7 +1386,7 @@ def proc_many(files,
                       zbest_include=zbest_include,
                       process_status_file=process_status_file,
                       npoly=npoly,
-                      ccfinit=ccfinit,
+                      ccf_init=ccf_init,
                       use_resolution_matrix=use_resolution_matrix,
                       throw_exceptions=throw_exceptions)
         proc_desi_wrapper(*args, **kwargs)
@@ -1621,9 +1621,9 @@ in the table (but will not use for selection)''',
             if _ not in 'brz':
                 raise ValueError('only allowed arm names are brz')
     if args.param_init == 'CCF':
-        ccfinit = True
+        ccf_init = True
     elif args.param_init == 'bruteforce':
-        ccfinit = False
+        ccf_init = False
     else:
         raise ValueError(
             'Unknown param_init value; only known ones are CCF and bruteforce')
@@ -1687,7 +1687,7 @@ in the table (but will not use for selection)''',
         zbest_include=zbest_include,
         ccf_continuum_normalize=ccf_continuum_normalize,
         use_resolution_matrix=args.resolution_matrix,
-        ccfinit=ccfinit,
+        ccf_init=ccf_init,
         npoly=npoly,
         throw_exceptions=args.throw_exceptions,
     )
