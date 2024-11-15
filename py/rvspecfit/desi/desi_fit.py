@@ -545,10 +545,14 @@ def select_fibers_to_fit(fibermap,
         subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID']
                                                         <= maxe)
     # ONLY select good fiberstatus ones
+    good_fiberstatus = [0, 8]
+    # 8 is Positioner has restricted reach (but might still be on valid target)
+    # https://desidatamodel.readthedocs.io/en/latest/bitmasks.html
     if 'FIBERSTATUS' in fibermap.columns.names:
-        subset = subset & (fibermap['FIBERSTATUS'] == 0)
+        subset = subset & np.isin(fibermap['FIBERSTATUS'], good_fiberstatus)
     elif 'COADD_FIBERSTATUS' in fibermap.columns.names:
-        subset = subset & (fibermap['COADD_FIBERSTATUS'] == 0)
+        subset = subset & np.isin(fibermap['COADD_FIBERSTATUS'],
+                                  good_fiberstatus)
 
     # Exclude skys and bad but include anything else
     subset = subset & (fibermap['OBJTYPE'] != 'SKY') & (fibermap['OBJTYPE']
@@ -771,7 +775,7 @@ def get_specdata(waves,
         if not np.isfinite(medspec) or medspec == 0:
             # bail out the spectrum is insane
             # TODO make the logic clearer
-            return None
+            continue
         baddat = ~np.isfinite(spec + curivars)
         if mask_dicroic:
             dicroicmask = (waves[s] > 4300) & (waves[s] < 4450)
@@ -802,9 +806,9 @@ def get_specdata(waves,
             goodespec = espec[~badall]
             goodespec_thresh = np.median(goodespec) * minerr_frac
             replace_idx = (espec < goodespec_thresh) & (~badall)
-            if replace_idx.sum() / (~badall).sum() > .1:
+            if replace_idx.sum() / (~badall).sum() > .01:
                 logging.warning(
-                    'More than 10% of spectra had the uncertainty clamped')
+                    'More than 1% of spectra had the uncertainty clamped')
             # logging.debug("Clamped error on %d pixels" % (replace_idx.sum()))
             espec[replace_idx] = goodespec_thresh
 
@@ -816,6 +820,10 @@ def get_specdata(waves,
                                badmask=badall)
 
         sds.append(sd)
+    if len(sds) == 0:
+        # no good data
+        logging.warning(f'No good data found for fiber {seqid}')
+        return None
     return tuple(sds)
 
 
