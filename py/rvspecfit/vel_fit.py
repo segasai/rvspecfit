@@ -395,6 +395,12 @@ def _minimum_sampler(func,
 
 
 def _uncertainties_from_hessian(hessian):
+    """
+    Take the hessian and return the uncertainties vector and
+    covariance matrix
+    Here I also protect all sorts of failures when encountering
+    bad hessian
+    """
     diag_hessian = np.diag(hessian)
     inv_diag_hessian = 1. / (diag_hessian + (diag_hessian == 0))
     inv_diag_hessian[diag_hessian == 0] = np.inf
@@ -419,7 +425,7 @@ def _uncertainties_from_hessian(hessian):
     diag_err0[sub2] = 0
     diag_err = np.sqrt(diag_err0)
     diag_err[sub2] = np.nan
-    return diag_err
+    return diag_err, hessian_inv
 
 
 def process(specdata,
@@ -630,8 +636,9 @@ def process(specdata,
     hess_step = ndf.MaxStepGenerator(base_step=hess_step)
     hessian = ndf.Hessian(hess_func_wrap, step=hess_step)(
         [ret['param'][_] for _ in specParamNames])
-    diag_err = _uncertainties_from_hessian(hessian)
+    diag_err, covar_mat = _uncertainties_from_hessian(hessian)
     ret['param_err'] = dict(zip(specParamNames, diag_err))
+    ret['param_covar'] = covar_mat
     ret['minimize_success'] = minimize_success
 
     ret['yfit'] = outp['models']
@@ -639,6 +646,7 @@ def process(specdata,
     ret['chisq'] = outp['chisq']
     ret['logl'] = outp['logl']
     ret['chisq_array'] = outp['chisq_array']
+    ret['npix_array'] = outp['npix_array']
     t6 = time.time()
     logging.debug('Timings process: %.4f %.4f %.4f %.4f, %.4f %.4f' %
                   (t1 - t0, t2 - t1, t3 - t2, t4 - t3, t5 - t4, t6 - t5))

@@ -41,7 +41,8 @@ bitmasks = {
     'RV_WARN': 2,  # rv is to close to the edge
     'RVERR_WARN': 4,  # RV error is too large
     'PARAM_WARN': 8,  # parameters are too close to the edge
-    'VSINI_WARN': 16  # vsini is too large
+    'VSINI_WARN': 16,  # vsini is too large
+    'BAD_SPECTRUM': 32  # some issue with the spectrum
 }
 
 
@@ -774,7 +775,6 @@ def get_specdata(waves,
                 medspec = np.nanmedian(np.abs(spec))
         if not np.isfinite(medspec) or medspec == 0:
             # bail out the spectrum is insane
-            # TODO make the logic clearer
             continue
         baddat = ~np.isfinite(spec + curivars)
         if mask_dicroic:
@@ -1042,6 +1042,7 @@ def proc_desi(fname,
     else:
         rr_z = np.zeros(len(seqid_to_fit)) + np.nan
         rr_spectype = np.ma.zeros(len(seqid_to_fit), dtype=str)
+
     subset_ret = subset.copy()
     # returned subset to deal with the fact that
     # I'll skip some spectra
