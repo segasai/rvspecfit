@@ -22,7 +22,7 @@ def get_revision():
                                   stdout=subprocess.PIPE).stdout
         revision = tmpout.read().decode()[:6]
         return revision
-    except:
+    except:  # noqa
         return ''
 
 
@@ -59,8 +59,9 @@ setup(
     package_data={'rvspecfit': ['tests/']},
     long_description=read('README.md'),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable"
         "Topic :: Utilities",
+        "Topic :: Scientific/Engineering :: Astronomy"
         "License :: OSI Approved :: BSD License",
     ],
     setup_requires=["cffi>=1.0.0"],
