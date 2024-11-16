@@ -63,16 +63,13 @@ def get_mortoncurve_id(X):
     return interleave_bits(Xf)
 
 
-class CCFConfig:
-    """ Configuration class for cross-correlation functions """
-
-    def __init__(self,
-                 logl0=None,
-                 logl1=None,
-                 npoints=None,
-                 splinestep=1000,
-                 maxcontpts=20):
-        """
+def get_ccf_config(self,
+                   logl0=None,
+                   logl1=None,
+                   npoints=None,
+                   splinestep=1000,
+                   maxcontpts=20):
+    """
         Configure the cross-correlation
 
         Parameters
@@ -90,18 +87,18 @@ class CCFConfig:
         maxcontpts: integer, optional
              The maximum number of points used for the continuum fit
         """
-
-        self.logl0 = logl0
-        self.logl1 = logl1
-        self.npoints = npoints
-        self.continuum = True
-        self.maxcontpts = maxcontpts
-        if splinestep is None:
-            self.continuum = False
-        else:
-            self.splinestep = max(
-                splinestep, 3e5 * (np.exp(
-                    (logl1 - logl0) / self.maxcontpts) - 1))
+    ret = {}
+    ret['logl0'] = logl0
+    ret['logl1'] = logl1
+    ret['npoints'] = npoints
+    ret['continuum'] = True
+    ret['maxcontpts'] = maxcontpts
+    if splinestep is None:
+        ret['continuum'] = False
+    else:
+        ret['splinestep'] = max(
+            splinestep, 3e5 * (np.exp(
+                (logl1 - logl0) / ret['maxcontpts']) - 1))
 
 
 def get_continuum(lam0, spec0, espec0, ccfconf=None):
@@ -127,13 +124,13 @@ def get_continuum(lam0, spec0, espec0, ccfconf=None):
 """
 
     lammin = lam0.min()
-    N = np.log(lam0.max() / lammin) / np.log(1 + ccfconf.splinestep / 3e5)
+    N = np.log(lam0.max() / lammin) / np.log(1 + ccfconf['splinestep'] / 3e5)
     N = int(np.ceil(N))
     # Determine the nodes of the spline used for the continuum fit
     nodes = lammin * np.exp(
-        np.arange(N) * np.log(1 + ccfconf.splinestep / 3e5))
+        np.arange(N) * np.log(1 + ccfconf['splinestep'] / 3e5))
     nodesedges = lammin * np.exp(
-        (-0.5 + np.arange(N + 1)) * np.log(1 + ccfconf.splinestep / 3e5))
+        (-0.5 + np.arange(N + 1)) * np.log(1 + ccfconf['splinestep'] / 3e5))
     medspec = np.median(spec0)
     if medspec <= 0:
         medspec = np.abs(medspec)
@@ -196,7 +193,7 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
         m = spec_fit.convolve_vsini(lammodel, model0, vsini)
     else:
         m = model0
-    if ccfconf.continuum:
+    if ccfconf['continuum']:
         cont = get_continuum(lammodel,
                              m,
                              np.maximum(m * 1e-5, 1e-2 * np.median(m)),
@@ -251,7 +248,7 @@ def preprocess_model_list(lammodels,
          3) spectral params
          4) list of vsini
     """
-    logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
+    logl = np.linspace(ccfconf['logl0'], ccfconf['logl1'], ccfconf['npoints'])
     res = []
     retparams = []
     if vsinis is None:
@@ -353,7 +350,8 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
 
     """
     t1 = time.time()
-    ccf_logl = np.linspace(ccfconf.logl0, ccfconf.logl1, ccfconf.npoints)
+    ccf_logl = np.linspace(ccfconf['logl0'], ccfconf['logl1'],
+                           ccfconf['npoints'])
     ccf_lam = np.exp(ccf_logl)
     # to modify them
     curespec = espec.copy()
@@ -365,13 +363,13 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     filt_size = 11
     filtspec = scipy.signal.medfilt(curspec, filt_size)
     mederr = np.nanmedian(curespec)
-    if ccfconf.continuum:
+    if ccfconf['continuum']:
         badmask = badmask | (curespec > maxerr * mederr) | (filtspec <= 0)
     curespec[badmask] = 1e9 * mederr
     curspec = interp_masker(lam, curspec, badmask)
     # not really needed but may be helpful for continuun determination
     t2 = time.time()
-    if ccfconf.continuum:
+    if ccfconf['continuum']:
         cont = get_continuum(lam, curspec, curespec, ccfconf=ccfconf)
     else:
         cont = 1
@@ -471,11 +469,11 @@ def ccf_executor(spec_setup,
     ffts = np.array([np.fft.rfft(x) for x in models])
     fft2s = np.array([np.fft.rfft(x**2) for x in models])
     savefile = (oprefix + '/' +
-                get_ccf_info_name(spec_setup, ccfconf.continuum))
+                get_ccf_info_name(spec_setup, ccfconf['continuum']))
     datsavefile = (oprefix + '/' +
-                   get_ccf_dat_name(spec_setup, ccfconf.continuum))
+                   get_ccf_dat_name(spec_setup, ccfconf['continuum']))
     modsavefile = (oprefix + '/' +
-                   get_ccf_mod_name(spec_setup, ccfconf.continuum))
+                   get_ccf_mod_name(spec_setup, ccfconf['continuum']))
 
     dHash = {}
     dHash['params'] = params
@@ -484,7 +482,7 @@ def ccf_executor(spec_setup,
     dHash['parnames'] = parnames
     dHash['revision'] = revision
 
-    serializer.save_dict_to_hdf5(savefile, dHash, allow_pickle=True)
+    serializer.save_dict_to_hdf5(savefile, dHash, allow_pickle=False)
     np.savez(datsavefile, fft=np.array(ffts), fft2=np.array(fft2s))
     np.save(modsavefile, np.array(models))
 

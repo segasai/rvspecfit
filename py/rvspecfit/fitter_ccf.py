@@ -110,9 +110,9 @@ def fit(specdata, config):
          ccf_infos[spec_setup]) = get_ccf_info(spec_setup, config)
         ccfconf = ccf_infos[spec_setup]['ccfconf']
         ccf_confs.append(ccfconf)
-        logl0 = ccfconf.logl0
-        logl1 = ccfconf.logl1
-        npoints = ccfconf.npoints
+        logl0 = ccfconf['logl0']
+        logl1 = ccfconf['logl1']
+        npoints = ccfconf['npoints']
         proc_spec, proc_ivar = make_ccf.preprocess_data(lam,
                                                         spec,
                                                         espec,
