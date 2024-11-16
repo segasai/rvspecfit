@@ -63,8 +63,7 @@ def get_mortoncurve_id(X):
     return interleave_bits(Xf)
 
 
-def get_ccf_config(self,
-                   logl0=None,
+def get_ccf_config(logl0=None,
                    logl1=None,
                    npoints=None,
                    splinestep=1000,
