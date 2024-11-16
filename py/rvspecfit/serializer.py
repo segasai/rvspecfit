@@ -2,6 +2,7 @@ import h5py
 import numpy as np
 import pickle
 import re
+import os
 
 CURRENT_VERSION = 1
 
@@ -148,6 +149,8 @@ def load_dict_from_hdf5(filename):
     """
     Loads the dictionary from an HDF5 file.
     """
+    if not os.path.exists(filename):
+        raise RuntimeError('Filename {filename} does not exist')
     with h5py.File(filename, 'r') as h5file:
         version = h5file.attrs.get('version', None)
         if version != CURRENT_VERSION:
