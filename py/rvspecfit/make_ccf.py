@@ -545,14 +545,14 @@ def main(args):
 
     npoints = to_power_two(int((args.lambda1 - args.lambda0) / args.step))
     if args.nocontinuum:
-        ccfconf = CCFConfig(logl0=np.log(args.lambda0),
-                            logl1=np.log(args.lambda1),
-                            npoints=npoints,
-                            splinestep=None)
+        ccfconf = get_ccf_config(logl0=np.log(args.lambda0),
+                                 logl1=np.log(args.lambda1),
+                                 npoints=npoints,
+                                 splinestep=None)
     else:
-        ccfconf = CCFConfig(logl0=np.log(args.lambda0),
-                            logl1=np.log(args.lambda1),
-                            npoints=npoints)
+        ccfconf = get_ccf_config(logl0=np.log(args.lambda0),
+                                 logl1=np.log(args.lambda1),
+                                 npoints=npoints)
 
     if args.vsinis is not None:
         vsinis = [float(_) for _ in args.vsinis.split(',')]

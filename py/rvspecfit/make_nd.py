@@ -34,7 +34,7 @@ def getedgevertices(vec):
     pad = 0.2  # pad each dimension by this amount
     # (relative to the dimension width)
     ndim = len(vec[:, 0])
-    span = vec.ptp(axis=1)
+    span = np.ptp(vec, axis=1)
     lspans = vec.min(axis=1) - pad * span
     rspans = vec.max(axis=1) + pad * span
     # edges of the data
