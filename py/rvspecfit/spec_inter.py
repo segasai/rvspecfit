@@ -67,7 +67,7 @@ class GridOutsideCheck:
         self.edges = [np.array(_) for _ in edges]  # 0,1,0,1 vectors
         self.lens = np.array([len(_) for _ in self.uvecs])
         self.Ns = self.idgrid.shape
-        self.ptp = vecs.ptp(axis=1)
+        self.ptp = np.ptp(vecs, axis=1)
         self.tree = scipy.spatial.cKDTree(vecs.T / self.ptp[None, :],
                                           compact_nodes=False,
                                           balanced_tree=False)
@@ -123,7 +123,7 @@ class GridInterp:
         # list of vectors corresponding to vertices of unit cube, i.e.
         # [[0,0], [0,1], [1,0], [1, 1]]
 
-        self.ptp = vecs.ptp(axis=1)
+        self.ptp = np.ptp(vecs, axis=1)
         self.tree = scipy.spatial.cKDTree(vecs.T / self.ptp[None, :])
 
     def get_nearest(self, p):

@@ -169,7 +169,7 @@ def fit(specdata, config):
             # the best value is l = ((S/E^2) xx T)/(1/E^2 xx T^2)
             # Thus  the best chisq is -((S/E^2) xx T)^2/(1/E^2 xx T^2)
             # where xx is the convolution operator
-            if ccf_confs[ii].continuum:
+            if ccf_confs[ii]['continuum']:
                 chisq = -2 * curccf0 + curccf1
             else:
                 chisq = (-curccf0**2 / curccf1)
