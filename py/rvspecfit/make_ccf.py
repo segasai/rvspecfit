@@ -278,7 +278,7 @@ def preprocess_model_list(lammodels,
         pool.close()
         pool.join()
     retparams = np.array(retparams)
-    vsinisList = np.array(vsinisList)
+    vsinisList = vsinisList
     res = np.array(res)
     return res, retparams, vsinisList
 

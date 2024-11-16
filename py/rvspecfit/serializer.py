@@ -26,8 +26,8 @@ def recursively_save_dict_contents_to_group(h5file,
             h5file[key_path].attrs['type'] = 'None'
         elif isinstance(item, (list, tuple)):
             is_list = isinstance(item, list)
-            if all(isinstance(x, type(item[0]))
-                   for x in item):  # Ensure all elements are of the same type
+            if all(isinstance(x, type(item[0])) for x in item) and item[
+                    0] is not None:  # Ensure all elements are of the same type
                 arr = np.array(item)
                 if arr.dtype.char == 'U':
                     ds = h5file.create_dataset(key_path,
@@ -209,10 +209,12 @@ def test_code():
         'tuple_data': (np.int64(1), np.int64(2), np.int64(3)),
         'list_data': [1.1, 2.2, 3.3],
         'xliststr': ['test', 'example'],
+        'xliststr1': [np.str_('test'), np.str_('example')],
         'qq': np.array(['x', 'y', 'z']),
         'a1': [],
         'a2': tuple(),
         'a3': (np.int64(1), 'x'),
+        'a4': [None, None, np.int64(3)],
         'myclass': TestClass(1, 2)
     }
 
