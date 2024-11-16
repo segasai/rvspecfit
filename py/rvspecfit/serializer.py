@@ -165,7 +165,7 @@ def test_code():
     # Example data containing various data types
     data = {
         'x': np.int64(2),
-        'vv': np.arange(1000, dtype=np.float64),
+        'vv': np.arange(3, dtype=np.float64),
         'y': {
             'inside_y': np.arange(5)
         },
@@ -180,10 +180,11 @@ def test_code():
     }
 
     # Save dictionary to an HDF5 file
-    save_dict_to_hdf5(data, 'data.h5', allow_pickle=True)
+    fname = 'data.h5'
+    save_dict_to_hdf5(fname, data, allow_pickle=True)
 
     # Load dictionary from HDF5 file
-    loaded_data = load_dict_from_hdf5('data.h5')
+    loaded_data = load_dict_from_hdf5(fname)
     print(loaded_data)
     print(verify_data(data, loaded_data))
 
