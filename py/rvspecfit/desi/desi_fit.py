@@ -830,7 +830,12 @@ def get_specdata(waves,
 def comment_filler(tab, desc):
     """ Fill comments in the FITS header """
     for i, k in enumerate(tab.data.columns):
-        tab.header['TCOMM%d' % (i + 1)] = desc.get(k.name)[1] or ''
+        comm = desc.get(k.name)
+        if comm is None:
+            comm = ''
+        else:
+            comm = comm[1]
+        tab.header['TCOMM%d' % (i + 1)] = comm
     return tab
 
 

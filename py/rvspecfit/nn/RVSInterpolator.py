@@ -3,6 +3,7 @@ import torch
 import scipy.spatial
 import numpy as np
 import os
+import logging
 
 device_env_name = 'RVS_NN_DEVICE'
 if device_env_name in os.environ:
@@ -27,7 +28,7 @@ class RVSInterpolator:
         # self.device = list(self.nni.children())[0][0].pc_layer.weight.device
 
         self.nni.to(self.device)
-        print('RVS NN interpolator device:', self.device)
+        logging.debug(f'RVS NN interpolator device: {self.device}')
         self.nni.eval()
 
     def __call__(self, x):
