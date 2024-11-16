@@ -895,15 +895,6 @@ def get_column_desc(setups):
     return columnDesc
 
 
-class DummyResult:
-    # instead of whatever Executore returns
-    def __init__(self, x):
-        self.x = x
-
-    def result(self):
-        return self.x
-
-
 def proc_desi(fname,
               tab_ofname,
               mod_ofname,
@@ -1123,7 +1114,7 @@ def proc_desi(fname,
         if specdatas is None:
             logging.warning(
                 f'Giving up on fitting spectra for row {curFiberRow}')
-            rets.append((DummyResult([None, None]), extra_info))
+            rets.append((FakeFuture([None, None]), extra_info))
             continue
         nfibers_good += 1
         curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
