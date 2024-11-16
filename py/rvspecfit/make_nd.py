@@ -77,9 +77,10 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
 
     cur_fname = ('%s/' + make_interpol.SPECS_H5_NAME) % (prefix, spec_setup)
     D = serializer.load_dict_from_hdf5(cur_fname)
-    (vec, specs, lam, parnames, mapper, lognorms,
-     log_step) = (D['vec'], D['specs'], D['lam'], D['parnames'], D['mapper'],
-                  D['lognorms'], D['log_step'])
+    (vec, specs, lam, parnames, mapper_class, lognorms,
+     log_step) = (D['vec'], D['specs'], D['lam'], D['parnames'],
+                  D['mapper_class'], D['mapper_args'], D['lognorms'],
+                  D['log_step'])
     del D
 
     vec = vec.astype(float)

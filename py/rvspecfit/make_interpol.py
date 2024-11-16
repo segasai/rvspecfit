@@ -221,7 +221,9 @@ def process_all(setupInfo,
                                          dbfile=dbfile,
                                          prefix=prefix,
                                          wavefile=wavefile)
-    mapper = read_grid.LogParamMapper(log_parameters)
+    mapper_module = 'rvspecfit.read_grid'
+    mapper_class = 'LogParamMapper'
+    mapper_args = (log_parameters, )
     HR, lamleft, lamright, resol_function, step, log = setupInfo
     if templ_lam.min() > lamleft or templ_lam.max() < lamright:
         raise RuntimeError(f'''Cannot generate the spectra as the wavelength
@@ -284,7 +286,9 @@ def process_all(setupInfo,
               lam=lam,
               parnames=parnames,
               git_rev=git_rev,
-              mapper=mapper,
+              mapper_module=mapper_module,
+              mapper_class_name=mapper_class,
+              mapper_args=mapper_args,
               revision=revision,
               lognorms=lognorms,
               logstep=log,

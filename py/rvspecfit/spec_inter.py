@@ -204,7 +204,7 @@ class SpecInterpolator:
                  revision='',
                  filename='',
                  creation_soft_version='',
-                 logstep=None):
+                 log_step=None):
         """ Construct the interpolator object
 
         Parameters
@@ -241,7 +241,7 @@ class SpecInterpolator:
         self.revision = revision
         self.filename = filename
         self.creation_soft_version = creation_soft_version
-        self.logstep = logstep
+        self.log_step = log_step
         self.objid = hash((self.name, self.parnames, self.revision,
                            self.filename, self.creation_soft_version))
 
@@ -317,9 +317,14 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
             fd = pickle.load(fd0)
         log_spec = fd.get('log_spec') or True
 
-        (templ_lam, mapper, parnames) = (fd['lam'], fd['mapper'],
-                                         fd['parnames'])
-        logstep = fd['logstep']
+        (templ_lam, parnames) = (fd['lam'], fd['parnames'])
+        mapper_module = fd['mapper_module']
+        mapper_class_name = fd['mapper_class_name']
+        mapper_args = fd['mapper_args']
+        mod = importlib.import_module(mapper_module)
+        mapper = getattr(mod, mapper_class_name)(*mapper_args)
+
+        log_step = fd['log_step']
 
         if 'interpolation_type' in fd:
             interp_type = fd['interpolation_type']
@@ -373,7 +378,7 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
             revision=revision,
             creation_soft_version=creation_soft_version,
             filename=savefile,
-            logstep=logstep)
+            log_step=log_step)
         cache[HR] = interpObj
         if system_cache:
             interp_cache.template_lib = config['template_lib']

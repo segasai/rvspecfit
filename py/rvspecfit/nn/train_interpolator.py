@@ -27,12 +27,13 @@ def getData(dir, setup, log_ids=[0]):
         xvecs[:, ii] = np.log10(vecs[:, ii])
     M = xvecs.mean(axis=0)
     S = xvecs.std(axis=0)
-    mapper = Mapper(M, S, log_ids)
+    mapper_args = (M, S, log_ids)
+    mapper = Mapper(*mapper_args)
 
     # vecs[:, 0] = np.log10(vecs[:, 0])
 
     vecs_trans = mapper.forward(vecs)
-    return lam, vecs_trans, dats, mapper, vecs
+    return lam, vecs_trans, dats, mapper, vecs, mapper_args
 
 
 def getSchedOptim(optim):
@@ -108,9 +109,9 @@ def main(args):
     rstate = np.random.default_rng(44)
 
     # vecs are transformed already
-    lam, vecs, dats, mapper, vecs_orig = getData(directory,
-                                                 setup,
-                                                 log_ids=log_ids)
+    lam, vecs, dats, mapper, vecs_orig, mapper_args = getData(directory,
+                                                              setup,
+                                                              log_ids=log_ids)
     D_0 = np.mean(dats, axis=0)
     SD_0 = np.std(dats, axis=0)
     tD_0 = torch.tensor(D_0)
@@ -299,14 +300,17 @@ def main(args):
     if os.path.exists(statefile_path):
         os.unlink(statefile_path)
     import rvspecfit.nn.RVSInterpolator  # noqa
-
+    mapper_module = 'rvspecfit.nn.NNInterpolator'
+    mapper_class_name = 'Mapper'
     ofname = f'{directory}/interp_{setup}.pkl'
     D = {
-        'mapper': mapper,
+        'mapper_module': mapper_module,
+        'mapper_class_name': mapper_class_name,
+        'mapper_args': mapper_args,
         'parnames': parnames,
         'lam': lam,
         'log_spec': True,
-        'logstep': True,
+        'log_step': True,
         'module': 'rvspecfit.nn.RVSInterpolator',
         'class_name': 'RVSInterpolator',
         'device': device_name,
