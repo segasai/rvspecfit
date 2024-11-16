@@ -38,7 +38,7 @@ def get_ccf_info(spec_setup, config):
         ccf_continuum = config.get('ccf_continuum_normalize')
         if ccf_continuum is None:
             ccf_continuum = True
-        ccf_info_fname = prefix + make_ccf.get_ccf_pkl_name(
+        ccf_info_fname = prefix + make_ccf.get_ccf_info_name(
             spec_setup, ccf_continuum)
         ccf_dat_fname = prefix + make_ccf.get_ccf_dat_name(
             spec_setup, ccf_continuum)
