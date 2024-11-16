@@ -365,6 +365,9 @@ def get_rvs_warn(fit_res, outdict, config):
     teff_thresh = 10
     teff_edges = [2300, 15000]
 
+    logg_thresh = 0.01
+    logg_edges = [-.5, 6.5]
+
     # if we are within this threshold of the RV boundary we set another
     # warning
     rvedge_thresh = 5
@@ -393,7 +396,8 @@ def get_rvs_warn(fit_res, outdict, config):
     # Here we check if the parameter is within the threshold of the edge or
     # beyond the edge.
     parameter_limits = [['teff', teff_edges, teff_thresh],
-                        ['feh', feh_edges, feh_thresh]]
+                        ['feh', feh_edges, feh_thresh],
+                        ['logg', logg_edges, logg_thresh]]
     for cur_param, cur_edges, cur_thresh in parameter_limits:
         if _bad_edge_check(fit_res['param'][cur_param], cur_edges, cur_thresh):
             rvs_warn |= bitmasks['PARAM_WARN']
