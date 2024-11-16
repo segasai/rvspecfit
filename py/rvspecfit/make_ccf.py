@@ -98,6 +98,7 @@ def get_ccf_config(logl0=None,
         ret['splinestep'] = max(
             splinestep, 3e5 * (np.exp(
                 (logl1 - logl0) / ret['maxcontpts']) - 1))
+    return ret
 
 
 def get_continuum(lam0, spec0, espec0, ccfconf=None):
