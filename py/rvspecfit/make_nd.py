@@ -162,7 +162,8 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     ret_dict['lognorms'] = lognorms
     ret_dict['git_rev'] = git_rev
 
-    serializer.save_dict_to_hdf5(savefile, ret_dict)
+    # for triangular/grid I'm allowing pickling
+    serializer.save_dict_to_hdf5(savefile, ret_dict, allow_pickle=True)
     np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
             np.ascontiguousarray(specs))
 
