@@ -17,7 +17,7 @@ git_rev = rvspecfit.__version__
 def getData(dir, setup, log_ids=[0]):
 
     fname = f'{dir}/specs_{setup}.h5'
-    dat = serializer.load_dict_from_hdf5(fname))
+    dat = serializer.load_dict_from_hdf5(fname)
     lam = dat['lam']
     vecs = dat['vec'].T[:]
     dats = dat['specs']
@@ -287,13 +287,15 @@ def main(args):
 
     torch.save(myint.state_dict(), finalfile_path)
     pred = get_predictions(myint, Tvecs0, train_dev, batch)
-    with open(f'{directory}/pred_{setup}.psav', 'wb') as fp:
-        DD = {}
-        DD['pred'] = pred,
-        DD['vecs'] = vecs
-        DD['dats'] = dats,
-        DD['mapper'] = mapper
-        DD['vecs_orig'] = vecs_orig
+    cur_name = f'{directory}/pred_{setup}.psav'
+    DD = {}
+    DD['pred'] = pred,
+    DD['vecs'] = vecs
+    DD['dats'] = dats,
+    DD['mapper'] = mapper
+    DD['vecs_orig'] = vecs_orig
+    serializer.save_dict_to_hdf5(cur_name, DD)
+
     if os.path.exists(statefile_path):
         os.unlink(statefile_path)
     import rvspecfit.nn.RVSInterpolator  # noqa
