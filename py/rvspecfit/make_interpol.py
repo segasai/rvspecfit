@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import logging
+import importlib
 import scipy.constants
 import scipy.optimize
 import numpy as np
@@ -81,6 +82,11 @@ class si:
 def initialize_matrix_cache(mat, lamgrid):
     si.mat = mat
     si.lamgrid = lamgrid
+
+
+def get_mapper(mapper_module, mapper_class_name, mapper_args):
+    mod = importlib.import_module(mapper_module)
+    return getattr(mod, mapper_class_name)(*mapper_args)
 
 
 def extract_spectrum(param,

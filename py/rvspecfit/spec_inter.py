@@ -5,6 +5,7 @@ import pickle
 import itertools
 import importlib
 from rvspecfit import make_nd
+from rvspecfit import make_interpol
 
 
 class TriInterp:
@@ -321,8 +322,8 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
         mapper_module = fd['mapper_module']
         mapper_class_name = fd['mapper_class_name']
         mapper_args = fd['mapper_args']
-        mod = importlib.import_module(mapper_module)
-        mapper = getattr(mod, mapper_class_name)(*mapper_args)
+        mapper = make_interpol.get_mapper(mapper_module, mapper_class_name,
+                                          mapper_args)
 
         log_step = fd['log_step']
 

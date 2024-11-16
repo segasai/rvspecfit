@@ -77,11 +77,13 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
 
     cur_fname = ('%s/' + make_interpol.SPECS_H5_NAME) % (prefix, spec_setup)
     D = serializer.load_dict_from_hdf5(cur_fname)
-    (vec, specs, lam, parnames, mapper_class, lognorms,
-     log_step) = (D['vec'], D['specs'], D['lam'], D['parnames'],
-                  D['mapper_class'], D['mapper_args'], D['lognorms'],
-                  D['log_step'])
+    (vec, specs, lam, parnames, mapper_module, mapper_class_name, mapper_args,
+     lognorms, log_step) = (D['vec'], D['specs'], D['lam'], D['parnames'],
+                            D['mapper_module'], D['mapper_class_name'],
+                            D['mapper_args'], D['lognorms'], D['log_step'])
     del D
+    mapper = make_interpol.get_mapper(mapper_module, mapper_class_name,
+                                      mapper_args)
 
     vec = vec.astype(float)
     vec = mapper.forward(vec)
@@ -160,7 +162,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     ret_dict['lognorms'] = lognorms
     ret_dict['git_rev'] = git_rev
 
-    serialize.save_dict_to_hdf5(savefile, ret_dict)
+    serializer.save_dict_to_hdf5(savefile, ret_dict)
     np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
             np.ascontiguousarray(specs))
 
