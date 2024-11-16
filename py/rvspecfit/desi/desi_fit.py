@@ -310,18 +310,18 @@ def proc_onespec(
         outdict[name2] = fit_res['param'][name1] * unit
         outdict[name2 + '_ERR'] = fit_res['param_err'][name1] * unit
 
-    npixes = {}
+    npixels = {}
     for i, curd in enumerate(specdata):
         if curd.name not in chisqs:
             chisqs[curd.name] = 0
             chisqs_c[curd.name] = 0
         chisqs[curd.name] += fit_res['chisq_array'][i]
-        chisqs[curd.name] += fit_res['npix_array'][i]
         chisqs_c[curd.name] += chisq_cont_array[i]
+        npixels[curd.name] += fit_res['npix_array'][i]
 
     outdict['CHISQ_TOT'] = sum(chisqs.values())
     outdict['CHISQ_C_TOT'] = sum(chisqs_c.values())
-    outdict['NPIX_TOT'] = sum(npixes.values())
+    outdict['NPIX_TOT'] = sum(npixels.values())
 
     for s in chisqs.keys():
         outdict['CHISQ_%s' % s.replace('desi_', '').upper()] = chisqs[s]
