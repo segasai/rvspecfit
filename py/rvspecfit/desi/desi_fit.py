@@ -846,31 +846,32 @@ def get_column_desc(setups):
     when we fitting a given set of configurations
     """
     columnDesc = dict([
-        ('VRAD', np.float32, 'Radial velocity'),
-        ('VRAD_ERR', np.float32, 'Radial velocity error'),
-        ('VRAD_SKEW', np.float32, 'Radial velocity posterior skewness'),
-        ('VRAD_KURT', np.float32, 'Radial velocity posterior kurtosis'),
-        ('VSINI', np.float32, 'Stellar rotation velocity'),
-        ('LOGG', np.float32, 'Log of surface gravity'),
-        ('TEFF', np.float32, 'Effective temperature'),
-        ('FEH', np.float32, '[Fe/H] from template fitting'),
-        ('ALPHAFE', np.float32, '[alpha/Fe] from template fitting'),
-        ('LOGG_ERR', np.float32, 'Log of surface gravity uncertainty'),
-        ('TEFF_ERR', np.float32, 'Effective temperature uncertainty'),
-        ('FEH_ERR', np.float32, '[Fe/H] uncertainty from template fitting'),
-        ('ALPHAFE_ERR', np.float32,
-         '[alpha/Fe] uncertainty from template fitting'),
-        ('CHISQ_TOT', np.float64, 'Total chi-square for all arms'),
-        ('NPIX_TOT', np.float64, 'Total number of unmasked pixels fitted'),
-        ('CHISQ_C_TOT', np.float64,
-         'Total chi-square for all arms for polynomial only fit'),
-        ('VRAD_CCF', np.float32, 'Initial velocity from cross-correlation'),
-        ('TARGETID', np.int64, 'DESI targetid'),
-        ('EXPID', np.int64, 'DESI exposure id'),
-        ('SUCCESS', bool, "Did we succeed or fail"),
-        ('RVS_WARN', np.int64, "RVSpecFit warning flag"),
-        ('RR_Z', np.float64, 'Redrock redshift'),
-        ('RR_SPECTYPE', str, 'Redrock spectype')
+        ('VRAD', (np.float32, 'Radial velocity')),
+        ('VRAD_ERR', (np.float32, 'Radial velocity error')),
+        ('VRAD_SKEW', (np.float32, 'Radial velocity posterior skewness')),
+        ('VRAD_KURT', (np.float32, 'Radial velocity posterior kurtosis')),
+        ('VSINI', (np.float32, 'Stellar rotation velocity')),
+        ('LOGG', (np.float32, 'Log of surface gravity')),
+        ('TEFF', (np.float32, 'Effective temperature')),
+        ('FEH', (np.float32, '[Fe/H] from template fitting')),
+        ('ALPHAFE', (np.float32, '[alpha/Fe] from template fitting')),
+        ('LOGG_ERR', (np.float32, 'Log of surface gravity uncertainty')),
+        ('TEFF_ERR', (np.float32, 'Effective temperature uncertainty')),
+        ('FEH_ERR', (np.float32, '[Fe/H] uncertainty from template fitting')),
+        ('ALPHAFE_ERR', (np.float32,
+                         '[alpha/Fe] uncertainty from template fitting')),
+        ('CHISQ_TOT', (np.float64, 'Total chi-square for all arms')),
+        ('NPIX_TOT', (np.float64, 'Total number of unmasked pixels fitted')),
+        ('CHISQ_C_TOT',
+         (np.float64,
+          'Total chi-square for all arms for polynomial only fit')),
+        ('VRAD_CCF', (np.float32, 'Initial velocity from cross-correlation')),
+        ('TARGETID', (np.int64, 'DESI targetid')),
+        ('EXPID', (np.int64, 'DESI exposure id')),
+        ('SUCCESS', (bool, "Did we succeed or fail")),
+        ('RVS_WARN', (np.int64, "RVSpecFit warning flag")),
+        ('RR_Z', (np.float64, 'Redrock redshift')),
+        ('RR_SPECTYPE', (str, 'Redrock spectype'))
     ])
 
     for curs in setups:
@@ -1008,10 +1009,13 @@ def proc_desi(fname,
                 'does not match the size of the fibermap; file %s; skipping...'
             ) % (_, fname))
             return -1
+    columnDesc = get_column_desc(setups)
+
     if zbest_select or zbest_include:
         zbest_path, zbest_ext = get_zbest_fname(fname)
     else:
         zbest_path, zbest_ext = None, None
+
     subset, rr_z, rr_spectype = select_fibers_to_fit(
         fibermap,
         sns,
@@ -1024,11 +1028,45 @@ def proc_desi(fname,
         zbest_select=zbest_select,
         zbest_include=zbest_include)
 
+    fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
+                                             name='FIBERMAP')
+    if exp_fibermap is not None:
+        tmp_sub = np.in1d(exp_fibermap['TARGETID'],
+                          fibermap['TARGETID'][subset])
+        exp_fibermap_subset_hdu = pyfits.BinTableHDU(
+            atpy.Table(exp_fibermap)[tmp_sub], name='EXP_FIBERMAP')
+    scores_subset_hdu = pyfits.BinTableHDU(atpy.Table(scores)[subset],
+                                           name='SCORES')
+
     # skip if no need to fit anything
     if not (subset.any()):
         logging.warning('No fibers selected in file %s' % (fname))
-        put_empty_file(tab_ofname)
-        put_empty_file(mod_ofname)
+        outtab_hdus = [
+            pyfits.PrimaryHDU(header=get_prim_header(
+                config=config, cmdline=cmdline, zbest_path=zbest_path)),
+            comment_filler(pyfits.BinTableHDU(atpy.Table([]), name='RVTAB'),
+                           columnDesc), fibermap_subset_hdu, scores_subset_hdu
+        ]
+        if exp_fibermap is not None:
+            outtab_hdus += [exp_fibermap_subset_hdu]
+        outmod_hdus = [
+            pyfits.PrimaryHDU(
+                header=get_prim_header(config=config,
+                                       cmdline=cmdline,
+                                       spectrum_header=spectrum_header,
+                                       zbest_path=zbest_path))
+        ]
+
+        for curs in setups:
+            outmod_hdus.append(
+                pyfits.ImageHDU(waves[curs],
+                                name='%s_WAVELENGTH' % curs.upper()))
+            outmod_hdus.append(pyfits.ImageHDU(name='%s_MODEL' % curs.upper()))
+
+        outmod_hdus += [fibermap_subset_hdu]
+        write_hdulist(mod_ofname, pyfits.HDUList(outmod_hdus))
+        write_hdulist(tab_ofname, pyfits.HDUList(outtab_hdus))
+
         return 0
     logging.info('Selected %d fibers to fit' % (subset.sum()))
 
@@ -1051,12 +1089,6 @@ def proc_desi(fname,
         rr_z = np.zeros(len(seqid_to_fit)) + np.nan
         rr_spectype = np.ma.zeros(len(seqid_to_fit), dtype=str)
 
-    subset_ret = subset.copy()
-    # returned subset to deal with the fact that
-    # I'll skip some spectra
-    # in the future I should instead fill things with nans
-    # TODO
-
     timers.append(time.time())
     rets = []
     nfibers_good = 0
@@ -1074,7 +1106,7 @@ def proc_desi(fname,
         curFiberRow = fibermap[curseqid]
         if specdatas is not None:
             cur_arms = [_.name
-                        in specdatas]  # actual arms that are good enough
+                        for _ in specdatas]  # actual arms that are good enough
         else:
             cur_arms = None
         extra_info = (curFiberRow, curseqid, cur_rr_z, cur_rr_spectype,
@@ -1082,7 +1114,6 @@ def proc_desi(fname,
         if specdatas is None:
             logging.warning(
                 f'Giving up on fitting spectra for row {curFiberRow}')
-            subset_ret[curseqid] = False
             rets.append((DummyResult([None, None]), extra_info))
             continue
         nfibers_good += 1
@@ -1097,23 +1128,19 @@ def proc_desi(fname,
             **dict(fig_fname=fig_fname, doplot=doplot,
                    ccf_init=ccf_init)), extra_info))
     timers.append(time.time())
-    if nfibers_good == 0:
-        logging.warning('In the end no spectra worth fitting...')
-        put_empty_file(tab_ofname)
-        put_empty_file(mod_ofname)
-        return 0
 
     # This will store best-fit model data
     models = {}
-    for curs in enumerate(setups):
+    for curs in setups:
         models['desi_' + curs] = np.zeros((nfibers_good, npixels[curs]),
-                                          dtype=np.float64)
+                                          dtype=np.float32)
     for ii, (r, extra_info) in enumerate(rets):
         outdict, curmodel = r.result()
         if outdict is None:
             bad_row = True
             outdict = dict(RVS_WARN=bitmasks['BAD_SPECTRUM'])
-
+        else:
+            bad_row = False
         curFiberRow, curseqid, cur_rr_z, cur_rr_spectype, cur_arms = extra_info
 
         for col in columnsCopy:
@@ -1135,15 +1162,6 @@ def proc_desi(fname,
     timers.append(time.time())
     outtab = atpy.Table(outdf)
 
-    fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset_ret],
-                                             name='FIBERMAP')
-    if exp_fibermap is not None:
-        tmp_sub = np.in1d(exp_fibermap['TARGETID'],
-                          fibermap['TARGETID'][subset_ret])
-        exp_fibermap_subset_hdu = pyfits.BinTableHDU(
-            atpy.Table(exp_fibermap)[tmp_sub], name='EXP_FIBERMAP')
-    scores_subset_hdu = pyfits.BinTableHDU(atpy.Table(scores)[subset_ret],
-                                           name='SCORES')
     outmod_hdus = [
         pyfits.PrimaryHDU(
             header=get_prim_header(versions=versions,
@@ -1159,8 +1177,6 @@ def proc_desi(fname,
         outmod_hdus.append(
             pyfits.ImageHDU(np.vstack(models['desi_%s' % curs]),
                             name='%s_MODEL' % curs.upper()))
-
-    columnDesc = get_column_desc(setups)
 
     outmod_hdus += [fibermap_subset_hdu]
 
