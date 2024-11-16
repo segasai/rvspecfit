@@ -157,7 +157,9 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     ret_dict['log_step'] = log_step
     ret_dict['vec'] = vec
     ret_dict['parnames'] = parnames
-    ret_dict['mapper'] = mapper
+    ret_dict['mapper_class_name'] = mapper_class_name
+    ret_dict['mapper_module'] = mapper_module
+    ret_dict['mapper_args'] = mapper_args
     ret_dict['revision'] = revision
     ret_dict['lognorms'] = lognorms
     ret_dict['git_rev'] = git_rev
