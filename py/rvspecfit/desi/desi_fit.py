@@ -644,14 +644,15 @@ def resolution_mat_tocolumns(mat):
     return np.array([np.roll(mat[::-1][_], w2 - _) for _ in range(w)])
 
 
-def deconvolve_resolution_matrix(mat0, sig=0.451):
+def deconvolve_resolution_matrix(mat0,
+                                 sigma0_angstrom=0.5,
+                                 pix_size_angstrom=0.8):
     width, npix = mat0.shape
-    pix_size = 0.8  # Angstrom DESI
-    sig_pix = sig / pix_size
+    sig_pix = sigma0_angstrom / pix_size_angstrom
     xs = np.arange(width)
     gau_mat = np.array([
-        1. / np.sqrt(2 * np.pi) / sig * np.exp(-0.5 * ((xs - i) / sig_pix)**2)
-        for i in range(len(xs))
+        1. / np.sqrt(2 * np.pi) / sig_pix *
+        np.exp(-0.5 * ((xs - i) / sig_pix)**2) for i in range(len(xs))
     ])
     w2 = width // 2
     mat_rows = resolution_mat_torows(mat0)
@@ -672,13 +673,17 @@ def deconvolve_resolution_matrix(mat0, sig=0.451):
     return mat
 
 
-def construct_resolution_sparse_matrix(mat):
+def construct_resolution_sparse_matrix(mat,
+                                       pix_size_angstrom=None,
+                                       sigma0_angstrom=None):
     width, npix = mat.shape
     w2 = width // 2
     mat = mat.copy()
     deconvolve = True
     if deconvolve:
-        mat = deconvolve_resolution_matrix(mat)
+        mat = deconvolve_resolution_matrix(mat,
+                                           pix_size_angstrom=pix_size_angstrom,
+                                           sigma0_angstrom=sigma0_angstrom)
     # this is because the resolution matrix is incorrect in the edges
     mat_rows = resolution_mat_torows(mat)
     mult = np.median(mat_rows.sum(axis=0))
@@ -734,7 +739,8 @@ def get_specdata(waves,
                  seqid,
                  setups,
                  use_resolution_matrix=False,
-                 mask_dicroic=True):
+                 mask_dicroic=True,
+                 lsf_sigma0_angstrom=None):
     """ Return the list of SpecDatas for one single object
 
     Parameters
@@ -763,7 +769,6 @@ def get_specdata(waves,
     minerr_frac = 0.3
     # if the error is smaller than this times median error
     # clamp the uncertainty
-
     sds = []
 
     for s in setups:
@@ -789,8 +794,12 @@ def get_specdata(waves,
         baderr = curivars <= 0
         edge_mask = np.zeros(len(spec), dtype=bool)
         if use_resolution_matrix:
+            dwave = waves[s][1] - waves[s][0]
+            cur_sig0 = lsf_sigma0_angstrom[s]
             cur_resol = spec_fit.ResolMatrix(
-                construct_resolution_sparse_matrix(resolutions[s][seqid]))
+                construct_resolution_sparse_matrix(resolutions[s][seqid],
+                                                   pix_size_angstrom=dwave,
+                                                   sigma0_angstrom=cur_sig0))
             edge_pixels = 5
             edge_mask[:edge_pixels] = True
             edge_mask[-edge_pixels:] = True
@@ -1090,6 +1099,21 @@ def proc_desi(fname,
         rr_z = np.zeros(len(seqid_to_fit)) + np.nan
         rr_spectype = np.ma.zeros(len(seqid_to_fit), dtype=str)
 
+    if use_resolution_matrix:
+        sig0s = {}
+        for s in setups:
+            if config is not None:
+                if 'lsf_sigma0_angstrom' not in config:
+                    cur_val = 0.5  # default value
+                    logging.warning(
+                        'sigma0 of the templates is not specified, '
+                        f'using {cur_val}')
+                else:
+                    cur_val = config['lsf_sigma0_angstrom'][s]
+                sig0s[s] = cur_val
+    else:
+        sig0s = None
+
     timers.append(time.time())
     rets = []
     nfibers_good = 0
@@ -1103,7 +1127,8 @@ def proc_desi(fname,
                                  resolutions,
                                  curseqid,
                                  setups,
-                                 use_resolution_matrix=use_resolution_matrix)
+                                 use_resolution_matrix=use_resolution_matrix,
+                                 lsf_sigma0_angstrom=sig0s)
         curFiberRow = fibermap[curseqid]
         if specdatas is not None:
             cur_arms = [_.name
