@@ -293,7 +293,6 @@ def main(args):
     DD['pred'] = pred,
     DD['vecs'] = vecs
     DD['dats'] = dats,
-    DD['mapper'] = mapper
     DD['vecs_orig'] = vecs_orig
     serializer.save_dict_to_hdf5(cur_name, DD)
 
