@@ -6,7 +6,8 @@ ffi = _spliner.ffi
 
 
 class Spline:
-    def __init__(self, xs, ys, logstep=True):
+
+    def __init__(self, xs, ys, log_step=True):
         assert (xs.flags['C_CONTIGUOUS'])
         assert (ys.flags['C_CONTIGUOUS'])
         assert (xs.dtype == np.float64)
@@ -18,7 +19,7 @@ class Spline:
         D = np.zeros(N - 1, dtype=np.float64)
         h = np.zeros(N - 1, dtype=np.float64)
 
-        self.logstep = int(logstep)
+        self.log_step = int(log_step)
         _spliner.lib.construct(ffi.from_buffer('double *', xs),
                                ffi.from_buffer('double *', ys), N,
                                ffi.from_buffer('double *', A),
@@ -45,7 +46,7 @@ class Spline:
                                    ffi.from_buffer('double *', self.B),
                                    ffi.from_buffer('double *', self.C),
                                    ffi.from_buffer('double *', self.D),
-                                   self.logstep,
+                                   self.log_step,
                                    ffi.from_buffer('double *', ret))
         assert (stat == 0)
 

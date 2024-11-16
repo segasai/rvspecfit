@@ -309,7 +309,7 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
             spec = convolve_vsini(curInterp.lam, spec, *rot_params)
 
     templ_tag = random.getrandbits(128)
-    return outside, curInterp.lam, spec, templ_tag, curInterp.logstep
+    return outside, curInterp.lam, spec, templ_tag, curInterp.log_step
 
 
 def construct_resol_mat(lam, resol=None, width=None):
@@ -441,7 +441,7 @@ def convolve_vsini(lam_templ, templ, vsini):
     return templ1
 
 
-def getRVInterpol(lam_templ, templ, logstep=True):
+def getRVInterpol(lam_templ, templ, log_step=True):
     """
     Produce the spectrum interpolator to evaluate the spectrum at arbitrary
     wavelengths
@@ -459,7 +459,7 @@ def getRVInterpol(lam_templ, templ, logstep=True):
         The object that can be used to evaluate template at any wavelength
     """
 
-    interpol = spliner.Spline(lam_templ, templ, logstep=logstep)
+    interpol = spliner.Spline(lam_templ, templ, log_step=log_step)
     return interpol
 
 
@@ -633,7 +633,7 @@ def get_chisq(specdata,
     for curdata in specdata:
         name = curdata.name
 
-        outside, templ_lam, templ_spec, templ_tag, logstep = getCurTempl(
+        outside, templ_lam, templ_spec, templ_tag, log_step = getCurTempl(
             name, atm_params, rot_params, config)
 
         # if the current point is outside the template grid
@@ -656,7 +656,7 @@ def get_chisq(specdata,
             if cache is None or templ_tag not in cache:
                 curtemplI = getRVInterpol(templ_lam,
                                           templ_spec,
-                                          logstep=logstep)
+                                          log_step=log_step)
                 if cache is not None:
                     cache[templ_tag] = curtemplI
             else:

@@ -297,7 +297,7 @@ def process_all(setupInfo,
               mapper_args=mapper_args,
               revision=revision,
               lognorms=lognorms,
-              logstep=log,
+              log_step=log,
               log_spec=log_spec)
     serializer.save_dict_to_hdf5(curfname, DD)
 

@@ -12,7 +12,7 @@ void construct(double *xs, double *ys, int N,
 double *A, double *B, double *C, double *D, double *h);
 int evaler(double *evalx, int nevalx,  int N, double *xs,
            double *hs, double *As, double *Bs, double *Cs,
-           double *Ds, int logstep, double *ret);
+           double *Ds, int log_step, double *ret);
 
 """)
 if __name__ == "__main__":
