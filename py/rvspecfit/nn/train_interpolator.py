@@ -288,7 +288,7 @@ def main(args):
 
     torch.save(myint.state_dict(), finalfile_path)
     pred = get_predictions(myint, Tvecs0, train_dev, batch)
-    cur_name = f'{directory}/pred_{setup}.psav'
+    cur_name = f'{directory}/pred_{setup}.h5'
     DD = {}
     DD['pred'] = pred,
     DD['vecs'] = vecs
@@ -301,7 +301,7 @@ def main(args):
     import rvspecfit.nn.RVSInterpolator  # noqa
     mapper_module = 'rvspecfit.nn.NNInterpolator'
     mapper_class_name = 'Mapper'
-    ofname = f'{directory}/interp_{setup}.pkl'
+    ofname = f'{directory}/interp_{setup}.h5'
     D = {
         'mapper_module': mapper_module,
         'mapper_class_name': mapper_class_name,
