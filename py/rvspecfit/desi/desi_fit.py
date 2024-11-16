@@ -315,6 +315,7 @@ def proc_onespec(
         if curd.name not in chisqs:
             chisqs[curd.name] = 0
             chisqs_c[curd.name] = 0
+            npixels[curd.name] = 0
         chisqs[curd.name] += fit_res['chisq_array'][i]
         chisqs_c[curd.name] += chisq_cont_array[i]
         npixels[curd.name] += fit_res['npix_array'][i]
