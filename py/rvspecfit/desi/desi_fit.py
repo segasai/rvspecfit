@@ -870,7 +870,7 @@ def get_column_desc(setups):
         ('SUCCESS', bool, "Did we succeed or fail"),
         ('RVS_WARN', np.int64, "RVSpecFit warning flag"),
         ('RR_Z', np.float64, 'Redrock redshift'),
-        ('RR_SPECTYPE', np.str, 'Redrock spectype')
+        ('RR_SPECTYPE', str, 'Redrock spectype')
     ])
 
     for curs in setups:
@@ -883,6 +883,15 @@ def get_column_desc(setups):
             np.float64,
             'Chi-square in the %s arm after fitting continuum only' % curs)
     return columnDesc
+
+
+class DummyResult:
+    # instead of whatever Executore returns
+    def __init__(self, x):
+        self.x = x
+
+    def result(self):
+        return self.x
 
 
 def proc_desi(fname,
@@ -1031,10 +1040,9 @@ def proc_desi(fname,
 
     outdf = []
 
-    # This will store best-fit model data
-    models = {}
+    npixels = {}
     for curs in setups:
-        models['desi_%s' % curs] = []
+        npixels[curs] = fluxes[curs].shape[1]
 
     seqid_to_fit = np.nonzero(subset)[0]
     if rr_z is not None:
@@ -1064,10 +1072,18 @@ def proc_desi(fname,
                                  setups,
                                  use_resolution_matrix=use_resolution_matrix)
         curFiberRow = fibermap[curseqid]
+        if specdatas is not None:
+            cur_arms = [_.name
+                        in specdatas]  # actual arms that are good enough
+        else:
+            cur_arms = None
+        extra_info = (curFiberRow, curseqid, cur_rr_z, cur_rr_spectype,
+                      cur_arms)
         if specdatas is None:
             logging.warning(
                 f'Giving up on fitting spectra for row {curFiberRow}')
             subset_ret[curseqid] = False
+            rets.append((DummyResult([None, None]), extra_info))
             continue
         nfibers_good += 1
         curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
@@ -1078,20 +1094,27 @@ def proc_desi(fname,
             fig_fname = None
         rets.append((poolex.submit(
             proc_onespec, *(specdatas, setups, config, options),
-            **dict(fig_fname=fig_fname, doplot=doplot, ccf_init=ccf_init)),
-                     curFiberRow, curseqid, cur_rr_z, cur_rr_spectype))
+            **dict(fig_fname=fig_fname, doplot=doplot,
+                   ccf_init=ccf_init)), extra_info))
     timers.append(time.time())
     if nfibers_good == 0:
         logging.warning('In the end no spectra worth fitting...')
         put_empty_file(tab_ofname)
         put_empty_file(mod_ofname)
         return 0
-    for r in rets:
-        outdict, curmodel = r[0].result()
-        versions = outdict['versions']
-        del outdict['versions']  # I don't want to store it in the table
-        curFiberRow, curseqid, cur_rr_z, cur_rr_spectype = (r[1], r[2], r[3],
-                                                            r[4])
+
+    # This will store best-fit model data
+    models = {}
+    for curs in enumerate(setups):
+        models['desi_' + curs] = np.zeros((nfibers_good, npixels[curs]),
+                                          dtype=np.float64)
+    for ii, (r, extra_info) in enumerate(rets):
+        outdict, curmodel = r.result()
+        if outdict is None:
+            bad_row = True
+            outdict = dict(RVS_WARN=bitmasks['BAD_SPECTRUM'])
+
+        curFiberRow, curseqid, cur_rr_z, cur_rr_spectype, cur_arms = extra_info
 
         for col in columnsCopy:
             if col in fibermap.columns.names:
@@ -1102,11 +1125,13 @@ def proc_desi(fname,
         outdict['SUCCESS'] = outdict['RVS_WARN'] == 0
         outdict['RR_Z'] = cur_rr_z
         outdict['RR_SPECTYPE'] = cur_rr_spectype
+        versions = outdict['versions']
+        del outdict['versions']  # I don't want to store it in the table
         outdf.append(outdict)
+        if not bad_row:
+            for jj, curs in enumerate(cur_arms):
+                models[curs][ii] = curmodel[jj]
 
-        for ii, curs in enumerate(setups):
-            # I assume all the setups were fitted
-            models['desi_%s' % curs].append(curmodel[ii])
     timers.append(time.time())
     outtab = atpy.Table(outdf)
 
