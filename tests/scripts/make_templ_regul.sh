@@ -20,5 +20,5 @@ RVS_REGULARIZE_GRID="$COV `command -v rvs_regularize_grid`"
 $RVS_READ_GRID --prefix $TEMPLPREF --templdb $PREFIX0/files.db
 $RVS_MAKE_INTERPOL --air --setup $BNAME --lambda0 $BLAM0 --lambda1 $BLAM1 --resol $BRESOL --step $BSTEP --templdb ${PREFIX0}/files.db --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --fixed_fwhm --wavefile $WAVEFILE --nthreads 1
 
-$RVS_REGULARIZE_GRID --input $PREFIX/specs_$BNAME.pkl --output $PREFIX/specs_$BNAME.pkl
+$RVS_REGULARIZE_GRID --input $PREFIX/specs_$BNAME.h5 --output $PREFIX/specs_$BNAME.h5
 
