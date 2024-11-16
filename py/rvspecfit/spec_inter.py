@@ -54,6 +54,8 @@ class TriInterp:
                 b1[:, None]).sum(axis=0)
         if self.exp:
             spec = np.exp(spec)
+        if spec.size == 1:
+            spec = float(spec[0])
         return spec
 
 
