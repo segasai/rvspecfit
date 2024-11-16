@@ -3,18 +3,18 @@ import multiprocessing as mp
 import os
 import sys
 import argparse
-import pickle
 import logging
 import scipy.constants
 import scipy.optimize
 import numpy as np
 import sqlite3
 from rvspecfit import read_grid
+from rvspecfit import serializer
 import rvspecfit
 
 git_rev = rvspecfit.__version__
 
-SPEC_PKL_NAME = 'specs_%s.pkl'
+SPECS_H5_NAME = 'specs_%s.h5'
 
 
 class FakePoolResult:
@@ -278,18 +278,18 @@ def process_all(setupInfo,
         except OSError:
             raise RuntimeError('Failed to create output directory: %s' %
                                (oprefix, ))
-    with open(('%s/' + SPEC_PKL_NAME) % (oprefix, HR), 'wb') as fp:
-        pickle.dump(
-            dict(specs=specs,
-                 vec=vec,
-                 lam=lam,
-                 parnames=parnames,
-                 git_rev=git_rev,
-                 mapper=mapper,
-                 revision=revision,
-                 lognorms=lognorms,
-                 logstep=log,
-                 log_spec=log_spec), fp)
+    curfname = ('%s/' + SPECS_H5_NAME) % (oprefix, HR)
+    DD = dict(specs=specs,
+              vec=vec,
+              lam=lam,
+              parnames=parnames,
+              git_rev=git_rev,
+              mapper=mapper,
+              revision=revision,
+              lognorms=lognorms,
+              logstep=log,
+              log_spec=log_spec)
+    serializer.save_dict_to_hdf5(curfname, DD)
 
 
 def add_bool_arg(parser, name, default=False, help=None):

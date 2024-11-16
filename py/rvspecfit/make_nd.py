@@ -1,4 +1,3 @@
-import pickle
 import argparse
 import sys
 import numpy as np
@@ -6,11 +5,12 @@ import numpy.random
 import scipy.spatial
 
 from rvspecfit import make_interpol
+from rvspecfit import serializer
 import rvspecfit
 
 git_rev = rvspecfit.__version__
 
-INTERPOL_PKL_NAME = 'interp_%s.pkl'
+INTERPOL_H5_NAME = 'interp_%s.h5'
 INTERPOL_DAT_NAME = 'interpdat_%s.npy'
 
 
@@ -75,13 +75,12 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
 
     """
 
-    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
-              'rb') as fp:
-        D = pickle.load(fp)
-        (vec, specs, lam, parnames, mapper, lognorms,
-         logstep) = (D['vec'], D['specs'], D['lam'], D['parnames'],
-                     D['mapper'], D['lognorms'], D['logstep'])
-        del D
+    cur_fname = ('%s/' + make_interpol.SPECS_H5_NAME) % (prefix, spec_setup)
+    D = serializer.load_dict_from_hdf5(cur_fname)
+    (vec, specs, lam, parnames, mapper, lognorms,
+     log_step) = (D['vec'], D['specs'], D['lam'], D['parnames'], D['mapper'],
+                  D['lognorms'], D['log_step'])
+    del D
 
     vec = vec.astype(float)
     vec = mapper.forward(vec)
@@ -150,9 +149,9 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
         ret_dict['regular'] = True
         ret_dict['idgrid'] = idgrid
         ret_dict['interpolation_type'] = 'regulargrid'
-    savefile = ('%s/' + INTERPOL_PKL_NAME) % (prefix, spec_setup)
+    savefile = ('%s/' + INTERPOL_H5_NAME) % (prefix, spec_setup)
     ret_dict['lam'] = lam
-    ret_dict['logstep'] = logstep
+    ret_dict['log_step'] = log_step
     ret_dict['vec'] = vec
     ret_dict['parnames'] = parnames
     ret_dict['mapper'] = mapper
@@ -160,8 +159,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     ret_dict['lognorms'] = lognorms
     ret_dict['git_rev'] = git_rev
 
-    with open(savefile, 'wb') as fp:
-        pickle.dump(ret_dict, fp)
+    serialize.save_dict_to_hdf5(savefile, ret_dict)
     np.save(('%s/' + INTERPOL_DAT_NAME) % (prefix, spec_setup),
             np.ascontiguousarray(specs))
 

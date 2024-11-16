@@ -1,10 +1,10 @@
-import pickle
 import sys
 import argparse
 import scipy.stats
 import scipy.interpolate
 import numpy as np
 import scipy.version
+from rvspecfit import serializer
 
 
 def findbestoverlaps(x, intervals):
@@ -59,7 +59,7 @@ into the file with gaps filled and smaller step sizes
     newalphagrid = np.arange(min_alpha, max_alpha + step_alpha / 2.,
                              step_alpha)
 
-    dat = pickle.load(open(path, 'rb'))
+    dat = serializer.load_dict_from_hdf5(path)
 
     vec = dat['vec']
     specs = dat['specs']
@@ -145,8 +145,7 @@ into the file with gaps filled and smaller step sizes
     dat['specs'] = res_spec
     dat['vec'] = res_vec
 
-    with open(opath, 'wb') as fp:
-        pickle.dump(dat, fp, protocol=4)
+    serializer.save_dict_to_hdf5(opath, dat)
 
 
 def check_scipy_version():

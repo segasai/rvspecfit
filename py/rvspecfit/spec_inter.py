@@ -312,7 +312,7 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
         system_cache = False
     if HR not in cache:
         savefile = (config['template_lib'] + '/' +
-                    make_nd.INTERPOL_PKL_NAME % HR)
+                    make_nd.INTERPOL_H5_NAME % HR)
         with open(savefile, 'rb') as fd0:
             fd = pickle.load(fd0)
         log_spec = fd.get('log_spec') or True

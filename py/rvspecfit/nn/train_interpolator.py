@@ -1,4 +1,3 @@
-import pickle
 import os
 import sys
 import argparse
@@ -10,14 +9,15 @@ import sklearn.decomposition as skde
 import numpy as np
 import torch
 from .NNInterpolator import Mapper, NNInterpolator
+from rvscpecfit import serializer
 
 git_rev = rvspecfit.__version__
 
 
 def getData(dir, setup, log_ids=[0]):
 
-    fname = (f'{dir}/specs_{setup}.pkl')
-    dat = pickle.load(open(fname, 'rb'))
+    fname = f'{dir}/specs_{setup}.h5'
+    dat = serializer.load_dict_from_hdf5(fname))
     lam = dat['lam']
     vecs = dat['vec'].T[:]
     dats = dat['specs']
@@ -298,25 +298,25 @@ def main(args):
         os.unlink(statefile_path)
     import rvspecfit.nn.RVSInterpolator  # noqa
 
-    with open(f'{directory}/interp_{setup}.pkl', 'wb') as fp:
-        D = {
-            'mapper': mapper,
-            'parnames': parnames,
-            'lam': lam,
-            'log_spec': True,
-            'logstep': True,
-            'module': 'rvspecfit.nn.RVSInterpolator',
-            'class_name': 'RVSInterpolator',
-            'device': device_name,
-            'class_kwargs': kwargs,
-            'outside_class_name': 'OutsideInterpolator',
-            'outside_kwargs': dict(pts=vecs),
-            'nn_file': finalfile,
-            'revision': revision,
-            'git_rev': git_rev,
-            'interpolation_type': 'generic'
-        }
-        pickle.dump(D, fp)
+    ofname = f'{directory}/interp_{setup}.pkl'
+    D = {
+        'mapper': mapper,
+        'parnames': parnames,
+        'lam': lam,
+        'log_spec': True,
+        'logstep': True,
+        'module': 'rvspecfit.nn.RVSInterpolator',
+        'class_name': 'RVSInterpolator',
+        'device': device_name,
+        'class_kwargs': kwargs,
+        'outside_class_name': 'OutsideInterpolator',
+        'outside_kwargs': dict(pts=vecs),
+        'nn_file': finalfile,
+        'revision': revision,
+        'git_rev': git_rev,
+        'interpolation_type': 'generic'
+    }
+    serializer.save_dict_to_hdf5(ofname, D)
 
 
 if __name__ == '__main__':

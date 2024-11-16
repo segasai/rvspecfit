@@ -1,4 +1,3 @@
-import pickle
 import argparse
 import multiprocessing as mp
 import numpy as np
@@ -10,6 +9,7 @@ import logging
 
 from rvspecfit import spec_fit
 from rvspecfit import make_interpol
+from rvspecfit import serializer
 import rvspecfit
 
 git_rev = rvspecfit.__version__
@@ -23,8 +23,8 @@ def get_continuum_prefix(continuum):
     return pref
 
 
-def get_ccf_pkl_name(setup, continuum=True):
-    return 'ccf_' + get_continuum_prefix(continuum) + '%s.pkl' % setup
+def get_ccf_info_name(setup, continuum=True):
+    return 'ccf_' + get_continuum_prefix(continuum) + '%s.h5' % setup
 
 
 def get_ccf_dat_name(setup, continuum=True):
@@ -447,13 +447,11 @@ def ccf_executor(spec_setup,
 
     """
 
-    with open(('%s/' + make_interpol.SPEC_PKL_NAME) % (prefix, spec_setup),
-              'rb') as fp:
-        D = pickle.load(fp)
-        vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D[
-            'parnames']
-        log_spec = D['log_spec']
-        del D
+    cur_fname = ('%s/' + make_interpol.SPECS_H5_NAME) % (prefix, spec_setup)
+    D = serializer.load_dict_from_hdf5(cur_fname)
+    vec, specs, lam, parnames = D['vec'], D['specs'], D['lam'], D['parnames']
+    log_spec = D['log_spec']
+    del D
 
     morton_id = get_mortoncurve_id(vec.T)
     inds = np.argsort(morton_id)[::every]
@@ -473,7 +471,7 @@ def ccf_executor(spec_setup,
     ffts = np.array([np.fft.rfft(x) for x in models])
     fft2s = np.array([np.fft.rfft(x**2) for x in models])
     savefile = (oprefix + '/' +
-                get_ccf_pkl_name(spec_setup, ccfconf.continuum))
+                get_ccf_info_name(spec_setup, ccfconf.continuum))
     datsavefile = (oprefix + '/' +
                    get_ccf_dat_name(spec_setup, ccfconf.continuum))
     modsavefile = (oprefix + '/' +
@@ -486,8 +484,7 @@ def ccf_executor(spec_setup,
     dHash['parnames'] = parnames
     dHash['revision'] = revision
 
-    with open(savefile, 'wb') as fp:
-        pickle.dump(dHash, fp)
+    serializer.save_dict_to_hdf5(savefile, dHash, allow_pickle=True)
     np.savez(datsavefile, fft=np.array(ffts), fft2=np.array(fft2s))
     np.save(modsavefile, np.array(models))
 

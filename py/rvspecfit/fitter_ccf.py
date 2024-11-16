@@ -1,9 +1,9 @@
-import pickle
 import numpy as np
 import scipy.optimize
 import scipy.interpolate
 from rvspecfit import make_ccf
 from rvspecfit.spec_fit import SpecData
+from rvspecfit import serializer
 import logging
 
 
@@ -44,7 +44,9 @@ def get_ccf_info(spec_setup, config):
             spec_setup, ccf_continuum)
         ccf_mod_fname = prefix + make_ccf.get_ccf_mod_name(
             spec_setup, ccf_continuum)
-        CCFCache.ccf_info[spec_setup] = pickle.load(open(ccf_info_fname, 'rb'))
+
+        CCFCache.ccf_info[spec_setup] = serializer.load_dict_from_hdf5(
+            ccf_info_fname)
         C = np.load(ccf_dat_fname, mmap_mode='r')
         CCFCache.ccfs[spec_setup] = C['fft']
         CCFCache.ccf2s[spec_setup] = C['fft2']
