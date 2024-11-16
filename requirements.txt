@@ -7,3 +7,4 @@ numdifftools
 pandas
 numpydoc
 cffi
+h5py
