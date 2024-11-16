@@ -20,6 +20,9 @@ def recursively_save_dict_contents_to_group(h5file,
                                                     key_path,
                                                     item,
                                                     allow_pickle=allow_pickle)
+        elif item is None:
+            h5file.create_dataset(key_path, data=0)
+            h5file[key_path].attrs['type'] = 'None'
         elif isinstance(item, (list, tuple)):
             is_list = isinstance(item, list)
             if all(isinstance(x, type(item[0]))
@@ -121,6 +124,8 @@ def recursively_load_dict_contents_from_group(h5file, path):
                 ans[key] = item[()]
             elif item.attrs['type'] == 'pickle':
                 ans[key] = pickle.loads(item[()])
+            elif item.attrs['type'] == 'None':
+                ans[key] = None
             else:
                 raise Exception('unsupported')
         elif isinstance(item,
@@ -196,6 +201,7 @@ def test_code():
                 'y': np.int64(66)
             },
         },
+        't': None,
         'z': 'Hello world!',
         'tuple_data': (np.int64(1), np.int64(2), np.int64(3)),
         'list_data': [1.1, 2.2, 3.3],
