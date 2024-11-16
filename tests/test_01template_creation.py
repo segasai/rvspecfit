@@ -36,12 +36,21 @@ def run_script(script):
             rvspecfit.desi.desi_fit.main(args[1:])
 
 
-def test_scripts():
+def test_scripts_nn():
     run_script(path + '/scripts/make_templ_nn.sh')
 
+
+def test_scripts_triang():
     run_script(path + '/scripts/make_templ_aat_triang.sh')
 
+
+def test_scripts_regul():
     run_script(path + '/scripts/make_templ_regul.sh')
 
+
+def test_scripts_templ():
     run_script(path + '/scripts/gen_test_templ.sh')
+
+
+def test_scripts_templ_grid():
     run_script(path + '/scripts/gen_test_templ_grid.sh')
