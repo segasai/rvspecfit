@@ -9,7 +9,7 @@ import sklearn.decomposition as skde
 import numpy as np
 import torch
 from .NNInterpolator import Mapper, NNInterpolator
-from rvscpecfit import serializer
+from rvspecfit import serializer
 
 git_rev = rvspecfit.__version__
 
