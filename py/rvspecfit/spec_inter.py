@@ -1,11 +1,11 @@
 import numpy as np
 import scipy.spatial
 import scipy.interpolate
-import pickle
 import itertools
 import importlib
 from rvspecfit import make_nd
 from rvspecfit import make_interpol
+from rvspecfit import serializer
 
 
 class TriInterp:
@@ -314,8 +314,7 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
     if HR not in cache:
         savefile = (config['template_lib'] + '/' +
                     make_nd.INTERPOL_H5_NAME % HR)
-        with open(savefile, 'rb') as fd0:
-            fd = pickle.load(fd0)
+        fd = serializer.load_dict_from_hdf5(savefile)
         log_spec = fd.get('log_spec') or True
 
         (templ_lam, parnames) = (fd['lam'], fd['parnames'])

@@ -8,7 +8,7 @@ def test_lin():
     y = 0.00001 * x**2 + np.random.normal(size=len(x))
     xnew = np.random.uniform(1000, 2000, size=10000)
     yref = scipy.interpolate.CubicSpline(x, y, bc_type='natural')(xnew)
-    ymy = rvspecfit.spliner.Spline(x, y, logstep=False)(xnew)
+    ymy = rvspecfit.spliner.Spline(x, y, log_step=False)(xnew)
     assert (np.allclose(yref, ymy))
 
 
@@ -17,5 +17,5 @@ def test_loglin():
     y = np.sin(x / 10) + np.random.normal(size=len(x))
     xnew = np.random.uniform(1000, 2000, size=10000)
     yref = scipy.interpolate.CubicSpline(x, y, bc_type='natural')(xnew)
-    ymy = rvspecfit.spliner.Spline(x, y, logstep=True)(xnew)
+    ymy = rvspecfit.spliner.Spline(x, y, log_step=True)(xnew)
     assert (np.allclose(yref, ymy))
