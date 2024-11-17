@@ -68,7 +68,7 @@ def get_dep_versions():
     """
     packages = [
         'numpy', 'astropy', 'matplotlib', 'rvspecfit', 'pandas', 'scipy',
-        'yaml', 'numdifftools'
+        'yaml', 'numdifftools', 'h5py', 'torch', 'cffi'
     ]
     # Ideally you need to check that the list here matches the requirements.txt
     ret = {}
