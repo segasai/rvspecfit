@@ -84,6 +84,7 @@ def main(args):
     parser.add_argument('--width', type=int, default=256, help='Network width')
     parser.add_argument('--npc', type=int, default=200)
     parser.add_argument('--learning_rate0', type=float, default=1e-3)
+    parser.add_argument('--min_learning_rate', type=float, default=1e-8)
     parser.add_argument('--parnames', type=str, default='teff,logg,feh,alpha')
     parser.add_argument('--log_ids', type=str, default='0')
     parser.add_argument('--mask_ids', type=str, default=None)
@@ -211,9 +212,8 @@ def main(args):
     losses = []
     counter = 0  # global counter
     deltat = 0
-    # divstep = 0
-    minlr = 1e-8
     batch_move = True
+    minlr = args.min_learning_rate
     layer_noise = 0
     for i in range(2):
         if i == 0:
@@ -225,7 +225,6 @@ def main(args):
             print('final loop')
         params = myint.parameters()
         optim = torch.optim.Adam(params, lr=lr0)
-        # optim = torch.optim.SGD(params, lr=lr0, nesterov=True, momentum=0.1)
         sched = getSchedOptim(optim)
         while True:
             tstart = time.time()
