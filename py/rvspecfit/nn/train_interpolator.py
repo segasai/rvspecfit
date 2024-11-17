@@ -192,6 +192,7 @@ def main(args):
             print('loss0', loss0 / spread0)
 
     myint.to(train_dev)
+    # myint.compile() slows down
     tD_0 = tD_0.to(train_dev)
     tSD_0 = tSD_0.to(train_dev)
 
