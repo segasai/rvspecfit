@@ -22,13 +22,17 @@ def recursively_save_dict_contents_to_group(h5file,
                                                     item,
                                                     allow_pickle=allow_pickle)
         elif item is None:
+            # deal with None
             h5file.create_dataset(key_path, data=0)
             h5file[key_path].attrs['type'] = 'None'
         elif isinstance(item, (list, tuple)):
+            # list or tuple
             is_list = isinstance(item, list)
-            if all(isinstance(x, type(item[0])) for x in item) and item[
-                    0] is not None:  # Ensure all elements are of the same type
+            if all(isinstance(x, type(item[0]))
+                   for x in item) and item[0] is not None:
+                # list with same type and without None
                 arr = np.array(item)
+                # strings
                 if arr.dtype.char == 'U':
                     ds = h5file.create_dataset(key_path,
                                                shape=len(item),
@@ -40,10 +44,14 @@ def recursively_save_dict_contents_to_group(h5file,
                     h5file[key_path].attrs['type'] = 'list'
                 else:
                     h5file[key_path].attrs['type'] = 'tuple'
-            elif len(item) == 0:  # Empty list or tuple
+            elif len(item) == 0:
+                # Empty list or tuple
                 h5file.create_dataset(key_path, data=np.array(item))
                 h5file[key_path].attrs['type'] = 'empty_array'
             else:
+                # this is list of different types or involving None
+                # We unpack those into 'fake dictionary' with keys
+                # __item_0 etc
                 fake_dict = {}
                 pref = '_tuple'
                 if is_list:
@@ -53,10 +61,9 @@ def recursively_save_dict_contents_to_group(h5file,
                 recursively_save_dict_contents_to_group(
                     h5file, key_path, fake_dict, allow_pickle=allow_pickle)
                 h5file[key_path].attrs['type'] = 'flattened' + pref
-                # raise Exception('x')
-                # different types
 
         elif isinstance(item, np.ndarray):
+            # we got numpy array
             if item.dtype.char == 'U':
                 # Unicode strings are handled differently
                 ds = h5file.create_dataset(key_path,
@@ -69,14 +76,17 @@ def recursively_save_dict_contents_to_group(h5file,
                                       data=item)  # Directly save numpy arrays
             h5file[key_path].attrs['type'] = 'ndarray'
         elif isinstance(item, str):
+            # regular string
             dt = h5py.string_dtype('utf-8')
             h5file.create_dataset(key_path, data=item, dtype=dt)
             h5file[key_path].attrs['type'] = 'str'
         elif isinstance(item, (int, float, complex, np.generic)):
-            # Handle numbers: int, float
+            # Handle numbers: int, float or numpy scalars
             h5file.create_dataset(key_path, data=item)
             h5file[key_path].attrs['type'] = 'scalar'
         else:
+            # here end up if everything previously failed
+            # most likely it's a class instance
             if allow_pickle:
                 print('Warning, type not understood, pickling', type(item))
                 item = pickle.dumps(item)
@@ -135,6 +145,7 @@ def recursively_load_dict_contents_from_group(h5file, path):
                 h5file, f"{path}/{key}")
             curtyp = item.attrs.get('type')
             if curtyp in ['flattened_tuple', 'flattened_list']:
+                # this is fake dictionary we convert it back to tuple or list
                 keys = sorted(ans[key].keys())
                 assert all(
                     [re.match('__item_.*', _) is not None for _ in keys])
