@@ -437,7 +437,7 @@ def convolve_vsini(lam_templ, templ, vsini):
     # ensure that the lambda is spaced logarithmically
     assert (np.allclose(lam_templ[1] / lam_templ[0],
                         lam_templ[-1] / lam_templ[-2]))
-    templ1 = scipy.signal.fftconvolve(templ, kernel, mode='same')
+    templ1 = scipy.signal.convolve(templ, kernel, mode='same', method='auto')
     return templ1
 
 
