@@ -1103,11 +1103,11 @@ def proc_desi(fname,
         sig0s = {}
         for s in setups:
             if config is not None:
-                if 'lsf_sigma0_angstrom' not in config:
+                if ('lsf_sigma0_angstrom' not in config
+                        or s not in config['lsf_sigma0_angstrom']):
                     cur_val = 0.5  # default value
-                    logging.warning(
-                        'sigma0 of the templates is not specified, '
-                        f'using {cur_val}')
+                    logging.warning('sigma0 of the templates is not specified '
+                                    f'for setup {s} using {cur_val}')
                 else:
                     cur_val = config['lsf_sigma0_angstrom'][s]
                 sig0s[s] = cur_val
