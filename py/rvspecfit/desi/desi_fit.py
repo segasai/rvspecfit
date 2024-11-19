@@ -1357,6 +1357,11 @@ class FakeExecutor:
         return FakeFuture(f(*args, **kw))
 
 
+def get_mpi_rank():
+    from mpi4py import MPI
+    return MPI.COMM_WORLD.Get_rank()
+
+
 def proc_many(files,
               output_dir,
               output_tab_prefix,
@@ -1662,6 +1667,11 @@ in the table (but will not use for selection)''',
                         action='store_true',
                         default=False)
 
+    parser.add_argument('--mpi',
+                        help='Use MPI for communication',
+                        action='store_true',
+                        default=False)
+
     parser.add_argument(
         '--no_ccf_continuum_normalize',
         help='Do not normalize by the continuum when doing CCF',
@@ -1694,10 +1704,28 @@ in the table (but will not use for selection)''',
 
     log_level = args.log_level
 
-    if args.log is not None:
-        logging.basicConfig(filename=args.log, level=log_level)
+    log_filename = args.log
+    process_status_file = args.process_status_file
+    if log_filename is not None:
+        if args.mpi:
+            if re.match('.*%.*', log_filename) is None:
+                raise RuntimeError(
+                    'If using MPI and log files you need to '
+                    'allow for the MPI rank to placed in the filename using %d'
+                )
+            log_filename = log_filename % (get_mpi_rank())
+        logging.basicConfig(filename=log_filename, level=log_level)
     else:
         logging.basicConfig(level=log_level)
+
+    if process_status_file is not None:
+        if args.mpi:
+            if re.match('.*%.*', process_status_file) is None:
+                raise RuntimeError(
+                    'If using MPI and log files you need to '
+                    'allow for the MPI rank to placed in the filename using %d'
+                )
+            process_status_file = process_status_file % (get_mpi_rank())
 
     input_files = args.input_files
     input_file_from = args.input_file_from
@@ -1735,19 +1763,6 @@ in the table (but will not use for selection)''',
             'Unknown param_init value; only known ones are CCF and bruteforce')
     ccf_continuum_normalize = args.ccf_continuum_normalize
 
-    if input_files != [] and input_file_from is not None:
-        raise RuntimeError(
-            '''You can only specify --input_files OR --input_file_from options
-            but not both of them simulatenously''')
-    elif input_file_from is None and input_files == []:
-        parser.print_help()
-        raise RuntimeError('You need to specify the spectra you want to fit')
-    if input_files == []:
-        input_files = None
-    files = FileQueue(file_list=input_files,
-                      file_from=input_file_from,
-                      queue=queue_file)
-
     fit_targetid = None
     if targetid_file_from is not None and targetid is not None:
         raise RuntimeError(
@@ -1770,33 +1785,65 @@ in the table (but will not use for selection)''',
     if args.overwrite is not None:
         logging.warning('overwrite keyword is meaningless now')
 
-    proc_many(
-        files,
-        output_dir,
-        output_tab_prefix,
-        output_mod_prefix,
-        figure_dir=figure_dir,
-        figure_prefix=args.figure_prefix,
-        nthreads=nthreads,
-        config_fname=config_fname,
-        fit_targetid=fit_targetid,
-        objtypes=objtypes,
-        doplot=doplot,
-        subdirs=args.subdirs,
-        minsn=minsn,
-        process_status_file=args.process_status_file,
-        expid_range=(minexpid, maxexpid),
-        skipexisting=args.skipexisting,
-        fitarm=fitarm,
-        cmdline=cmdline,
-        zbest_select=zbest_select,
-        zbest_include=zbest_include,
-        ccf_continuum_normalize=ccf_continuum_normalize,
-        use_resolution_matrix=args.resolution_matrix,
-        ccf_init=ccf_init,
-        npoly=npoly,
-        throw_exceptions=args.throw_exceptions,
-    )
+    # Dealing with input
+    if args.mpi:
+        rank = get_mpi_rank()
+    else:
+        rank = 0
+    if (not args.mpi) or (args.mpi and rank == 0):
+        # if root process in mpi mode or
+        # or anything non-mpi
+        if input_files != [] and input_file_from is not None:
+            raise RuntimeError('You can only specify --input_files OR '
+                               '--input_file_from options '
+                               'but not both of them simultaneously')
+        elif input_file_from is None and input_files == []:
+            parser.print_help()
+            raise RuntimeError(
+                'You need to specify the spectra you want to fit')
+        if input_files == []:
+            input_files = None
+    else:
+        # only in the case of mpi and rank>=1
+        input_files = None
+    if not args.mpi:
+        files = FileQueue(file_list=input_files,
+                          file_from=input_file_from,
+                          queue=queue_file)
+    else:
+        files = utils.MPIFileQueue(file_list=input_files)
+
+    if (not args.mpi) or (args.mpi and rank != 0):
+        # anything but mpi and rank=0 should go here
+        proc_many(
+            files,
+            output_dir,
+            output_tab_prefix,
+            output_mod_prefix,
+            figure_dir=figure_dir,
+            figure_prefix=args.figure_prefix,
+            nthreads=nthreads,
+            config_fname=config_fname,
+            fit_targetid=fit_targetid,
+            objtypes=objtypes,
+            doplot=doplot,
+            subdirs=args.subdirs,
+            minsn=minsn,
+            process_status_file=process_status_file,
+            expid_range=(minexpid, maxexpid),
+            skipexisting=args.skipexisting,
+            fitarm=fitarm,
+            cmdline=cmdline,
+            zbest_select=zbest_select,
+            zbest_include=zbest_include,
+            ccf_continuum_normalize=ccf_continuum_normalize,
+            use_resolution_matrix=args.resolution_matrix,
+            ccf_init=ccf_init,
+            npoly=npoly,
+            throw_exceptions=args.throw_exceptions,
+        )
+    else:
+        files.distribute_files()
 
 
 if __name__ == '__main__':

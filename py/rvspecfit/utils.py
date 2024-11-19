@@ -105,3 +105,71 @@ def freezeDict(d):
         return tuple(d)
     else:
         return d
+
+
+class MPIFileQueue:
+
+    def __init__(self, file_list=None):
+        from mpi4py import MPI
+        self.MPI = MPI
+        self.comm = MPI.COMM_WORLD
+        self.rank = self.comm.Get_rank()
+        self.size = self.comm.Get_size()
+        self.file_list = file_list if self.rank == 0 else None
+        self.SEND_STATE = 1
+        self.STOP_STATE = 2
+        self.timeout = 3600
+        self.REQUEST_CMD = 'file'
+
+    def distribute_files(self):
+        if self.rank != 0:
+            #  noop
+            return
+        # Only rank 0 manages the file distribution
+        index = 0
+        num_files = len(self.file_list)
+        mode = self.SEND_STATE
+        # We first iterate over file_list
+        # then over .size to send stop messages
+
+        while True:
+            # Receive request for next file
+            status = self.MPI.Status()
+
+            self.comm.probe(source=self.MPI.ANY_SOURCE,
+                            tag=self.MPI.ANY_TAG,
+                            status=status)
+            request = self.comm.recv(source=status.source,
+                                     tag=self.MPI.ANY_TAG)
+            if request == self.REQUEST_CMD and mode == self.SEND_STATE:
+                if index < num_files:
+                    self.comm.send(self.file_list[index], dest=status.source)
+                    index += 1
+                if index == num_files:
+                    # we sent out the last file
+                    # now we plan to send the termination command to
+                    # every rank > 0
+                    index = 1
+                    mode = self.STOP_STATE
+            elif request == self.REQUEST_CMD and mode == self.STOP_STATE:
+                self.comm.send(None,
+                               dest=status.source)  # Send a termination signal
+                index += 1
+                if index == self.size:
+                    break
+            else:
+                raise RuntimeError('Unsupported message')
+
+    def __next__(self):
+        if self.rank == 0:
+            # rank 0 does not work. he is the boss
+            raise StopIteration
+        # Other ranks request and receive files
+        self.comm.send(self.REQUEST_CMD, dest=0)
+        file_name = self.comm.recv(source=0, tag=self.MPI.ANY_TAG)
+        if file_name is None:
+            raise StopIteration  # No more files, terminate
+        return file_name
+
+    def __iter__(self):
+        return self
