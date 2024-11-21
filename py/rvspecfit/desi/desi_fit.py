@@ -1811,6 +1811,9 @@ in the table (but will not use for selection)''',
                           file_from=input_file_from,
                           queue=queue_file)
     else:
+        if input_files is None:
+            with open(input_file_from, 'r') as fp:
+                input_files = [_.rstrip() for _ in fp.readlines()]
         files = utils.MPIFileQueue(file_list=input_files)
 
     if (not args.mpi) or (args.mpi and rank != 0):
