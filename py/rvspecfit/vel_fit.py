@@ -94,6 +94,8 @@ def firstguess(specdata,
 class VSiniMapper:
 
     def __init__(self, min_vsini, max_vsini):
+        self.log_min_vsini = np.log(min_vsini)
+        self.log_max_vsini = np.log(max_vsini)
         self.min_vsini = min_vsini
         self.max_vsini = max_vsini
 
@@ -106,7 +108,7 @@ class VSiniMapper:
         """ Undo the transformation.
         Return proper vsini
         """
-        return np.clip(np.exp(x), self.min_vsini, self.max_vsini)
+        return np.exp(np.clip(x, self.log_min_vsini, self.log_max_vsini))
 
 
 class ParamMapper:
