@@ -268,7 +268,7 @@ def process_all(setupInfo,
         param = dict(zip(parnames, curvec))
         if not multi_thread:
             if i % max(1, nspec // 100) == 0:
-                print('%d/%d' % (i, len(specs)))
+                print('%d/%d' % (i, nspec))
         specs.append(
             pool.apply_async(
                 extract_spectrum,
@@ -277,7 +277,7 @@ def process_all(setupInfo,
     for i in range(len(specs)):
         if multi_thread:
             if i % max(1, nspec // 100) == 0:
-                print('%d/%d' % (i, len(specs)))
+                print('%d/%d' % (i, nspec))
         specs[i], lognorms[i] = specs[i].get()
 
     pool.close()
