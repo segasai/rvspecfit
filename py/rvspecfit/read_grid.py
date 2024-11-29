@@ -1,4 +1,7 @@
-from __future__ import print_function
+import argparse
+import itertools
+import functools
+import warnings
 import glob
 import sys
 import os
@@ -7,9 +10,6 @@ import astropy.io.fits as pyfits
 import scipy.stats
 import scipy.sparse
 import numpy as np
-import argparse
-import itertools
-import warnings
 
 
 def gau_integrator(A, B, x1, x2, l1, l2, s):
@@ -244,6 +244,12 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     DB.commit()
 
 
+@functools.lru_cache(None)
+def _get_dbconn(dbfile):
+    conn = sqlite3.connect(dbfile)
+    return conn
+
+
 def get_spec(params, dbfile=None, prefix=None, wavefile=None):
     """ Returns individual spectra for a given spectral parameters
 
@@ -282,7 +288,7 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
             query += ' and '
         query += (f' {k} between {v1} and {v2} ')
 
-    conn = sqlite3.connect(dbfile)
+    conn = _get_dbconn(dbfile)
     cur = conn.cursor()
     cur.execute(query)
     fnames = cur.fetchall()
@@ -292,9 +298,9 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
         raise Exception('No spectra found')
 
     dat = pyfits.getdata(prefix + '/' + fnames[0][0])
-    speclen = len(dat)
-    lams = np.arange(speclen) * 1.
+    dat = dat.astype(dat.dtype.newbyteorder('='))  # convert to native
     lams = pyfits.getdata(wavefile)
+    lams = lams.astype(lams.dtype.newbyteorder('='))
     print('Using', fnames[0][0])
     return lams, dat
 
@@ -409,7 +415,7 @@ def make_rebinner(lam00,
 
 
 def apply_rebinner(mat, spec0):
-    ret = np.array(spec0 * mat)
+    ret = np.array(spec0 @ mat)
     return ret
 
 
