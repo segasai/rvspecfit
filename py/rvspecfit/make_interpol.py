@@ -267,7 +267,7 @@ def process_all(setupInfo,
         i += 1
         param = dict(zip(parnames, curvec))
         if not multi_thread:
-            if i % max(1, len(specs) // 100) == 0:
+            if i % max(1, nspec // 100) == 0:
                 print('%d/%d' % (i, len(specs)))
         specs.append(
             pool.apply_async(
@@ -276,7 +276,7 @@ def process_all(setupInfo,
     lam = lamgrid
     for i in range(len(specs)):
         if multi_thread:
-            if i % max(1, len(specs) // 100) == 0:
+            if i % max(1, nspec // 100) == 0:
                 print('%d/%d' % (i, len(specs)))
         specs[i], lognorms[i] = specs[i].get()
 
