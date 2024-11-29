@@ -257,20 +257,27 @@ def process_all(setupInfo,
     specs = []
     lognorms = np.zeros(nspec)
     if nthreads > 1:
+        multi_thread = True
         pool = mp.Pool(nthreads, initialize_matrix_cache, (mat, lamgrid))
     else:
+        multi_thread = False
         pool = FakePool()
         initialize_matrix_cache(mat, lamgrid)
     for curvec in vec.T:
         i += 1
         param = dict(zip(parnames, curvec))
+        if not multi_thread:
+            if i % (len(specs) // 100) == 0:
+                print('%d/%d' % (i, len(specs)))
         specs.append(
             pool.apply_async(
                 extract_spectrum,
                 (param, dbfile, prefix, wavefile, normalize, log_spec)))
     lam = lamgrid
     for i in range(len(specs)):
-        print('%d/%d' % (i, len(specs)))
+        if multi_thread:
+            if i % (len(specs) // 100) == 0:
+                print('%d/%d' % (i, len(specs)))
         specs[i], lognorms[i] = specs[i].get()
 
     pool.close()

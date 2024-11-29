@@ -301,7 +301,6 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
     dat = dat.astype(dat.dtype.newbyteorder('='))  # convert to native
     lams = pyfits.getdata(wavefile)
     lams = lams.astype(lams.dtype.newbyteorder('='))
-    print('Using', fnames[0][0])
     return lams, dat
 
 
