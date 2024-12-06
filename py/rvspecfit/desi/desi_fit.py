@@ -36,6 +36,11 @@ class ProcessStatus(enum.Enum):
         return self.name
 
 
+class GlobalConfig:
+    table_prefix = 'rvtab'
+    model_prefix = 'rvmod'
+
+
 bitmasks = {
     'CHISQ_WARN': 1,  # delta chi-square vs continuum is too larger
     'RV_WARN': 2,  # rv is to close to the edge
@@ -600,8 +605,11 @@ def select_fibers_to_fit(fibermap,
         else:
             if zbest_select:
                 selecting_by_zbest = True
-            logging.info('Using zbest file %s', zbest_path)
-            zb = atpy.Table().read(zbest_path, format='fits', hdu=zbest_ext)
+            logging.info('Using redshift file %s', zbest_path)
+            zb = atpy.Table().read(zbest_path,
+                                   format='fits',
+                                   hdu=zbest_ext,
+                                   mask_invalid=False)
             rr_spectype = zb['SPECTYPE']
             rr_z = zb['Z']
             zbest_subset = ((rr_spectype == zbest_type) |
@@ -1589,12 +1597,12 @@ def main(args):
     parser.add_argument('--output_tab_prefix',
                         help='Prefix of output table files',
                         type=str,
-                        default='rvtab',
+                        default=GlobalConfig.table_prefix,
                         required=False)
     parser.add_argument('--output_mod_prefix',
                         help='Prefix of output model files',
                         type=str,
-                        default='rvmod',
+                        default=GlobalConfig.model_prefix,
                         required=False)
     parser.add_argument('--fitarm',
                         help='Comma separated arms like b,r,z or b ',
