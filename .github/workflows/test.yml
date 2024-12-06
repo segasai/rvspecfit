@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
       - name: System packages
         run: |
-          sudo apt install libbz2 libbz2-dev
+          sudo apt install libbz2-dev
           # needed for fitsio... 
       - name: Python setup
         uses: actions/setup-python@v5
