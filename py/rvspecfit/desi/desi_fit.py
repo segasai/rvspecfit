@@ -12,9 +12,9 @@ import itertools  # noqa: E402
 import traceback  # noqa: E402
 import functools  # noqa: E402
 import operator  # noqa: E402
-import importlib  # noqa: E402
 import logging  # noqa: E402
 import enum  # noqa: E402
+from importlib.metadata import version as get_package_version  # noqa: E402
 import concurrent.futures  # noqa: E402
 import astropy.table as atpy  # noqa: E402
 import astropy.io.fits as pyfits  # noqa: E402
@@ -80,7 +80,7 @@ def get_dep_versions():
     ret = {}
     for curp in DEPEND_PACKAGES:
         try:
-            ret[curp] = importlib.import_module(curp).__version__
+            ret[curp] = get_package_version(curp)
         except ImportError:  # this should not really be happening
             # but can, and is not worth bailing out
             pass
