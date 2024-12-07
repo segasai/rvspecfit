@@ -129,6 +129,7 @@ After that you should be able to use rvspecfit.
 
 
 
+
 ## Code example
 
 You need just a few commands
@@ -247,4 +248,4 @@ The alternative interpolation method is Neural Network based.
 
 ## Other template libraries
 
-You can substitute PHOENIX by your own library of synthetic spectra. The only thing needed there is a wavelength file and a collection of fits files with spectra and stellar parameter information in the headers. You can then use rvs_read_grid to create a database of spectra and then follow the same steps as with PHOENIX
+You can substitute PHOENIX by your own library of synthetic spectra. The only thing needed there is a wavelength FITS file and a collection of FITS files with spectra and stellar parameter information in the headers (i.e. LOGG, TEFF keywords etc). You can then use rvs_read_grid to create a database of spectra and then follow the same steps as with PHOENIX
