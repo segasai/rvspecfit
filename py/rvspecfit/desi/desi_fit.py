@@ -41,6 +41,11 @@ class GlobalConfig:
     model_prefix = 'rvmod'
 
 
+DEPEND_PACKAGES = [
+    'numpy', 'astropy', 'matplotlib', 'rvspecfit', 'pandas', 'scipy', 'yaml',
+    'numdifftools', 'h5py', 'torch', 'cffi', 'desitarget'
+]
+
 bitmasks = {
     'CHISQ_WARN': 1,  # delta chi-square vs continuum is too larger
     'RV_WARN': 2,  # rv is to close to the edge
@@ -71,13 +76,9 @@ def get_dep_versions():
     """
     Get Packages versions
     """
-    packages = [
-        'numpy', 'astropy', 'matplotlib', 'rvspecfit', 'pandas', 'scipy',
-        'yaml', 'numdifftools', 'h5py', 'torch', 'cffi'
-    ]
     # Ideally you need to check that the list here matches the requirements.txt
     ret = {}
-    for curp in packages:
+    for curp in DEPEND_PACKAGES:
         try:
             ret[curp] = importlib.import_module(curp).__version__
         except ImportError:  # this should not really be happening
