@@ -347,8 +347,9 @@ def proc_onespec(
         title = ('logg=%.1f teff=%.1f [Fe/H]=%.1f ' +
                  '[alpha/Fe]=%.1f Vrad=%.1f+/-%.1f vsini=%.1f') % (
                      fit_res['param']['logg'], fit_res['param']['teff'],
-                     fit_res['param']['feh'], fit_res['param']['alpha'],
-                     fit_res['vel'], fit_res['vel_err'], fit_res['vsini'])
+                     fit_res['param'].get('feh')
+                     or 0, fit_res['param'].get('alpha') or 0, fit_res['vel'],
+                     fit_res['vel_err'], fit_res.get('vsini') or 0)
         if len(specdata) > len(setups):
             for i in range(len(specdata) // len(setups)):
                 sl = slice(i * len(setups), (i + 1) * len(setups))
