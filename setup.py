@@ -66,5 +66,5 @@ setup(
     ],
     setup_requires=["cffi>=1.0.0"],
     cffi_modules=["py/rvspecfit/ffibuilder.py:ffibuilder"],
-    install_requires=["cffi"],
+    install_requires=["cffi", "astropy", "yaml", "numpy", "scipy"],
 )
