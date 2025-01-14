@@ -436,7 +436,6 @@ def get_sns(data, ivars, masks):
         xind = (ivars <= 0) | (masks > 0)
         xsn = data * np.sqrt(ivars)
         xsn[xind] = np.nan
-        xsn[xind] = np.nan
         sns = np.nanmedian(xsn, axis=1)
         sns[~np.isfinite(sns)] = -1e9  # set problematic spectrum sn to
         # a very negative number
