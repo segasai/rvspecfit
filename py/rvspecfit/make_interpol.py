@@ -242,9 +242,12 @@ def process_all(setupInfo,
     if not log:
         lamgrid = np.arange(lamleft / fac1, (lamright + step) * fac1, step)
     else:
+        logstep = np.log(1 + step / (0.5 * (lamleft + lamright)))
+        # logstep is such that  it correspond to linear step step
+        # for the middle of the wavelength range
         lamgrid = np.exp(
             np.arange(np.log(lamleft / fac1), np.log(lamright * fac1),
-                      np.log(1 + step / lamleft)))
+                      logstep))
     if len(lamgrid) <= 1:
         raise RuntimeError(
             'Did you incorrectly specify wavelength range or step ? ')
