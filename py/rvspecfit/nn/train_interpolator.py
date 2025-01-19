@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 import time
+import gc
 import rvspecfit
 import torch.utils.data as toda
 import torch.nn.functional as tofu
@@ -220,13 +221,8 @@ def main(args):
     batch_move = True
     minlr = args.min_learning_rate
     layer_noise = 0
-    for i in range(2):
-        if i == 0:
-            pass
-        elif i == 1:
-            layer_noise = 0
-            batch_move = False
-            print('final loop')
+    for i in range(1):
+        # previously there were two iterations
         params = myint.parameters()
         optim = torch.optim.Adam(params, lr=lr0)
         sched = getSchedOptim(optim)
@@ -287,6 +283,9 @@ def main(args):
                 print('saving')
                 torch.save(myint.state_dict(), statefile_path)
             deltat = time.time() - tstart
+        del Tdat, Tvecs, Tvecs00, rand, Rfinal00, Rfinal_noised
+        gc.collect()
+        torch.cuda.empty_cache()
     myint.pc_layer.weight.data[:, :] = tSD_0.view(
         npix, 1) * myint.pc_layer.weight.data[:, :]
     myint.pc_layer.bias.data[:] = tD_0[:] + myint.pc_layer.bias.data[:] * tSD_0
