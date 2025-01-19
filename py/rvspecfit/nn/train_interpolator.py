@@ -225,7 +225,6 @@ def main(args):
             pass
         elif i == 1:
             layer_noise = 0
-            batch = 10000
             batch_move = False
             print('final loop')
         params = myint.parameters()
