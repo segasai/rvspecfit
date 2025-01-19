@@ -68,6 +68,11 @@ def main(args):
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true', default=False)
+    parser.add_argument(
+        '--batch_on_device',
+        action='store_true',
+        default=False,
+        help='Only batch should be on device otherwise whole data is there')
     parser.add_argument('--validation', action='store_true', default=False)
     parser.add_argument('--random_pca', action='store_true', default=False)
     parser.add_argument('--pca_init',
@@ -198,7 +203,7 @@ def main(args):
 
     Tvecs0 = torch.FloatTensor(data=vecs)
     Tdat0 = torch.as_tensor(dats)
-    batch_on_dev = False
+    batch_on_dev = args.batch_on_dev
 
     if not batch_on_dev:
         Tvecs0 = Tvecs0.to(train_dev)
@@ -236,8 +241,10 @@ def main(args):
                 optim.zero_grad()
             for Tdat, Tvecs00 in Tbatchdat:
                 # noise perturbed vectors
-                Tvecs = Tvecs00 + torch.rand(
-                    size=Tvecs00.size()).to(train_dev) * layer_noise
+                rand = torch.rand(size=Tvecs00.size())
+                if not batch_on_dev:
+                    rand = rand.to(train_dev)
+                Tvecs = Tvecs00 + rand * layer_noise
                 if batch_on_dev:
                     Tdat = Tdat.to(train_dev)
                     Tvecs = Tvecs.to(train_dev)
@@ -287,14 +294,6 @@ def main(args):
     myint.pc_layer.bias.data[:] = tD_0[:] + myint.pc_layer.bias.data[:] * tSD_0
 
     torch.save(myint.state_dict(), finalfile_path)
-    pred = get_predictions(myint, Tvecs0, train_dev, batch)
-    cur_name = f'{directory}/pred_{setup}.h5'
-    DD = {}
-    DD['pred'] = pred,
-    DD['vecs'] = vecs
-    DD['dats'] = dats,
-    DD['vecs_orig'] = vecs_orig
-    serializer.save_dict_to_hdf5(cur_name, DD)
 
     if os.path.exists(statefile_path):
         os.unlink(statefile_path)
@@ -322,6 +321,15 @@ def main(args):
         'interpolation_type': 'generic'
     }
     serializer.save_dict_to_hdf5(ofname, D)
+    # predictions come last
+    pred = get_predictions(myint, Tvecs0, train_dev, batch)
+    cur_name = f'{directory}/pred_{setup}.h5'
+    DD = {}
+    DD['pred'] = pred,
+    DD['vecs'] = vecs
+    DD['dats'] = dats,
+    DD['vecs_orig'] = vecs_orig
+    serializer.save_dict_to_hdf5(cur_name, DD)
 
 
 if __name__ == '__main__':
