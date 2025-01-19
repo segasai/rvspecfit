@@ -202,7 +202,7 @@ def main(args):
 
     Tvecs0 = torch.FloatTensor(data=vecs)
     Tdat0 = torch.as_tensor(dats)
-    batch_on_dev = args.batch_on_dev
+    batch_on_dev = args.batch_on_device
 
     if not batch_on_dev:
         Tvecs0 = Tvecs0.to(train_dev)
