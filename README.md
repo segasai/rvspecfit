@@ -1,4 +1,5 @@
 ![Build Status](https://github.com/segasai/rvspecfit/actions/workflows/test.yml/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/rvspecfit/badge/?version=latest)](https://rvspecfit.readthedocs.io/en/latest/?badge=latest)
 [![Coverage Status](https://coveralls.io/repos/github/segasai/rvspecfit/badge.svg?branch=master)](https://coveralls.io/github/segasai/rvspecfit?branch=master)
 
 Automated spectroscopic pipeline to determine radial velocities and 
