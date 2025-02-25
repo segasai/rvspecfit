@@ -1,0 +1,6 @@
+numpy
+scipy
+matplotlib
+numpydoc
+sphinx
+sphinx_rtd_theme
