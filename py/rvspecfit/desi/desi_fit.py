@@ -576,7 +576,7 @@ def select_fibers_to_fit(fibermap,
 
     # Always apply TARGETID selection if provided
     if fit_targetid is not None:
-        subset = subset & np.in1d(fibermap['TARGETID'], fit_targetid)
+        subset = subset & np.isin(fibermap['TARGETID'], fit_targetid)
 
     # Always apply SN cut if provided
     if minsn is not None:
@@ -627,7 +627,7 @@ def select_fibers_to_fit(fibermap,
                         zb['TARGETID'][zbest_subset],
                         zip(rr_z[zbest_subset], rr_spectype[zbest_subset],
                             rr_subtype[zbest_subset])))
-                zbest_subset = np.in1d(fibermap['TARGETID'],
+                zbest_subset = np.isin(fibermap['TARGETID'],
                                        zb['TARGETID'][zbest_subset])
                 rr_z = np.zeros(len(fibermap), dtype=zb['Z'].dtype) + np.nan
                 rr_spectype = np.ma.zeros(len(fibermap),
@@ -1005,7 +1005,7 @@ def proc_desi(fname,
         exp_fibermap = None
 
     if fit_targetid is not None:
-        if not np.in1d(fibermap['TARGETID'], fit_targetid).any():
+        if not np.isin(fibermap['TARGETID'], fit_targetid).any():
             # skip reading anything if no good TARGETIDs found
             logging.warning('No fibers selected in file %s' % (fname))
             put_empty_file(tab_ofname)
@@ -1058,7 +1058,7 @@ def proc_desi(fname,
     fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
                                              name='FIBERMAP')
     if exp_fibermap is not None:
-        tmp_sub = np.in1d(exp_fibermap['TARGETID'],
+        tmp_sub = np.isin(exp_fibermap['TARGETID'],
                           fibermap['TARGETID'][subset])
         exp_fibermap_subset_hdu = pyfits.BinTableHDU(
             atpy.Table(exp_fibermap)[tmp_sub], name='EXP_FIBERMAP')
