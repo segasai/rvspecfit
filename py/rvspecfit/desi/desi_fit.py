@@ -612,6 +612,7 @@ def select_fibers_to_fit(fibermap,
                                    hdu=zbest_ext,
                                    mask_invalid=False)
             rr_spectype = zb['SPECTYPE']
+            rr_subtype = zb['SUBTYPE']
             rr_z = zb['Z']
             zbest_subset = ((rr_spectype == zbest_type) |
                             ((np.abs(rr_z)) < zbest_maxvel / 3e5))
@@ -624,17 +625,18 @@ def select_fibers_to_fit(fibermap,
                 xmap = dict(
                     zip(
                         zb['TARGETID'][zbest_subset],
-                        zip(zb['Z'][zbest_subset],
-                            zb['SPECTYPE'][zbest_subset])))
+                        zip(rr_z[zbest_subset], rr_spectype[zbest_subset],
+                            rr_subtype[zbest_subset])))
                 zbest_subset = np.in1d(fibermap['TARGETID'],
                                        zb['TARGETID'][zbest_subset])
                 rr_z = np.zeros(len(fibermap), dtype=zb['Z'].dtype) + np.nan
                 rr_spectype = np.ma.zeros(len(fibermap),
-                                          dtype=zb['SPECTYPE'].dtype)
+                                          dtype=rr_spectype.dtype)
+                rr_subtype = np.ma.zeros(len(fibermap), dtype=rr_subtype.dtype)
                 for i in range(len(fibermap)):
                     cur_tid = fibermap['TARGETID'][i]
                     if cur_tid in xmap:
-                        rr_z[i], rr_spectype[i] = xmap[cur_tid]
+                        rr_z[i], rr_spectype[i], rr_subtype[i] = xmap[cur_tid]
     if not selecting_by_zbest:
         zbest_subset = np.zeros(len(fibermap), dtype=bool)
     # if we are not doing a selection the mask is filled with false
@@ -642,7 +644,7 @@ def select_fibers_to_fit(fibermap,
     if selecting_by_zbest or selecting_by_type:
         # We select either based on type or zbest
         subset = subset & (zbest_subset | types_subset)
-    return subset, rr_z, rr_spectype
+    return subset, rr_z, rr_spectype, rr_subtype
 
 
 def resolution_mat_torows(mat):
@@ -903,7 +905,9 @@ def get_column_desc(setups):
         ('SUCCESS', (bool, "Did we succeed or fail")),
         ('RVS_WARN', (np.int64, "RVSpecFit warning flag")),
         ('RR_Z', (np.float64, 'Redrock redshift')),
-        ('RR_SPECTYPE', (str, 'Redrock spectype'))
+        ('RR_SPECTYPE',
+         (str, 'Redrock spectype'))('RR_SPECTYPE',
+                                    (str, 'Redrock spectroscopic subtype'))
     ])
 
     for curs in setups:
@@ -1039,7 +1043,7 @@ def proc_desi(fname,
     else:
         zbest_path, zbest_ext = None, None
 
-    subset, rr_z, rr_spectype = select_fibers_to_fit(
+    subset, rr_z, rr_spectype, rr_subtype = select_fibers_to_fit(
         fibermap,
         sns,
         minsn=minsn,
@@ -1107,10 +1111,12 @@ def proc_desi(fname,
 
     seqid_to_fit = np.nonzero(subset)[0]
     if rr_z is not None:
-        rr_z, rr_spectype = rr_z[seqid_to_fit], rr_spectype[seqid_to_fit]
+        rr_z, rr_spectype, rr_subtype = rr_z[seqid_to_fit], rr_spectype[
+            seqid_to_fit], rr_subtype[seqid_to_fit]
     else:
         rr_z = np.zeros(len(seqid_to_fit)) + np.nan
         rr_spectype = np.ma.zeros(len(seqid_to_fit), dtype=str)
+        rr_subtype = np.ma.zeros(len(seqid_to_fit), dtype=str)
 
     if use_resolution_matrix:
         sig0s = {}
@@ -1130,8 +1136,8 @@ def proc_desi(fname,
     timers.append(time.time())
     rets = []
     nfibers_good = 0
-    for cur_rr_z, cur_rr_spectype, curseqid in zip(rr_z, rr_spectype,
-                                                   seqid_to_fit):
+    for (cur_rr_z, cur_rr_spectype, cur_rr_subtype,
+         curseqid) in zip(rr_z, rr_spectype, rr_subtype, seqid_to_fit):
         # collect data
         specdatas = get_specdata(waves,
                                  fluxes,
@@ -1148,8 +1154,13 @@ def proc_desi(fname,
                         for _ in specdatas]  # actual arms that are good enough
         else:
             cur_arms = None
-        extra_info = (curFiberRow, curseqid, cur_rr_z, cur_rr_spectype,
-                      cur_arms)
+        extra_info = {
+            'fibermap_row': curFiberRow,
+            'seqid': curseqid,
+            'rr_z': cur_rr_z,
+            'rr_spectype': cur_rr_spectype,
+            'arms': cur_arms
+        }
         if specdatas is None:
             logging.warning(
                 f'Giving up on fitting spectra for row {curFiberRow}')
@@ -1180,8 +1191,12 @@ def proc_desi(fname,
             outdict = dict(RVS_WARN=bitmasks['BAD_SPECTRUM'])
         else:
             bad_row = False
-        curFiberRow, curseqid, cur_rr_z, cur_rr_spectype, cur_arms = extra_info
-
+        curFiberRow, curseqid, cur_rr_z, cur_rr_spectype, cur_arms = (
+            extra_info['fibermap_row'], extra_info['seqid'],
+            extra_info['arms'])
+        cur_rr_z, cur_rr_spectype, cur_rr_subtype = (extra_info['rr_z'],
+                                                     extra_info['rr_spectype'],
+                                                     extra_info['rr_subtype'])
         for col in columnsCopy:
             if col in fibermap.columns.names:
                 outdict[col] = curFiberRow[col]
@@ -1191,6 +1206,7 @@ def proc_desi(fname,
         outdict['SUCCESS'] = outdict['RVS_WARN'] == 0
         outdict['RR_Z'] = cur_rr_z
         outdict['RR_SPECTYPE'] = cur_rr_spectype
+        outdict['RR_SUBTYPE'] = cur_rr_subtype
         versions = outdict['versions']
         del outdict['versions']  # I don't want to store it in the table
         outdf.append(outdict)
