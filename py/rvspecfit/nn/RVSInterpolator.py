@@ -55,13 +55,18 @@ class OutsideInterpolator:
         yvec = ydim2[yconv.vertices]
         self.xtriang = scipy.spatial.Delaunay(xvec)
         self.ytriang = scipy.spatial.Delaunay(yvec)
-        self.tree = scipy.spatial.cKDTree(pts)
+        self.xeqs = xconv.equations
+        self.yeqs = yconv.equations
 
     def __call__(self, p):
+        ret = 0
         if self.xtriang.find_simplex(p[:2]) < 0 or self.ytriang.find_simplex(
                 p[2:]) < 0:
-            return self.tree.query(p, 4)[0].mean()
-        return 0
+            d_x = np.max(self.xeqs[:, :-1] @ p[:2] + self.xeqs[:, -1])
+            d_y = np.max(self.yeqs[:, :-1] @ p[2:] + self.yeqs[:, -1])
+            # ret = self.tree.query(p, 4)[0].mean()
+            return max(max(d_x, d_y), 0)
+        return ret
 
     @staticmethod
     def generate_pts(vecs):
