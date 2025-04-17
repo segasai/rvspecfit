@@ -60,11 +60,12 @@ class OutsideInterpolator:
 
     def __call__(self, p):
         ret = 0
-        if self.xtriang.find_simplex(p[:2]) < 0 or self.ytriang.find_simplex(
-                p[2:]) < 0:
-            d_x = np.max(self.xeqs[:, :-1] @ p[:2] + self.xeqs[:, -1])
-            d_y = np.max(self.yeqs[:, :-1] @ p[2:] + self.yeqs[:, -1])
-            # ret = self.tree.query(p, 4)[0].mean()
+        p_x, p_y = p[:2], p[2:]
+        if self.xtriang.find_simplex(p_x) < 0 or self.ytriang.find_simplex(
+                p_y) < 0:
+            d_x = np.max(self.xeqs[:, :-1] @ p_x + self.xeqs[:, -1])
+            d_y = np.max(self.yeqs[:, :-1] @ p_y + self.yeqs[:, -1])
+            # these are distances from the facets (positive if outside)
             return max(max(d_x, d_y), 0)
         return ret
 
