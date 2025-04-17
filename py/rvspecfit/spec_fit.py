@@ -617,7 +617,7 @@ def get_chisq(specdata,
     npoly = options.get('npoly') or 5
     rbf = options.get('rbf_continuum') or True
     chisq_accum = 0
-    badchi = 1e6
+    badchi = 10 * sum([len(_.lam) for _ in specdata])
     if rot_params is not None:
         rot_params = tuple(rot_params)
     if resol_params is not None:

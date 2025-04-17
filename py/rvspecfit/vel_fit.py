@@ -222,7 +222,8 @@ This function is used for minimization
     if (pdict['vel'] > args['max_vel'] or pdict['vel'] < args['min_vel']
             or (~np.isfinite(pdict['params'])).any()):
         return 1e30
-    return chisq_func0(pdict, args)
+    ret = chisq_func0(pdict, args)
+    return ret
 
 
 def hess_func(p, pdict, args):
@@ -233,7 +234,8 @@ pdict is for fixedparameters
 specParams is the list of names of parameters that we are varying
 """
     pdict['params'][:] = p[:]
-    return 0.5 * chisq_func0(pdict, args)  # , outside_penalty=False)
+    ret = 0.5 * chisq_func0(pdict, args)  # , outside_penalty=False)
+    return ret
 
 
 def _get_simplex_start(best_vel,
@@ -433,9 +435,11 @@ def _uncertainties_from_hessian(hessian):
     diag_hessian = np.diag(hessian)
     inv_diag_hessian = 1. / (diag_hessian + (diag_hessian == 0))
     inv_diag_hessian[diag_hessian == 0] = np.inf
+    bad_hessian = False
     try:
         hessian_inv = scipy.linalg.inv(hessian)
     except (np.linalg.LinAlgError, ValueError):
+        bad_hessian = True
         logging.warning('The inversion of the Hessian failed')
         # trying to invert the diagonal
         hessian_inv = np.diag(inv_diag_hessian)
@@ -447,6 +451,8 @@ def _uncertainties_from_hessian(hessian):
     diag_err1 = inv_diag_hessian
     bad_err0 = diag_err0 < 0
     bad_err1 = diag_err1 < 0
+    if bad_err0.any():
+        bad_hessian = True
     sub1 = bad_err0 & (~bad_err1)
     sub2 = bad_err0 & bad_err1
 
@@ -456,8 +462,9 @@ def _uncertainties_from_hessian(hessian):
     diag_err[sub2] = np.nan
     if (~np.isfinite(diag_err)).sum() != 0:
         bad_par = (np.nonzero(~np.isfinite(diag_err))[0]).tolist()
-        logging.warning(f'not finite uncertainty for params {bad_par}')
-    return diag_err, hessian_inv
+        bad_hessian = True
+        logging.debug(f'not finite uncertainty for params {bad_par}')
+    return diag_err, hessian_inv, bad_hessian
 
 
 def process(specdata,
@@ -668,14 +675,21 @@ def process(specdata,
         'teff': 1 / 100,
         'vrad': 1 / 100,
     }[_] for _ in specParamNames]
-    hess_step = ndf.MinStepGenerator(base_step=hess_step)
-    hessian = ndf.Hessian(hess_func_wrap, step=hess_step)(
-        [ret['param'][_] for _ in specParamNames])
-    diag_err, covar_mat = _uncertainties_from_hessian(hessian)
+    hess_step_gen = ndf.MinStepGenerator(base_step=hess_step)
+    for i in range(2):
+        # perform two iterations if there is an issue
+        hessian = ndf.Hessian(hess_func_wrap, step=hess_step_gen)(
+            [ret['param'][_] for _ in specParamNames])
+        diag_err, covar_mat, bad_hessian = _uncertainties_from_hessian(hessian)
+        if bad_hessian:
+            hess_step_gen = None
+            logging.warning(
+                'Performing two iterations of hessian determination')
+
     ret['param_err'] = dict(zip(specParamNames, diag_err))
     ret['param_covar'] = covar_mat
     ret['minimize_success'] = minimize_success
-
+    ret['bad_hessian'] = bad_hessian
     ret['yfit'] = outp['models']
     ret['raw_models'] = outp['raw_models']
     ret['chisq'] = outp['chisq']

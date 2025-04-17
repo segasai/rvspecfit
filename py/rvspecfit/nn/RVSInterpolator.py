@@ -66,7 +66,7 @@ class OutsideInterpolator:
             d_x = np.max(self.xeqs[:, :-1] @ p_x + self.xeqs[:, -1])
             d_y = np.max(self.yeqs[:, :-1] @ p_y + self.yeqs[:, -1])
             # these are distances from the facets (positive if outside)
-            return max(max(d_x, d_y), 0)
+            return max(max(d_x, d_y), 0)**2
         return ret
 
     @staticmethod

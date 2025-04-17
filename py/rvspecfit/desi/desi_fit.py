@@ -52,7 +52,8 @@ bitmasks = {
     'RVERR_WARN': 4,  # RV error is too large
     'PARAM_WARN': 8,  # parameters are too close to the edge
     'VSINI_WARN': 16,  # vsini is too large
-    'BAD_SPECTRUM': 32  # some issue with the spectrum
+    'BAD_SPECTRUM': 32,  # some issue with the spectrum
+    'BAD_HESSIAN': 64  # issue with the hessian matrix
 }
 
 
@@ -410,6 +411,8 @@ def get_rvs_warn(fit_res, outdict, config):
     if (outdict['VRAD_ERR'].to_value(kms) > rverr_thresh):
         rvs_warn |= bitmasks['RVERR_WARN']
 
+    if fit_res['bad_hessian']:
+        rvs_warn |= bitmasks['BAD_HESSIAN']
     # Here we check if the parameter is within the threshold of the edge or
     # beyond the edge.
     parameter_limits = [['teff', teff_edges, teff_thresh],
