@@ -563,7 +563,8 @@ def get_chisq(specdata,
               cache=None,
               full_output=False,
               fast_interp=False,
-              espec_systematic=None):
+              espec_systematic=None,
+              outside_penalty=True):
     """ Find the chi-square of the dataset at a given velocity
         atmospheric parameters, rotation parameters
         and resolution parameters
@@ -597,6 +598,8 @@ def get_chisq(specdata,
         This will be added in quadrature to the error vector when computing
         logl. If it is a dict it must be indexed by the spec setup otherwise
         this constant will be used for all spectra.
+    outside_penalty: bool 
+        if true the chi^2 will be penalize for being outside of the grid
     Returns
     -------
     ret: float or dictionary
@@ -646,7 +649,8 @@ def get_chisq(specdata,
             models.append(np.zeros(len(curdata.lam)) + np.nan)
             continue
         else:
-            chisq_accum += outside * badchi
+            if outside_penalty:
+                chisq_accum += outside * badchi
 
         _overlap_check(templ_lam[0], templ_lam[-1], curdata.lam[0],
                        curdata.lam[-1], min(min_vel, vel), max(max_vel, vel))

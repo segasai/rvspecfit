@@ -114,7 +114,7 @@ class VSiniMapper:
 class ParamMapper:
     """
     This class constructs the dictionary with human readable parameters
-    out of the vector, as well as taking into accoutnt which params are fixed
+    out of the vector, as well as taking into account which params are fixed
 """
 
     def __init__(self,
@@ -179,8 +179,17 @@ class ParamMapper:
         assert (len(p0rev) == 0)
         return ret
 
+    def get_fitted_params(self):
+        ret = ['vel']
+        if self.fitVsini:
+            ret.append('vsini')
+        for x in self.specParams:
+            if x not in self.fixParam:
+                ret.append(x)
+        return ret
 
-def chisq_func0(pdict, args):
+
+def chisq_func0(pdict, args, outside_penalty=True):
     # this is the generic function that returns
     # chi-square + prior
     # it is called by the
@@ -198,7 +207,8 @@ def chisq_func0(pdict, args):
                                 pdict['rot_params'],
                                 args['resolParams'],
                                 options=args['options'],
-                                config=args['config'])
+                                config=args['config'],
+                                outside_penalty=outside_penalty)
     return chisq
 
 
@@ -223,7 +233,7 @@ pdict is for fixedparameters
 specParams is the list of names of parameters that we are varying
 """
     pdict['params'][:] = p[:]
-    return 0.5 * chisq_func0(pdict, args)
+    return 0.5 * chisq_func0(pdict, args)  # , outside_penalty=False)
 
 
 def _get_simplex_start(best_vel,
@@ -396,6 +406,23 @@ def _minimum_sampler(func,
     return best_vel, cur_err, res1
 
 
+def get_hess_inv(param_names):
+    """
+    The inverse hessian is approximately the errors^2
+    Here we set it up.
+    """
+
+    default_err0 = 0.1
+    teff_err0 = 50
+    rv_err0 = 1
+    diag = np.zeros(len(param_names)) + default_err0**2
+    teff_idx = np.nonzero(np.asarray(param_names) == 'teff')[0][0]
+    diag[teff_idx] = teff_err0**2
+    diag[0] = rv_err0**2
+    hess_inv0 = np.diag(diag)
+    return hess_inv0
+
+
 def _uncertainties_from_hessian(hessian):
     """
     Take the hessian and return the uncertainties vector and
@@ -557,22 +584,22 @@ def process(specdata,
     minimize_success = True
     curiter = 1
     maxiter = 2
-
+    hess_inv0 = get_hess_inv(paramMapper.get_fitted_params())
     while True:
-        res = scipy.optimize.minimize(chisq_func,
-                                      curval,
-                                      args=args,
-                                      method='Nelder-Mead',
-                                      options={
-                                          'fatol': 1e-3,
-                                          'xatol': 1e-2,
-                                          'initial_simplex': simplex,
-                                          'maxiter': 10000,
-                                          'maxfev': np.inf
-                                      })
-        curval = res['x']
-        simplex = res['final_simplex'][0]
-        if res['success']:
+        res0 = scipy.optimize.minimize(chisq_func,
+                                       curval,
+                                       args=args,
+                                       method='Nelder-Mead',
+                                       options={
+                                           'fatol': 1e-3,
+                                           'xatol': 1e-2,
+                                           'initial_simplex': simplex,
+                                           'maxiter': 10000,
+                                           'maxfev': np.inf
+                                       })
+        curval = res0['x']
+        simplex = res0['final_simplex'][0]
+        if res0['success']:
             break
         if curiter == maxiter:
             logging.warning('Maximum number of iterations reached')
@@ -583,9 +610,12 @@ def process(specdata,
     t2 = time.time()
     if second_minimizer:
         res = scipy.optimize.minimize(chisq_func,
-                                      res['x'],
+                                      res0['x'],
                                       method='BFGS',
-                                      args=args)
+                                      args=args,
+                                      options=dict(hess_inv0=hess_inv0))
+    else:
+        res = res0
     t3 = time.time()
     best_param = paramMapper.forward(res['x'])
     ret = {}
