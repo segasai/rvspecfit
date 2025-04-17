@@ -135,6 +135,11 @@ def get_prim_header(versions={},
         header['RVS_CONF'] = config['config_file_path']
     if cmdline is not None:
         header['RVS_CMD'] = cmdline
+    if zbest_path is not None:
+        if len(zbest_path) < 80:
+            # this is the hack to deal with the 'card is too long comment will
+            # be truncated
+            zbest_path = zbest_path + (' ' * (80 - zbest_path))
     header['RR_FILE'] = (zbest_path or '', 'Redrock redshift file')
     # keywords to copy from the header of the spectrum
     copy_keys = [
@@ -905,9 +910,8 @@ def get_column_desc(setups):
         ('SUCCESS', (bool, "Did we succeed or fail")),
         ('RVS_WARN', (np.int64, "RVSpecFit warning flag")),
         ('RR_Z', (np.float64, 'Redrock redshift')),
-        ('RR_SPECTYPE',
-         (str, 'Redrock spectype'))('RR_SPECTYPE',
-                                    (str, 'Redrock spectroscopic subtype'))
+        ('RR_SPECTYPE', (str, 'Redrock spectype')),
+        ('RR_SUBTYPE', (str, 'Redrock spectroscopic subtype'))
     ])
 
     for curs in setups:
