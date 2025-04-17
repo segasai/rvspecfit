@@ -270,7 +270,13 @@ class SpecInterpolator:
     def eval(self, param0):
         """ Evaluate the spectrum at a given parameter """
         if isinstance(param0, dict):
-            param0 = [param0[_] for _ in self.parnames]
+            try:
+                param0 = [param0[_] for _ in self.parnames]
+            except KeyError as exc:
+                missing_key = exc.args[0]
+                raise ValueError(f'The parameter {missing_key} not found. '
+                                 "Required list of parameters is: " +
+                                 (','.join(self.parnames)))
         param = self.mapper.forward(param0)
         return self.interper(param)
 
