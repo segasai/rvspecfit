@@ -139,7 +139,7 @@ def get_prim_header(versions={},
         if len(zbest_path) < 80:
             # this is the hack to deal with the 'card is too long comment will
             # be truncated
-            zbest_path = zbest_path + (' ' * (80 - zbest_path))
+            zbest_path = zbest_path + (' ' * (80 - len(zbest_path)))
     header['RR_FILE'] = (zbest_path or '', 'Redrock redshift file')
     # keywords to copy from the header of the spectrum
     copy_keys = [
@@ -543,7 +543,12 @@ def select_fibers_to_fit(fibermap,
     -------
     ret: bool numpy array
         Array with True for selected spectra
-
+    rr_z: numpy array
+        Array of redshifts
+    rr_spectype: numpy array
+        Array of redshift types
+    rr_subtype: numpy array
+        Array of redshift subtypes
     """
     zbest_maxvel = 1500  # maximum velocity to consider a star
     zbest_type = 'STAR'
@@ -1163,6 +1168,7 @@ def proc_desi(fname,
             'seqid': cur_seqid,
             'rr_z': cur_rr_z,
             'rr_spectype': cur_rr_spectype,
+            'rr_subtype': cur_rr_subtype,
             'arms': cur_arms
         }
         if specdatas is None:
@@ -1189,6 +1195,7 @@ def proc_desi(fname,
     for curs in setups:
         models['desi_' + curs] = np.zeros((nfibers_good, npixels[curs]),
                                           dtype=np.float32)
+    versions = None
     for ii, (r, extra_info) in enumerate(rets):
         outdict, curmodel = r.result()
         if outdict is None:
@@ -1212,12 +1219,15 @@ def proc_desi(fname,
         outdict['RR_Z'] = cur_rr_z
         outdict['RR_SPECTYPE'] = cur_rr_spectype
         outdict['RR_SUBTYPE'] = cur_rr_subtype
-        versions = outdict['versions']
-        del outdict['versions']  # I don't want to store it in the table
-        outdf.append(outdict)
         if not bad_row:
             for jj, curs in enumerate(cur_arms):
                 models[curs][ii] = curmodel[jj]
+            if 'versions' in outdict:
+                if versions is None:
+                    versions = outdict['versions']
+                del outdict[
+                    'versions']  # I don't want to store it in the table
+        outdf.append(outdict)
 
     timers.append(time.time())
     outtab = atpy.Table(outdf)
@@ -1477,7 +1487,6 @@ def proc_many(files,
         poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
     else:
         poolEx = FakeExecutor()
-    res = []
     for f in files:
         fname = f.split('/')[-1]
         if subdirs:
@@ -1540,8 +1549,6 @@ def proc_many(files,
         try:
             poolEx.shutdown(wait=True)
         except KeyboardInterrupt:
-            for r in res:
-                r.cancel()
             poolEx.shutdown(wait=False)
             raise
 
