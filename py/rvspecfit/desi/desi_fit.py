@@ -609,6 +609,7 @@ def select_fibers_to_fit(fibermap,
     selecting_by_zbest = False
     rr_z = None
     rr_spectype = None
+    rr_subtype = None
     if zbest_select or zbest_include:
         if zbest_path is None:
             logging.warning(
