@@ -1141,40 +1141,41 @@ def proc_desi(fname,
     rets = []
     nfibers_good = 0
     for (cur_rr_z, cur_rr_spectype, cur_rr_subtype,
-         curseqid) in zip(rr_z, rr_spectype, rr_subtype, seqid_to_fit):
+         cur_seqid) in zip(rr_z, rr_spectype, rr_subtype, seqid_to_fit):
         # collect data
         specdatas = get_specdata(waves,
                                  fluxes,
                                  ivars,
                                  masks,
                                  resolutions,
-                                 curseqid,
+                                 cur_seqid,
                                  setups,
                                  use_resolution_matrix=use_resolution_matrix,
                                  lsf_sigma0_angstrom=sig0s)
-        curFiberRow = fibermap[curseqid]
+        cur_fibermap_row = fibermap[cur_seqid]
         if specdatas is not None:
             cur_arms = [_.name
                         for _ in specdatas]  # actual arms that are good enough
         else:
             cur_arms = None
         extra_info = {
-            'fibermap_row': curFiberRow,
-            'seqid': curseqid,
+            'fibermap_row': cur_fibermap_row,
+            'seqid': cur_seqid,
             'rr_z': cur_rr_z,
             'rr_spectype': cur_rr_spectype,
             'arms': cur_arms
         }
         if specdatas is None:
             logging.warning(
-                f'Giving up on fitting spectra for row {curFiberRow}')
+                f'Giving up on fitting spectra for row {cur_fibermap_row}')
             rets.append((FakeFuture([None, None]), extra_info))
             continue
         nfibers_good += 1
-        curbrick, curtargetid = curFiberRow['BRICKID'], curFiberRow['TARGETID']
+        cur_brick, cur_targetid = cur_fibermap_row[
+            'BRICKID'], cur_fibermap_row['TARGETID']
         if doplot:
-            fig_fname = fig_prefix + '_%d_%d_%d.png' % (curbrick, curtargetid,
-                                                        curseqid)
+            fig_fname = fig_prefix + '_%d_%d_%d.png' % (
+                cur_brick, cur_targetid, cur_seqid)
         else:
             fig_fname = None
         rets.append((poolex.submit(
@@ -1195,17 +1196,17 @@ def proc_desi(fname,
             outdict = dict(RVS_WARN=bitmasks['BAD_SPECTRUM'])
         else:
             bad_row = False
-        curFiberRow, curseqid, cur_rr_z, cur_rr_spectype, cur_arms = (
-            extra_info['fibermap_row'], extra_info['seqid'],
-            extra_info['arms'])
+        cur_fibermap_row, cur_seqid, cur_arms = (extra_info['fibermap_row'],
+                                                 extra_info['seqid'],
+                                                 extra_info['arms'])
         cur_rr_z, cur_rr_spectype, cur_rr_subtype = (extra_info['rr_z'],
                                                      extra_info['rr_spectype'],
                                                      extra_info['rr_subtype'])
         for col in columnsCopy:
             if col in fibermap.columns.names:
-                outdict[col] = curFiberRow[col]
+                outdict[col] = cur_fibermap_row[col]
         for curs in setups:
-            outdict['SN_%s' % curs.upper()] = sns[curs][curseqid]
+            outdict['SN_%s' % curs.upper()] = sns[curs][cur_seqid]
 
         outdict['SUCCESS'] = outdict['RVS_WARN'] == 0
         outdict['RR_Z'] = cur_rr_z
