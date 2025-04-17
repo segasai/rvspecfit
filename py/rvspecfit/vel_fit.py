@@ -427,6 +427,9 @@ def _uncertainties_from_hessian(hessian):
     diag_err0[sub2] = 0
     diag_err = np.sqrt(diag_err0)
     diag_err[sub2] = np.nan
+    if (~np.isfinite(diag_err)).sum() != 0:
+        bad_par = (np.nonzero(~np.isfinite(diag_err))[0]).tolist()
+        logging.warning(f'not finite uncertainty for params {bad_par}')
     return diag_err, hessian_inv
 
 
