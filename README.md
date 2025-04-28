@@ -74,19 +74,20 @@ Some templates may be marked as bad there if you wish.
 If your instrument has multiple arms (i.e. blur/red), you will need to run this once for each arm.
 
 ```
-$ rvs_make_interpol --setup myconf --lambda0 4000 --lambda1 5000 \
+$ rvs_make_interpol --setup mysetup --lambda0 4000 --lambda1 5000 \
     --resol_func '1000+2*x' --step 0.5 --templdb ${PREFIX}/files.db \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $PATH/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits \
     --air --revision=v2020x
 ```
-That will create the spectral configuration called myconf for spectra with wavelength range of 4000 to 5000, step 0.5 Angstrom and resolution being 1000+2*x (where x is wavelength in Angstroms). It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum. TEMPLPREF is the path to the PHOENIX library.
+
+That will create the spectral configuration called mysetup for spectra with wavelength range of 4000 to 5000, step 0.5 Angstrom and resolution being 1000+2*x (where x is wavelength in Angstroms). It also requires paths to the files.db database created at previous step as well as the file with the wavelength grid of PHOENIX library which is distributed with PHOENIX. You can also choose to do things in air or vacuum. TEMPLPREF is the path to the PHOENIX library.
 
 This step can take up to an hour, depending on your machine.
 
 * Making the n-d interpolator.
 That requires the path to the files created at previous step.
 ```
-$ rvs_make_nd --prefix ${PREFIX}/ --setup myconf --revision=v2020x
+$ rvs_make_nd --prefix ${PREFIX}/ --setup mysetup --revision=v2020x
 ```
 This will create either a polylinear interpolator or Linear interpolator within Voronoi cells.
 
@@ -94,7 +95,7 @@ This will create either a polylinear interpolator or Linear interpolator within 
 An alternative to polylinear interpolator is a neural network based interpolator.
 This requires running
 ```
-$ rvs_train_nn_interpolator  --dir ${PREFIX}/ --setup myconf
+$ rvs_train_nn_interpolator  --dir ${PREFIX}/ --setup mysetup
 ```
 instead of rvs_make_nd. 
 When doing the fitting, you may also set this
@@ -103,7 +104,7 @@ environmental variable RVS_NN_DEVICE=cpu to force the code to run on cpu.
 * Making the cross-correlation files
 
 ```
-$ rvs_make_ccf --setup myconf --lambda0 4000 --lambda1 5000  \
+$ rvs_make_ccf --setup mysetup --lambda0 4000 --lambda1 5000  \
     --every 30 --vsinis 0,10,300 --prefix ${PREFIX}/ --oprefix=${PREFIX} \
     --step 0.5 --revision=v2020x
 ```
@@ -153,9 +154,9 @@ espec = tab['espec']
 # This constructs the specData object from wavelength, spectrum and error
 # spectrum arrays. The rvspecfit works on arrays of SpecData's which may
 # represent multiple exposures or multiple spectral configurations
-# Here we just have one spectrum from the spectral configuration "myconf"
+# Here we just have one spectrum from the spectral configuration "mysetup"
 
-specdata = [spec_fit.SpecData('myconf',
+specdata = [spec_fit.SpecData('mysetup',
                                wavelength,
                                spec,
                                espec)
