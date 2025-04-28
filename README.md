@@ -56,6 +56,10 @@ The library is avialable here https://phoenix.astro.physik.uni-goettingen.de/v2.
 wget -r -np -l 10 https://phoenix.astro.physik.uni-goettingen.de/data/v2.0/HiResFITS/
 `
 
+## Spectral configuration
+
+In the following text we use the idea of spectral configuration. I.e. this is the combination wavelength range and resolution. rvspecfit is designed to construct interpolated spectra for different spectral configuration, model them separately and together. Typically a spectral configuration would be instrument + arm . I.e. Giraffe/HR21, or 2DF/1700D or DESI blue arm.
+
 ## Preparation of PHOENIX templates
 
 The preparation requires several steps (you can find several examples of these steps in the surveys folder, i.e surveys/sdss/make_sdss.sh surveys/desi/make_desi.sh which prepare rvspecfit for processing SDSS or DESI spectra).
