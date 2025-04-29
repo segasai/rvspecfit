@@ -58,7 +58,7 @@ wget -r -np -l 10 https://phoenix.astro.physik.uni-goettingen.de/data/v2.0/HiRes
 
 ## Spectral configuration
 
-In the following text we use the idea of spectral configuration. I.e. this is the combination wavelength range and resolution. rvspecfit is designed to construct interpolated spectra for different spectral configuration, model them separately and together. Typically a spectral configuration would be instrument + arm . I.e. Giraffe/HR21, or 2DF/1700D or DESI blue arm.
+In the following text we use the idea of spectral configuration. I.e. this is the combination wavelength range and resolution. rvspecfit is designed to construct interpolated spectra for different spectral configurations, model them separately and together. Typically a spectral configuration would be instrument + arm . I.e. Giraffe/HR21, or 2DF/1700D or DESI blue arm.
 
 ## Preparation of PHOENIX templates
 
