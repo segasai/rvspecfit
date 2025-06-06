@@ -637,10 +637,7 @@ def select_fibers_to_fit(fibermap,
                 # match by id
                 # useful when fitting spectra- file using coadd rr file
                 xmap = dict(
-                    zip(
-                        zb['TARGETID'][zbest_subset],
-                        zip(rr_z[zbest_subset], rr_spectype[zbest_subset],
-                            rr_subtype[zbest_subset])))
+                    zip(zb['TARGETID'], zip(rr_z, rr_spectype, rr_subtype)))
                 zbest_subset = np.isin(fibermap['TARGETID'],
                                        zb['TARGETID'][zbest_subset])
                 rr_z = np.zeros(len(fibermap), dtype=zb['Z'].dtype) + np.nan

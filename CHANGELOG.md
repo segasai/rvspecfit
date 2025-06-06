@@ -1,5 +1,6 @@
 Changes
 
+* 25.06 Fix the bookeeping bug, when the DESI spectra- files are fitted. If the object was selected to be fitted based on it's targeting bits, but it does not satistfy (SPECTYPE='STAR' |3e5*Z|<1500) criteria then previously the RR_Z, RR_SPECTYPE would be null
 * 25.04 Update the penalty at the edge. Previously it was very sharp, because it was jumping from zero to some value. Now it is smooth, as computed throug distance to the edge of the convex hull
 * 25.04 DESI specific. Now if the hessian inversions failed, there will be a warning flag
 * 25.04 DESI specific. Now the redrock subtype is also saved in the rvtab
