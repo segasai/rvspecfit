@@ -41,6 +41,7 @@ docs/_build/
 /tests/templ_data_test
 tests/small_phoenix.tar.gz
 tests/small_phoenix/
+py/rvspecfit/_version.py
 
 # Backup files
 *~
