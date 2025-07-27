@@ -39,6 +39,7 @@ docs = [
     "sphinx",
     "sphinx-rtd-theme",
 ]
+nntrain = [torch]
 
 [tool.setuptools.packages.find]
 where = ["py"]
