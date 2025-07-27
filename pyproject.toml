@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "rvspecfit"
 dynamic = ["version"]
 authors = [
-    {name = "Sergey Koposov", email = "skoposov@cmu.edu"},
+    {name = "Sergey Koposov", email = "skoposov@ed.ac.uk"},
 ]
 description = "RVSpecfit: a package for fitting stellar spectra"
 readme = "README.md"
@@ -21,6 +21,9 @@ dependencies = [
     "scipy",
     "pyyaml",
     "astropy",
+    "numdifftools",
+    "h5py",
+    "cffi"
     "setuptools-scm",
 ]
 
@@ -39,7 +42,7 @@ docs = [
     "sphinx",
     "sphinx-rtd-theme",
 ]
-nntrain = [torch]
+nntrain = ["torch"]
 
 [tool.setuptools.packages.find]
 where = ["py"]
