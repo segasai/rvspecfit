@@ -23,8 +23,8 @@ dependencies = [
     "astropy",
     "numdifftools",
     "h5py",
-    "cffi"
-    "setuptools-scm",
+    "cffi",
+    "setuptools-scm"
 ]
 
 [project.scripts]
