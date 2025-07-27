@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rvspecfit"
+dynamic = ["version"]
+authors = [
+    {name = "Sergey Koposov", email = "skoposov@cmu.edu"},
+]
+description = "RVSpecfit: a package for fitting stellar spectra"
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "scipy",
+    "pyyaml",
+    "astropy",
+    "setuptools-scm",
+]
+
+[project.scripts]
+rvs_desi_fit = "rvspecfit.desi.desi_fit:main"
+rvs_make_ccf = "rvspecfit.make_ccf:main"
+rvs_make_interpol = "rvspecfit.make_interpol:main"
+rvs_make_nd = "rvspecfit.make_nd:main"
+rvs_read_grid = "rvspecfit.read_grid:main"
+rvs_regularize_grid = "rvspecfit.regularize_grid:main"
+rvs_train_nn_interpolator = "rvspecfit.nn.train_interpolator:main"
+rvs_weave_fit = "rvspecfit.weave.weave_fit:main"
+
+[project.optional-dependencies]
+docs = [
+    "sphinx",
+    "sphinx-rtd-theme",
+]
+
+[tool.setuptools.packages.find]
+where = ["py"]
+
+[tool.setuptools_scm]

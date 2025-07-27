@@ -1,13 +1,47 @@
-*~
-*png
-*fits
-py/rvspecfit/_version.py
-build
-.gitignore
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+sdist/
+wheels/
+*.egg-info/
+
+# Unit test / coverage reports
 .coverage
-__pycache__
-*/__pycache__
-tests/*db
+.coverage.*
+.pytest_cache/
+
+# Sphinx documentation
+docs/_build/
+
+# mypy
+.mypy_cache/
+
+# Project specific
+*.log
+*.db
+*.png
+*.fits
+*.pkl
+*.npy
+*.dat
+/tests/tmp
+/tests/templ_data
+/tests/templ_data_test
+tests/small_phoenix.tar.gz
+tests/small_phoenix/
+
+# Backup files
+*~
 *#
-*/*#
-*/*/*#
