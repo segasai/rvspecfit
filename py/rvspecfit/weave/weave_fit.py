@@ -324,7 +324,8 @@ def proc_many(files,
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description='Fit WEAVE spectra using rvspecfit')
 
     parser.add_argument('--nthreads',
                         help='Number of threads for the fits',

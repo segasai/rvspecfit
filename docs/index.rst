@@ -77,6 +77,21 @@ Here's a minimal example of fitting a spectrum:
    template_preparation
    advanced_usage
 
+.. toctree::
+   :maxdepth: 2
+   :caption: Configuration Commands:
+   
+   rvs_read_grid
+   rvs_make_interpol
+   rvs_make_nd
+   rvs_make_ccf
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Analysis Commands:
+   
+   rvs_desi_fit
+
 Installation and Setup
 ======================
 
@@ -109,15 +124,15 @@ https://phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/
 Template Preparation
 ~~~~~~~~~~~~~~~~~~~~
 
-Before using RVSpecFit, you need to prepare template files for your spectral configuration:
+Before using RVSpecFit, you need to prepare template files for your spectral configuration using the four-step pipeline:
 
-1. **Create PHOENIX database:**
+1. **Create PHOENIX database** (see :doc:`rvs_read_grid` for full details):
 
 .. code-block:: bash
 
    rvs_read_grid --prefix /path/to/PHOENIX/v2.0/HiResFITS/PHOENIX-ACES-AGSS-COND-2011/ --templdb files.db
 
-2. **Make interpolated spectra:**
+2. **Make interpolated spectra** (see :doc:`rvs_make_interpol` for full details):
 
 .. code-block:: bash
 
@@ -126,13 +141,13 @@ Before using RVSpecFit, you need to prepare template files for your spectral con
        --oprefix /template/path/ --templprefix /PHOENIX/path/ \
        --wavefile WAVE_PHOENIX-ACES-AGSS-COND-2011.fits --air --revision=v2020x
 
-3. **Create n-d interpolator:**
+3. **Create n-d interpolator** (see :doc:`rvs_make_nd` for full details):
 
 .. code-block:: bash
 
    rvs_make_nd --prefix /template/path/ --setup mysetup --revision=v2020x
 
-4. **Make cross-correlation files:**
+4. **Make cross-correlation files** (see :doc:`rvs_make_ccf` for full details):
 
 .. code-block:: bash
 
@@ -232,6 +247,21 @@ For DESI and WEAVE data, use the specialized fitting routines:
 
    rvs_desi_fit input_spectrum.fits
    rvs_weave_fit input_spectrum.fits
+
+Template Preparation Pipeline
+===============================
+
+RVSpecFit provides a four-step command-line pipeline for preparing stellar template libraries. Each step must be executed in order:
+
+**Step 1:** :doc:`rvs_read_grid` - Create SQLite database from FITS template files
+
+**Step 2:** :doc:`rvs_make_interpol` - Process and interpolate template spectra to target resolution
+
+**Step 3:** :doc:`rvs_make_nd` - Create n-dimensional interpolation structures
+
+**Step 4:** :doc:`rvs_make_ccf` - Generate FFT-based cross-correlation templates
+
+See the individual command documentation for detailed usage instructions and examples.
 
 Template Preparation Tools
 ===========================

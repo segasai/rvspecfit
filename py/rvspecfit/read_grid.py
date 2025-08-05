@@ -452,7 +452,7 @@ def rebin(lam0, spec0, newlam, resolution):
 
 def main(args):
     parser = argparse.ArgumentParser(
-        description='Create the database descrbing the templates')
+        description='Create the database describing the templates')
     parser.add_argument('--prefix',
                         type=str,
                         default='./',

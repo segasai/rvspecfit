@@ -1558,7 +1558,8 @@ def proc_many(files,
 
 def main(args):
     cmdline = ' '.join(args)
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description='Fit DESI spectra using rvspecfit')
 
     parser.add_argument('--nthreads',
                         help='Number of threads for the fits',
@@ -1619,7 +1620,7 @@ def main(args):
                         required=False)
 
     parser.add_argument('--npoly',
-                        help='npoly',
+                        help='Number of polynomial coefficients for continuum fitting',
                         type=int,
                         default=None,
                         required=False)
@@ -1668,10 +1669,12 @@ def main(args):
                         type=str,
                         default=None,
                         required=False)
-    parser.add_argument('--resolution_matrix', action='store_true')
+    parser.add_argument('--resolution_matrix', action='store_true',
+                        help='Use resolution matrix in fitting')
     parser.add_argument('--no-resolution_matrix',
                         dest='resolution_matrix',
-                        action='store_false')
+                        action='store_false',
+                        help='Do not use resolution matrix in fitting')
     parser.set_defaults(resolution_matrix=False)
 
     parser.add_argument(

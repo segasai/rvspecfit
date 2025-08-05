@@ -154,14 +154,15 @@ def check_scipy_version():
 
 
 def main(args):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description='Regularize and fill gaps in spectral template grids')
     check_scipy_version()
     parser.add_argument('--input',
                         help='Input pickle',
                         type=str,
                         required=True)
     parser.add_argument('--output',
-                        help='Input pickle',
+                        help='Output pickle file',
                         type=str,
                         required=True)
 

@@ -501,7 +501,7 @@ def main(args):
         '--oprefix',
         type=str,
         default='templ_data/',
-        help='Location where the ouput products will be located')
+        help='Location where the output products will be located')
     parser.add_argument('--setup',
                         type=str,
                         help='Name of spectral configuration')
@@ -511,7 +511,7 @@ def main(args):
                         required=True)
     parser.add_argument('--lambda1',
                         type=float,
-                        help='Wavelength endpoint',
+                        help='Ending wavelength in Angstroms',
                         required=True)
 
     parser.add_argument('--nthreads',
@@ -520,7 +520,8 @@ def main(args):
                         default=8)
     parser.add_argument('--nocontinuum',
                         dest='nocontinuum',
-                        action='store_true')
+                        action='store_true',
+                        help='Skip continuum normalization')
 
     parser.add_argument('--step',
                         type=float,
