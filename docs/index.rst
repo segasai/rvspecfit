@@ -19,7 +19,7 @@ RVSpecFit is an automated spectroscopic pipeline for determining radial velociti
 
 **Citation:** If you use RVSpecFit, please cite:
 - `Koposov et al. 2019 (ASCL) <https://ui.adsabs.harvard.edu/abs/2019ascl.soft07013K/abstract>`_
-- `Koposov & Bartunov 2011 (ApJ) <https://ui.adsabs.harvard.edu/abs/2011ApJ...736..146K/abstract>`_
+- `Koposov et al. 2011 (ApJ) <https://ui.adsabs.harvard.edu/abs/2011ApJ...736..146K/abstract>`_
 
 Quick Start
 -----------
