@@ -1,8 +1,4 @@
-import sys
-if (sys.version_info < (3, 0)):
-    import functools32 as functools
-else:
-    import functools
+import functools
 import random
 import numpy as np
 import scipy
@@ -598,7 +594,7 @@ def get_chisq(specdata,
         This will be added in quadrature to the error vector when computing
         logl. If it is a dict it must be indexed by the spec setup otherwise
         this constant will be used for all spectra.
-    outside_penalty: bool 
+    outside_penalty: bool
         if true the chi^2 will be penalize for being outside of the grid
     Returns
     -------
