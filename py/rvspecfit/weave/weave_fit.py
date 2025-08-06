@@ -1,4 +1,5 @@
 import os
+
 os.environ['OMP_NUM_THREADS'] = '1'
 import glob
 import sys
@@ -12,6 +13,7 @@ import matplotlib
 import astropy.io.fits as pyfits
 import astropy.wcs as pywcs
 import numpy as np
+
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import astropy.table as atpy
@@ -130,16 +132,11 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
 
     print('Processing', fnames)
     fnames = fnames.split(',')
-    #if not valid_file(fnames[0]):
-    #    return
 
     tab = pyfits.getdata(fnames[0], 'FIBTABLE')
     hdr = pyfits.getheader(fnames[0])
-    #mws = tab['MWS_TARGET']
     targetid = tab['TARGID']
     brick_name = hdr['OBID'].replace('.', '').replace('/', '').replace('_', '')
-    #xids = np.nonzero(mws)[0]
-    #setups = ('b', 'r', 'z')
     fluxes = {}
     ivars = {}
     waves = {}
@@ -181,7 +178,7 @@ def proc_weave(fnames, fig_prefix, config, threadid, nthreads):
         #medivar = np.nanmedian(ivars[s], axis=-1)
         # inflate the errors in the tellurics 1000 times
         ivars[s][:, tellurics] = 1. / 100. / np.maximum(
-            fluxes[s][:, tellurics], 1)**2  #medivar[:, None]/1000**2
+            fluxes[s][:, tellurics], 1)**2  # medivar[:, None]/1000**2
         # put the S/N in the telluric region to 1/10.
 
     outdict = pandas.DataFrame()
@@ -409,4 +406,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

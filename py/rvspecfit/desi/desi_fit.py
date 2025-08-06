@@ -1621,11 +1621,12 @@ def main(args=None):
                         default=None,
                         required=False)
 
-    parser.add_argument('--npoly',
-                        help='Number of polynomial coefficients for continuum fitting',
-                        type=int,
-                        default=None,
-                        required=False)
+    parser.add_argument(
+        '--npoly',
+        help='Number of polynomial coefficients for continuum fitting',
+        type=int,
+        default=None,
+        required=False)
 
     parser.add_argument('--output_tab_prefix',
                         help='Prefix of output table files',
@@ -1671,7 +1672,8 @@ def main(args=None):
                         type=str,
                         default=None,
                         required=False)
-    parser.add_argument('--resolution_matrix', action='store_true',
+    parser.add_argument('--resolution_matrix',
+                        action='store_true',
                         help='Use resolution matrix in fitting')
     parser.add_argument('--no-resolution_matrix',
                         dest='resolution_matrix',
@@ -1897,4 +1899,4 @@ in the table (but will not use for selection)''',
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

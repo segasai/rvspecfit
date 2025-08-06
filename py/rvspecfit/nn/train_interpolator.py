@@ -70,25 +70,36 @@ def main(args=None):
         args = sys.argv[1:]
 
     parser = argparse.ArgumentParser(
-        description='Train a neural network interpolator for stellar template spectra')
-    parser.add_argument('--cpu', action='store_true', default=False,
+        description=
+        'Train a neural network interpolator for stellar template spectra')
+    parser.add_argument('--cpu',
+                        action='store_true',
+                        default=False,
                         help='Force use of CPU instead of GPU')
     parser.add_argument(
         '--batch_on_device',
         action='store_true',
         default=False,
         help='Only batch should be on device otherwise whole data is there')
-    parser.add_argument('--validation', action='store_true', default=False,
+    parser.add_argument('--validation',
+                        action='store_true',
+                        default=False,
                         help='Enable validation during training')
-    parser.add_argument('--random_pca', action='store_true', default=False,
+    parser.add_argument('--random_pca',
+                        action='store_true',
+                        default=False,
                         help='Use random PCA initialization')
     parser.add_argument('--pca_init',
                         action='store_true',
                         default=False,
                         help='initialize with pca')
-    parser.add_argument('--resume', action='store_true', default=False,
+    parser.add_argument('--resume',
+                        action='store_true',
+                        default=False,
                         help='Resume training from checkpoint')
-    parser.add_argument('--dir', type=str, default='./',
+    parser.add_argument('--dir',
+                        type=str,
+                        default='./',
                         help='Directory containing template data')
     parser.add_argument('--nlayers',
                         type=int,
@@ -96,21 +107,38 @@ def main(args=None):
                         help='number of inner fc layers')
     parser.add_argument('--revision', default='', help='Revision string')
     parser.add_argument('--width', type=int, default=256, help='Network width')
-    parser.add_argument('--npc', type=int, default=200,
+    parser.add_argument('--npc',
+                        type=int,
+                        default=200,
                         help='Number of principal components')
-    parser.add_argument('--learning_rate0', type=float, default=1e-3,
+    parser.add_argument('--learning_rate0',
+                        type=float,
+                        default=1e-3,
                         help='Initial learning rate')
-    parser.add_argument('--min_learning_rate', type=float, default=1e-8,
+    parser.add_argument('--min_learning_rate',
+                        type=float,
+                        default=1e-8,
                         help='Minimum learning rate')
-    parser.add_argument('--parnames', type=str, default='teff,logg,feh,alpha',
+    parser.add_argument('--parnames',
+                        type=str,
+                        default='teff,logg,feh,alpha',
                         help='Comma-separated parameter names')
-    parser.add_argument('--log_ids', type=str, default='0',
-                        help='Comma-separated indices of parameters to log-transform')
-    parser.add_argument('--mask_ids', type=str, default=None,
+    parser.add_argument(
+        '--log_ids',
+        type=str,
+        default='0',
+        help='Comma-separated indices of parameters to log-transform')
+    parser.add_argument('--mask_ids',
+                        type=str,
+                        default=None,
                         help='Comma-separated indices of parameters to mask')
-    parser.add_argument('--setup', type=str, required=True,
+    parser.add_argument('--setup',
+                        type=str,
+                        required=True,
                         help='Name of the spectral configuration')
-    parser.add_argument('--batch', type=int, default=100,
+    parser.add_argument('--batch',
+                        type=int,
+                        default=100,
                         help='Training batch size')
     args = parser.parse_args(args)
     log_ids = [int(_) for _ in (args.log_ids).split(',')]
@@ -346,4 +374,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
