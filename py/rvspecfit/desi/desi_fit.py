@@ -1556,7 +1556,9 @@ def proc_many(files,
     logging.info("Successfully finished processing")
 
 
-def main(args):
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
     cmdline = ' '.join(args)
     parser = argparse.ArgumentParser(
         description='Fit DESI spectra using rvspecfit')

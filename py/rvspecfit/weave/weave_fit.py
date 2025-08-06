@@ -323,7 +323,9 @@ def proc_many(files,
         pool.join()
 
 
-def main(args):
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description='Fit WEAVE spectra using rvspecfit')
 

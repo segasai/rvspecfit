@@ -450,7 +450,9 @@ def rebin(lam0, spec0, newlam, resolution):
     return ret
 
 
-def main(args):
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description='Create the database describing the templates')
     parser.add_argument('--prefix',

@@ -65,7 +65,9 @@ def get_predictions(myint, Tvecs0, dev, batch):
     return pred
 
 
-def main(args):
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
 
     parser = argparse.ArgumentParser(
         description='Train a neural network interpolator for stellar template spectra')

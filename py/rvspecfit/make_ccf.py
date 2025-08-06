@@ -491,7 +491,9 @@ def to_power_two(i):
     return 2**(int(np.ceil(np.log(i) / np.log(2))))
 
 
-def main(args):
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description='Create the Fourier transformed templates')
     parser.add_argument('--prefix',

@@ -170,7 +170,9 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
             np.ascontiguousarray(specs))
 
 
-def main(args):
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description='Create N-D spectral interpolation files')
     parser.add_argument(

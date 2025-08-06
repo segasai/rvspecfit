@@ -323,7 +323,9 @@ def add_bool_arg(parser, name, default=False, help=None):
     # https://stackoverflow.com/questions/15008758/parsing-boolean-values-with-argparse/19233287
 
 
-def main(args):
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description='Create interpolated and convolved spectra from the '
         'input grid.')

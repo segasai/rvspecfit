@@ -153,7 +153,9 @@ def check_scipy_version():
         raise RuntimeError('scipy 1.9.0+ is required due to Rbf changes')
 
 
-def main(args):
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description='Regularize and fill gaps in spectral template grids')
     check_scipy_version()
