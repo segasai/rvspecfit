@@ -1491,7 +1491,11 @@ def proc_many(files,
     for f in files:
         fname = f.split('/')[-1]
         if subdirs:
-            assert (len(f.split('/')) > 2)
+            if (len(f.split('/')) > 2):
+                logging.warning(
+                    f'Invalid file {f}, it needs two be in the format '
+                    'dir1/dir2/fname')
+                continue
             # we need that because we use the last two directories in the path
             # to create output directory structure
             # i.e. input file a/b/c/d/e/f/g.fits will produce output file in
