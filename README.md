@@ -19,7 +19,6 @@ numpy, scipy, astropy, pyyaml, matplotlib, numdifftools, pandas
 
 Optional: torch, scikit-learn
 
-
 # Introduction
 
 The code here can perform radial velocity fitting and general spectral fitting
@@ -37,7 +36,6 @@ resolution of your instrument and producing interpolators.
 * Create a configuration file 
 * Run the code
 
-
 ## Installation
 
 To install you can just do can just do 
@@ -49,8 +47,8 @@ which will install the latest version
 
 ## PHOENIX library
 
-The library is available here https://phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/
-(Make sure you get the v2.0 one!). If you want to download the whole thing you will likely need a command like
+The library is available here ftp://phoenix.astro.physik.uni-goettingen.de/HiResFITS/v2.0
+(Make sure you get the v2.0 one!). If you want to download the whole thing you will likely need a command like:
 `
 wget -r -np -l 10 https://phoenix.astro.physik.uni-goettingen.de/data/v2.0/HiResFITS/
 `
