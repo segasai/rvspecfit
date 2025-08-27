@@ -96,7 +96,7 @@ def extract_spectrum(param,
                      normalize=True,
                      log_spec=True):
     """
-    Exctract a spectrum of a given parameters then apply the resolution
+    Extract a spectrum of a given parameters then apply the resolution
     smearing and divide by the continuum
 
     Parameters

@@ -33,7 +33,7 @@ def firstguess(specdata,
     resolParams: tuple
         Resolution parameters
     paramsgrid: dictionary
-        (optional) dictionary of temlate parameters to iterate over
+        (optional) dictionary of template parameters to iterate over
         The default value is
         paramsgrid = {
             'logg': [1, 2, 3, 4, 5],
@@ -246,7 +246,7 @@ def _get_simplex_start(best_vel,
                        fitVsini=None):
     """
     Create starting simplex and starting point for optimization
-    This is a determinstic simplex
+    This is a deterministic simplex
     """
     # std_vec is the vector of standard deviations used to create
     # a simplex for Nelder mead

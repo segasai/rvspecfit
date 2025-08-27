@@ -5,7 +5,7 @@ from rvspecfit import frozendict
 
 
 def get_default_config():
-    """Create a default parameter config ditctionary
+    """Create a default parameter config dictionary
 
     Returns
     -------

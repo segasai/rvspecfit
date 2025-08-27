@@ -63,7 +63,7 @@ def fit(specdata, config):
     Parameters
     -----------
     specdata: list of SpecData objects
-        The list of data that needs to be fitted from differetn spectral
+        The list of data that needs to be fitted from different spectral
         setups.
     config: dict
         The configuration dictionary
