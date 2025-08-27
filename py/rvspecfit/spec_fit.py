@@ -361,7 +361,6 @@ def construct_resol_mat(lam, resol=None, width=None):
 
     mask = (xs2d >= 0) & (xs2d < len(lam))
     xs2d[~mask] = 0
-    xs2d[~mask] = 0
     # zero-out outside boundary ones
 
     XL = np.exp(-0.5 * ((lam[xs2d] - lam[None, :]) / sigs[None, :])**2) * mask
