@@ -214,9 +214,21 @@ def chisq_func0(pdict, args, outside_penalty=True):
 
 def chisq_func(p, args):
     """
-The function computes the chi-square of the fit
-This function is used for minimization
-"""
+    The function computes the chi-square of the fit
+    This function is used for minimization
+
+    Parameters
+    ----------
+    p: array_like
+        Vector of parameters to be fitted (velocity, vsini, stellar params)
+    args: dict
+        Dictionary containing specdata, config, and other fitting arguments
+
+    Returns
+    -------
+    chisq: float
+        Chi-square value for the given parameters
+    """
     paramMapper = args['paramMapper']
     pdict = paramMapper.forward(p)
     if (pdict['vel'] > args['max_vel'] or pdict['vel'] < args['min_vel']

@@ -277,14 +277,21 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
         The atmospheric parameters
     rot_params: tuple
         The parameters of stellar rotation models (could be None)
-    resol_params: object
-        The object that describe the resolution convolution (could be None)
     config: dict
         The configuration dictionary
 
     Returns
-    templ: numpy
-        The template vector
+    -------
+    outside: float
+        Flag indicating if parameters are outside the template grid
+    lam: numpy array
+        Wavelength array of the template
+    spec: numpy array
+        The template spectrum
+    templ_tag: int
+        Random tag for caching purposes
+    log_step: bool
+        Whether the wavelength grid is logarithmic
     """
     curInterp = spec_inter.getInterpolator(spec_setup, config)
     outside = float(curInterp.outsideFlag(atm_param))
@@ -465,7 +472,7 @@ def evalRV(interpol, vel, lams):
 
     Parameters
     -----------
-    interpol: scipy.intepolate object
+    interpol: scipy.interpolate object
         Template interpolator
     vel: real
         Radial velocity

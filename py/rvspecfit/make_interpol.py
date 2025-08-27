@@ -101,7 +101,6 @@ def extract_spectrum(param,
 
     Parameters
     -----------
-
     param: dict
         The dictionary of key value pairs of parameters
     dbfile: string
@@ -112,6 +111,15 @@ def extract_spectrum(param,
         Path to the file with wavelengths
     normalize: boolean
         Normalize the spectrum by a linear continuum
+    log_spec: boolean
+        If True, take the logarithm of the spectrum
+
+    Returns
+    -------
+    spec: numpy array
+        The processed spectrum (logarithmic if log_spec=True)
+    lognorm: float
+        The logarithm of the normalization factor
     """
 
     lam, spec0 = read_grid.get_spec(param,
