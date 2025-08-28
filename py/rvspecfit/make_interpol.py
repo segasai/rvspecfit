@@ -238,7 +238,7 @@ def process_all(setupInfo,
     mapper_module = 'rvspecfit.read_grid'
     mapper_class = 'LogParamMapper'
     mapper_args = (log_parameters, )
-    HR, lamleft, lamright, resol_function, step, log = setupInfo
+    HR, lamleft, lamright, resol_function, step, log_step = setupInfo
     if templ_lam.min() > lamleft or templ_lam.max() < lamright:
         raise RuntimeError(f'''Cannot generate the spectra as the wavelength
         range in the library does not cover the requested wavelengths
@@ -247,7 +247,7 @@ def process_all(setupInfo,
 
     deltav = 1000.  # extra padding
     fac1 = (1 + deltav / (scipy.constants.speed_of_light / 1e3))
-    if not log:
+    if not log_step:
         lamgrid = np.arange(lamleft / fac1, (lamright + step) * fac1, step)
     else:
         logstep = np.log(1 + step / (0.5 * (lamleft + lamright)))
@@ -459,8 +459,9 @@ def main(args=None):
 
     parnames = args.parameter_names.split(',')
 
+    log_step = args.log
     process_all((args.setup, args.lambda0, args.lambda1, resol_func, args.step,
-                 args.log),
+                 log_step),
                 parnames=parnames,
                 log_parameters=log_parameters,
                 dbfile=args.templdb,
