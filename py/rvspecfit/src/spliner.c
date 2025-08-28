@@ -83,12 +83,16 @@ int evaler(double *evalx, int nevalx, int N, double *xs, double *hs, double *As,
   }
   if (logstep) {
     double logstep = log(xs[1] / x0);
+    double logstep2 = log(xs[2] / xs[1]);
+    if (fabs(logstep-logstep2)>1e-10) {return -2;} // validation
     double logx0 = log(x0);
     for (int i = 0; i < nevalx; i++) {
       pos[i] = (int)((log(evalx[i]) - logx0) / logstep);
     }
   } else {
     double step = xs[1] - x0;
+    double step2 = xs[2]-xs[1];
+    if (fabs(step-step2)>1e-10) {return -2;} // validation
     for (int i = 0; i < nevalx; i++) {
       pos[i] = (int)((evalx[i] - x0) / step);
     }
