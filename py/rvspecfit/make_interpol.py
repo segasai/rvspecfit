@@ -250,12 +250,12 @@ def process_all(setupInfo,
     if not log_step:
         lamgrid = np.arange(lamleft / fac1, (lamright + step) * fac1, step)
     else:
-        logstep = np.log(1 + step / (0.5 * (lamleft + lamright)))
-        # logstep is such that  it correspond to linear step step
+        log_step_val = np.log(1 + step / (0.5 * (lamleft + lamright)))
+        # log_step is such that  it correspond to linear step step
         # for the middle of the wavelength range
         lamgrid = np.exp(
             np.arange(np.log(lamleft / fac1), np.log(lamright * fac1),
-                      logstep))
+                      log_step_val))
     if len(lamgrid) <= 1:
         raise RuntimeError(
             'Did you incorrectly specify wavelength range or step ? ')
@@ -315,7 +315,7 @@ def process_all(setupInfo,
               mapper_args=mapper_args,
               revision=revision,
               lognorms=lognorms,
-              log_step=log,
+              log_step=log_step,
               log_spec=log_spec)
     serializer.save_dict_to_hdf5(curfname, DD)
 
