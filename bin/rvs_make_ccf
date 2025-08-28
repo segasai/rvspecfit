@@ -1,9 +1,0 @@
-#!/usr/bin/env python
-
-import os
-os.environ['OMP_NUM_THREADS'] = '1'
-import sys
-import rvspecfit.make_ccf as rvsccf
-
-if __name__ == '__main__':
-    rvsccf.main(sys.argv[1:])
