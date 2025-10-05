@@ -278,6 +278,28 @@ class SpecInterpolator:
                                  "Required list of parameters is: " +
                                  (','.join(self.parnames)))
         param = self.mapper.forward(param0)
+
+        # Check if GPU server is active
+        try:
+            from rvspecfit import gpu_server
+            server = gpu_server.get_gpu_server()
+            if server is not None:
+                # DEBUG
+                with open('/tmp/gpu_server_access.log', 'a') as f:
+                    f.write(f'eval called, server={type(server).__name__}\n')
+                # Use GPU server for evaluation
+                result = server.eval_template(self.name, param0)
+                return result['spec']
+            else:
+                # DEBUG: Server is None
+                with open('/tmp/gpu_server_access.log', 'a') as f:
+                    f.write('eval called, server=None\n')
+        except (ImportError, AttributeError) as e:
+            # DEBUG: Exception
+            with open('/tmp/gpu_server_access.log', 'a') as f:
+                f.write(f'eval exception: {e}\n')
+
+        # Fall back to direct evaluation
         return self.interper(param)
 
 

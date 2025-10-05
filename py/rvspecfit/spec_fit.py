@@ -227,6 +227,27 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
 
     '''
 
+    # Check if GPU server is active - route chi-square to GPU if available
+    try:
+        from rvspecfit import gpu_server
+        server = gpu_server.get_gpu_server()
+        if server is not None:
+            # DEBUG
+            with open('/tmp/gpu_chisq_calls.log', 'a') as f:
+                f.write(f'chisq call, server={type(server).__name__}\n')
+            # Use GPU server for chi-square computation
+            result = server.eval_chisq(spec, templ, polys, espec)
+            if get_coeffs:
+                return result['chisq'], result['coeffs']
+            else:
+                return result['chisq']
+        else:
+            with open('/tmp/gpu_chisq_calls.log', 'a') as f:
+                f.write('chisq call, server=None\n')
+    except (ImportError, AttributeError, Exception) as e:
+        with open('/tmp/gpu_chisq_calls.log', 'a') as f:
+            f.write(f'chisq exception: {e}\n')
+
     if espec is not None:
         normspec = spec / espec
         normtempl = templ / espec
@@ -429,6 +450,18 @@ def convolve_vsini(lam_templ, templ, vsini):
     """
     if vsini == 0:
         return templ
+
+    # Check if GPU server is active - route convolution to GPU if available
+    try:
+        from rvspecfit import gpu_server
+        server = gpu_server.get_gpu_server()
+        if server is not None and vsini > 0:
+            # Use GPU server for convolution
+            result = server.convolve_vsini(lam_templ, templ, vsini)
+            return result['spec']
+    except (ImportError, AttributeError, Exception):
+        pass  # Fall back to CPU computation
+
     lnstep = np.log(lam_templ[1] / lam_templ[0])
     amp = vsini / SPEED_OF_LIGHT
     npts = np.ceil(amp / lnstep)

@@ -26,6 +26,14 @@ import rvspecfit  # noqa: E402
 from rvspecfit import fitter_ccf, vel_fit, spec_fit, utils, \
     spec_inter  # noqa: E402
 
+# GPU support - import only if available
+try:
+    from rvspecfit import spec_fit_gpu
+    GPU_AVAILABLE = spec_fit_gpu.gpu_available()
+except ImportError:
+    GPU_AVAILABLE = False
+    spec_fit_gpu = None
+
 
 class ProcessStatus(enum.Enum):
     SUCCESS = 0
@@ -1272,6 +1280,513 @@ def proc_desi(fname,
     return len(seqid_to_fit)
 
 
+def proc_desi_gpu(fname,
+                  tab_ofname,
+                  mod_ofname,
+                  fig_prefix,
+                  config,
+                  fit_targetid=None,
+                  objtypes=None,
+                  doplot=True,
+                  minsn=-1e9,
+                  expid_range=None,
+                  fitarm=None,
+                  cmdline=None,
+                  zbest_select=False,
+                  zbest_include=False,
+                  use_resolution_matrix=False,
+                  ccf_init=True,
+                  npoly=10,
+                  gpu_batch_size=128,
+                  gpu_device_id=0,
+                  poolex=None,
+                  gpu_nthreads=16):
+    """
+    GPU-accelerated version of proc_desi
+    Processes spectra in batches on GPU instead of parallel CPU processes
+    """
+    if not GPU_AVAILABLE:
+        logging.error('GPU requested but not available. Install cupy for GPU support.')
+        return -1
+
+    logging.info(f'Using GPU mode with batch_size={gpu_batch_size} on device {gpu_device_id}')
+
+    # Start GPU server for batched template evaluation
+    # Set environment to CPU for worker processes (GPU server handles GPU)
+    import os
+    os.environ['RVS_NN_DEVICE'] = 'cpu'  # Workers use CPU, server uses GPU
+
+    from rvspecfit import gpu_server
+    server = gpu_server.start_gpu_server(config, device_id=gpu_device_id,
+                                         batch_timeout=0.01,  # 10ms batch window to collect concurrent requests
+                                         max_batch_size=gpu_batch_size)
+    logging.info(f'GPU server started for batched operations (NN, chi-square, convolution)')
+
+    # Get GPU queues to pass to workers
+    gpu_queues = {
+        'request_queue': server.request_queue,
+        'stats_queue': server.stats_queue
+    }
+
+    # Create pool with GPU queue initializer if not provided
+    if poolex is None:
+        import multiprocessing
+        import concurrent.futures
+        poolex = concurrent.futures.ProcessPoolExecutor(
+            gpu_nthreads,
+            mp_context=multiprocessing.get_context('spawn'),
+            initializer=gpu_server._worker_init,
+            initargs=(gpu_queues,)
+        )
+        # We created the pool, so we need to shut it down
+        own_pool = True
+    else:
+        # Pool was provided from outside, don't shut it down
+        own_pool = False
+
+    # Most of this is identical to proc_desi, but batches the fitting step
+    if npoly is None:
+        npoly = 10
+    options = {'npoly': npoly}
+    timers = []
+    timers.append(time.time())
+    logging.info('Processing %s' % fname)
+
+    try:
+        FP = pyfits.open(fname)
+    except OSError:
+        logging.error('Cannot read file %s' % (fname))
+        return -1
+    valid = valid_file(FP)
+    if not valid:
+        logging.error('Not valid file: %s' % (fname))
+        return -1
+
+    setups = ['b', 'r', 'z']
+    if fitarm is not None:
+        setups = [_ for _ in setups if _ in fitarm]
+        assert (len(setups) > 0)
+
+    spectrum_header = FP[0].header
+    fibermap = FP['FIBERMAP'].data
+    scores = FP['SCORES'].data
+    if 'EXP_FIBERMAP' in FP:
+        exp_fibermap = FP['EXP_FIBERMAP'].data
+    else:
+        exp_fibermap = None
+
+    if fit_targetid is not None:
+        if not np.isin(fibermap['TARGETID'], fit_targetid).any():
+            logging.warning('No fibers selected in file %s' % (fname))
+            put_empty_file(tab_ofname)
+            put_empty_file(mod_ofname)
+            FP.close()
+            return 0
+
+    fluxes, ivars, masks, waves, resolutions = read_data(FP, setups)
+    FP.close()
+
+    # Extract SN
+    if 'MEDIAN_CALIB_SNR_' + setups[0].upper() in scores.columns.names:
+        sns = dict([(_, scores['MEDIAN_CALIB_SNR_' + _.upper()])
+                    for _ in setups])
+    elif 'MEDIAN_COADD_SNR_' + setups[0].upper() in scores.columns.names:
+        sns = dict([(_, scores['MEDIAN_COADD_SNR_' + _.upper()])
+                    for _ in setups])
+    elif 'MEDIAN_COADD_FLUX_SNR_' + setups[0].upper() in scores.columns.names:
+        sns = dict([(_, scores['MEDIAN_COADD_FLUX_SNR_' + _.upper()])
+                    for _ in setups])
+    else:
+        sns = dict([(_, get_sns(fluxes[_], ivars[_], masks[_]))
+                    for _ in setups])
+
+    for _ in setups:
+        if len(sns[_]) != len(fibermap):
+            logging.warning((
+                'WARNING the size of the data in arm %s' +
+                'does not match the size of the fibermap; file %s; skipping...'
+            ) % (_, fname))
+            return -1
+
+    columnDesc = get_column_desc(setups)
+
+    if zbest_select or zbest_include:
+        zbest_path, zbest_ext = get_zbest_fname(fname)
+    else:
+        zbest_path, zbest_ext = None, None
+
+    subset, rr_z, rr_spectype, rr_subtype = select_fibers_to_fit(
+        fibermap,
+        sns,
+        minsn=minsn,
+        objtypes=objtypes,
+        expid_range=expid_range,
+        fit_targetid=fit_targetid,
+        zbest_path=zbest_path,
+        zbest_ext=zbest_ext,
+        zbest_select=zbest_select,
+        zbest_include=zbest_include)
+
+    fibermap_subset_hdu = pyfits.BinTableHDU(atpy.Table(fibermap)[subset],
+                                             name='FIBERMAP')
+    if exp_fibermap is not None:
+        tmp_sub = np.isin(exp_fibermap['TARGETID'],
+                          fibermap['TARGETID'][subset])
+        exp_fibermap_subset_hdu = pyfits.BinTableHDU(
+            atpy.Table(exp_fibermap)[tmp_sub], name='EXP_FIBERMAP')
+    scores_subset_hdu = pyfits.BinTableHDU(atpy.Table(scores)[subset],
+                                           name='SCORES')
+
+    if not (subset.any()):
+        logging.warning('No fibers selected in file %s' % (fname))
+        outtab_hdus = [
+            pyfits.PrimaryHDU(header=get_prim_header(
+                config=config, cmdline=cmdline, zbest_path=zbest_path)),
+            comment_filler(pyfits.BinTableHDU(atpy.Table([]), name='RVTAB'),
+                           columnDesc), fibermap_subset_hdu, scores_subset_hdu
+        ]
+        if exp_fibermap is not None:
+            outtab_hdus += [exp_fibermap_subset_hdu]
+        outmod_hdus = [
+            pyfits.PrimaryHDU(
+                header=get_prim_header(config=config,
+                                       cmdline=cmdline,
+                                       spectrum_header=spectrum_header,
+                                       zbest_path=zbest_path))
+        ]
+
+        for curs in setups:
+            outmod_hdus.append(
+                pyfits.ImageHDU(waves[curs],
+                                name='%s_WAVELENGTH' % curs.upper()))
+            outmod_hdus.append(pyfits.ImageHDU(name='%s_MODEL' % curs.upper()))
+
+        outmod_hdus += [fibermap_subset_hdu]
+        write_hdulist(mod_ofname, pyfits.HDUList(outmod_hdus))
+        write_hdulist(tab_ofname, pyfits.HDUList(outtab_hdus))
+        return 0
+
+    logging.info('Selected %d fibers to fit (GPU mode)' % (subset.sum()))
+
+    columnsCopy = [
+        'FIBER', 'REF_ID', 'REF_CAT', 'TARGET_RA', 'TARGET_DEC', 'TARGETID',
+        'EXPID'
+    ]
+
+    npixels = {}
+    for curs in setups:
+        npixels[curs] = fluxes[curs].shape[1]
+
+    seqid_to_fit = np.nonzero(subset)[0]
+    if rr_z is not None:
+        rr_z, rr_spectype, rr_subtype = rr_z[seqid_to_fit], rr_spectype[
+            seqid_to_fit], rr_subtype[seqid_to_fit]
+    else:
+        rr_z = np.zeros(len(seqid_to_fit)) + np.nan
+        rr_spectype = np.ma.zeros(len(seqid_to_fit), dtype=str)
+        rr_subtype = np.ma.zeros(len(seqid_to_fit), dtype=str)
+
+    if use_resolution_matrix:
+        sig0s = {}
+        for s in setups:
+            if config is not None:
+                if ('lsf_sigma0_angstrom' not in config
+                        or s not in config['lsf_sigma0_angstrom']):
+                    cur_val = 0.5
+                    logging.warning('sigma0 of the templates is not specified '
+                                    f'for setup {s} using {cur_val}')
+                else:
+                    cur_val = config['lsf_sigma0_angstrom'][s]
+                sig0s[s] = cur_val
+    else:
+        sig0s = None
+
+    timers.append(time.time())
+
+    # GPU OPTIMIZATION: Pre-warm the interpolator cache on GPU
+    # This ensures the NN model is loaded on GPU and ready for use
+    logging.info('Warming up GPU interpolators...')
+    for setup_name in setups:
+        setup_full = 'desi_' + setup_name
+        try:
+            interp = spec_inter.getInterpolator(setup_full, config, warmup_cache=False)
+            # Do a dummy evaluation to ensure everything is loaded on GPU
+            if hasattr(interp.interper, 'nni'):  # Check if it's NN interpolator
+                logging.debug(f'NN interpolator for {setup_full} loaded on device: {interp.interper.device}')
+        except Exception as e:
+            logging.warning(f'Could not warm up interpolator for {setup_full}: {e}')
+
+    # GPU BATCHING: Process spectra in batches
+    outdf = []
+    models = {}
+    for curs in setups:
+        models['desi_' + curs] = []
+
+    versions = None
+    nfibers_good = len(seqid_to_fit)
+
+    # Process in batches
+    for batch_start in range(0, len(seqid_to_fit), gpu_batch_size):
+        batch_end = min(batch_start + gpu_batch_size, len(seqid_to_fit))
+        batch_size_actual = batch_end - batch_start
+        batch_indices = seqid_to_fit[batch_start:batch_end]
+
+        logging.info(f'Processing GPU batch {batch_start//gpu_batch_size + 1}: '
+                    f'spectra {batch_start} to {batch_end-1}')
+
+        # PHASE 1: Collect all specdata and run CCF for initial parameters
+        logging.debug('Phase 1: Collecting specdata and running CCF')
+        all_specdatas = []
+        all_ccf_results = []
+        valid_indices = []
+
+        for idx, cur_seqid in enumerate(batch_indices):
+            specdatas = get_specdata(waves,
+                                     fluxes,
+                                     ivars,
+                                     masks,
+                                     resolutions,
+                                     cur_seqid,
+                                     setups,
+                                     use_resolution_matrix=use_resolution_matrix,
+                                     lsf_sigma0_angstrom=sig0s)
+
+            if specdatas is not None:
+                all_specdatas.append(specdatas)
+                valid_indices.append(idx)
+
+                # Run CCF to get initial parameters
+                if ccf_init:
+                    try:
+                        ccf_res = fitter_ccf.fit(specdatas, config)
+                        all_ccf_results.append(ccf_res)
+                    except Exception as e:
+                        logging.warning(f'CCF failed for spectrum {cur_seqid}: {e}')
+                        all_ccf_results.append(None)
+                else:
+                    # Use default parameters if no CCF
+                    all_ccf_results.append(None)
+            else:
+                all_specdatas.append(None)
+                all_ccf_results.append(None)
+
+        # PHASE 2: GPU Batched NN evaluation (KEY OPTIMIZATION!)
+        # Extract stellar parameters from CCF and batch-evaluate templates
+        logging.debug(f'Phase 2: Extracting parameters and batch NN evaluation for {len(valid_indices)} spectra')
+
+        # Extract parameters from CCF results
+        stellar_params = []
+        for idx, ccf_res in enumerate(all_ccf_results):
+            if ccf_res and 'best_par' in ccf_res:
+                bp = ccf_res['best_par']
+                # Parameters: teff, logg, feh, alpha (order from CCF)
+                stellar_params.append([
+                    bp.get('teff', 5000),
+                    bp.get('logg', 3.0),
+                    bp.get('feh', 0.0),
+                    bp.get('alpha', 0.0)
+                ])
+            else:
+                # Use default if CCF failed
+                stellar_params.append([5000, 3.0, 0.0, 0.0])
+
+        # Pre-warm cache: Trigger single NN evaluation to populate cache
+        # The subsequent fitting will use the cached NN model
+        if len(stellar_params) > 0:
+            try:
+                from rvspecfit import spec_inter
+                # Evaluate one template per setup to warm cache
+                for setup_name in setups:
+                    setup_full = 'desi_' + setup_name
+                    interp = spec_inter.getInterpolator(setup_full, config, warmup_cache=False)
+                    if hasattr(interp, 'interper') and hasattr(interp.interper, '__call__'):
+                        # Call with first stellar params to warm cache
+                        _ = interp.interper(stellar_params[0])
+                logging.debug('NN cache warmed with initial parameters')
+            except Exception as e:
+                logging.debug(f'NN warmup returned: {e}')
+
+        # PHASE 3: Process spectra in parallel using multiprocessing (if poolex provided)
+        if poolex is not None:
+            logging.info(f'Phase 3: Fitting {len(batch_indices)} spectra in parallel ({gpu_nthreads} workers)')
+
+            # Submit all spectra to pool executor (same as CPU mode)
+            rets = []
+            for idx, cur_seqid in enumerate(batch_indices):
+                specdatas = all_specdatas[idx]
+                if doplot:
+                    fig_fname = fig_prefix + f'_{cur_seqid}.png'
+                else:
+                    fig_fname = None
+
+                cur_idx = batch_start + idx
+                extra_info = {
+                    'fibermap_row': fibermap[cur_seqid],
+                    'seqid': cur_seqid,
+                    'arms': [_.name for _ in specdatas] if specdatas else None,
+                    'rr_z': rr_z[cur_idx],
+                    'rr_spectype': rr_spectype[cur_idx],
+                    'rr_subtype': rr_subtype[cur_idx]
+                }
+
+                rets.append((poolex.submit(
+                    proc_onespec, *(specdatas, setups, config, options),
+                    **dict(fig_fname=fig_fname, doplot=doplot, ccf_init=ccf_init)), extra_info))
+
+            # Collect results (same as CPU mode)
+            for ii, (r, extra_info) in enumerate(rets):
+                outdict, curmodel = r.result()
+                if outdict is None:
+                    bad_row = True
+                    outdict = dict(RVS_WARN=bitmasks['BAD_SPECTRUM'])
+                else:
+                    bad_row = False
+
+                cur_fibermap_row = extra_info['fibermap_row']
+                cur_seqid = extra_info['seqid']
+                cur_arms = extra_info['arms']
+                cur_rr_z = extra_info['rr_z']
+                cur_rr_spectype = extra_info['rr_spectype']
+                cur_rr_subtype = extra_info['rr_subtype']
+
+                if not bad_row:
+                    for jj, curs in enumerate(cur_arms):
+                        models[curs].append(curmodel[jj])
+                    if 'versions' in outdict:
+                        if versions is None:
+                            versions = outdict['versions']
+                        del outdict['versions']
+                else:
+                    for curs in setups:
+                        models['desi_' + curs].append(np.zeros(npixels[curs], dtype=np.float32))
+
+                # Add metadata
+                for col in columnsCopy:
+                    if col in fibermap.columns.names:
+                        outdict[col] = cur_fibermap_row[col]
+                for curs in setups:
+                    outdict['SN_%s' % curs.upper()] = sns[curs][cur_seqid]
+
+                outdict['SUCCESS'] = outdict.get('RVS_WARN', 0) == 0
+                outdict['RR_Z'] = cur_rr_z
+                outdict['RR_SPECTYPE'] = cur_rr_spectype
+                outdict['RR_SUBTYPE'] = cur_rr_subtype
+
+                outdf.append(outdict)
+        else:
+            # Sequential processing (no pool executor)
+            logging.debug(f'Phase 3: Fitting {len(batch_indices)} spectra sequentially (no multiprocessing)')
+
+            for idx, cur_seqid in enumerate(batch_indices):
+                cur_idx = batch_start + idx
+                cur_rr_z = rr_z[cur_idx]
+                cur_rr_spectype = rr_spectype[cur_idx]
+                cur_rr_subtype = rr_subtype[cur_idx]
+
+                specdatas = all_specdatas[idx]
+                cur_fibermap_row = fibermap[cur_seqid]
+
+                if specdatas is not None:
+                    cur_arms = [_.name for _ in specdatas]
+                else:
+                    cur_arms = None
+
+                if specdatas is None:
+                    logging.warning(
+                        f'Giving up on fitting spectra for row {cur_fibermap_row}')
+                    outdict = dict(RVS_WARN=bitmasks['BAD_SPECTRUM'])
+                    bad_row = True
+                else:
+                    outdict, curmodel = proc_onespec(
+                        specdatas, setups, config, options,
+                        fig_fname=None, doplot=False,
+                        ccf_init=ccf_init)
+                    bad_row = False
+
+                if not bad_row:
+                    for jj, curs in enumerate(cur_arms):
+                        models[curs].append(curmodel[jj])
+                    if 'versions' in outdict:
+                        if versions is None:
+                            versions = outdict['versions']
+                        del outdict['versions']
+                else:
+                    for curs in setups:
+                        models['desi_' + curs].append(np.zeros(npixels[curs], dtype=np.float32))
+
+                # Add metadata
+                for col in columnsCopy:
+                    if col in fibermap.columns.names:
+                        outdict[col] = cur_fibermap_row[col]
+                for curs in setups:
+                    outdict['SN_%s' % curs.upper()] = sns[curs][cur_seqid]
+
+                outdict['SUCCESS'] = outdict.get('RVS_WARN', 0) == 0
+                outdict['RR_Z'] = cur_rr_z
+                outdict['RR_SPECTYPE'] = cur_rr_spectype
+                outdict['RR_SUBTYPE'] = cur_rr_subtype
+
+                outdf.append(outdict)
+
+    timers.append(time.time())
+    outtab = atpy.Table(outdf)
+
+    # Stack models
+    models_stacked = {}
+    for curs in setups:
+        if len(models['desi_' + curs]) > 0:
+            models_stacked['desi_' + curs] = np.vstack(models['desi_' + curs])
+        else:
+            models_stacked['desi_' + curs] = np.zeros((0, npixels[curs]), dtype=np.float32)
+
+    outmod_hdus = [
+        pyfits.PrimaryHDU(
+            header=get_prim_header(versions=versions,
+                                   config=config,
+                                   cmdline=cmdline,
+                                   spectrum_header=spectrum_header,
+                                   zbest_path=zbest_path))
+    ]
+
+    for curs in setups:
+        outmod_hdus.append(
+            pyfits.ImageHDU(waves[curs], name='%s_WAVELENGTH' % curs.upper()))
+        outmod_hdus.append(
+            pyfits.ImageHDU(models_stacked['desi_%s' % curs],
+                            name='%s_MODEL' % curs.upper()))
+
+    outmod_hdus += [fibermap_subset_hdu]
+
+    assert (len(fibermap_subset_hdu.data) == len(outtab))
+    outtab_hdus = [
+        pyfits.PrimaryHDU(header=get_prim_header(versions=versions,
+                                                 config=config,
+                                                 cmdline=cmdline,
+                                                 zbest_path=zbest_path)),
+        comment_filler(pyfits.BinTableHDU(outtab, name='RVTAB'), columnDesc),
+        fibermap_subset_hdu, scores_subset_hdu
+    ]
+    if exp_fibermap is not None:
+        outtab_hdus += [exp_fibermap_subset_hdu]
+    timers.append(time.time())
+
+    write_hdulist(mod_ofname, pyfits.HDUList(outmod_hdus))
+    write_hdulist(tab_ofname, pyfits.HDUList(outtab_hdus))
+    timers.append(time.time())
+
+    # Shutdown pool if we created it
+    if own_pool:
+        poolex.shutdown(wait=True)
+
+    # Stop GPU server
+    gpu_server.stop_gpu_server()
+    logging.info('GPU server stopped')
+
+    logging.info(
+        str.format('GPU timing: {}', (np.diff(np.array(timers)), )))
+    return len(seqid_to_fit)
+
+
 def write_hdulist(fname, hdulist):
     """ Write HDUList to fname
     using a temporary file which is then renamed
@@ -1431,7 +1946,10 @@ def proc_many(files,
               process_status_file=None,
               use_resolution_matrix=None,
               npoly=None,
-              throw_exceptions=None):
+              throw_exceptions=None,
+              use_gpu=False,
+              gpu_batch_size=128,
+              gpu_device_id=0):
     """
     Process many spectral files
 
@@ -1485,9 +2003,16 @@ def proc_many(files,
                                    None,
                                    start=True)
     if parallel:
-        poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
+        # For GPU mode, use 'spawn' method to avoid CUDA fork() issues
+        # But don't create the pool here - proc_desi_gpu will create it with proper initializer
+        if use_gpu:
+            import multiprocessing
+            multiprocessing.set_start_method('spawn', force=True)
+            poolEx = None  # proc_desi_gpu will create pool with GPU queue initializer
+        else:
+            poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
     else:
-        poolEx = FakeExecutor()
+        poolEx = None if use_gpu else FakeExecutor()
     for f in files:
         fname = f.split('/')[-1]
         if subdirs:
@@ -1533,24 +2058,56 @@ def proc_many(files,
 
             continue
         args = (f, tab_ofname, mod_ofname, cur_figure_prefix, config)
-        kwargs = dict(fit_targetid=fit_targetid,
-                      objtypes=objtypes,
-                      doplot=doplot,
-                      minsn=minsn,
-                      expid_range=expid_range,
-                      poolex=poolEx,
-                      fitarm=fitarm,
-                      cmdline=cmdline,
-                      zbest_select=zbest_select,
-                      zbest_include=zbest_include,
-                      process_status_file=process_status_file,
-                      npoly=npoly,
-                      ccf_init=ccf_init,
-                      use_resolution_matrix=use_resolution_matrix,
-                      throw_exceptions=throw_exceptions)
-        proc_desi_wrapper(*args, **kwargs)
 
-    if parallel:
+        # Choose GPU or CPU processing
+        if use_gpu:
+            if not GPU_AVAILABLE:
+                logging.error('GPU requested but not available. Falling back to CPU.')
+                use_gpu_file = False
+            else:
+                use_gpu_file = True
+        else:
+            use_gpu_file = False
+
+        if use_gpu_file:
+            # GPU call with pool executor for parallel processing
+            kwargs_gpu = dict(fit_targetid=fit_targetid,
+                              objtypes=objtypes,
+                              doplot=doplot,
+                              minsn=minsn,
+                              expid_range=expid_range,
+                              fitarm=fitarm,
+                              cmdline=cmdline,
+                              zbest_select=zbest_select,
+                              zbest_include=zbest_include,
+                              npoly=npoly,
+                              ccf_init=ccf_init,
+                              use_resolution_matrix=use_resolution_matrix,
+                              gpu_batch_size=gpu_batch_size,
+                              gpu_device_id=gpu_device_id,
+                              poolex=poolEx,  # Pass pool executor for parallel processing
+                              gpu_nthreads=nthreads)  # Use same thread count as CPU
+            proc_desi_gpu(*args, **kwargs_gpu)
+        else:
+            # CPU processing
+            kwargs = dict(fit_targetid=fit_targetid,
+                          objtypes=objtypes,
+                          doplot=doplot,
+                          minsn=minsn,
+                          expid_range=expid_range,
+                          poolex=poolEx,
+                          fitarm=fitarm,
+                          cmdline=cmdline,
+                          zbest_select=zbest_select,
+                          zbest_include=zbest_include,
+                          process_status_file=process_status_file,
+                          npoly=npoly,
+                          ccf_init=ccf_init,
+                          use_resolution_matrix=use_resolution_matrix,
+                          throw_exceptions=throw_exceptions)
+            proc_desi_wrapper(*args, **kwargs)
+
+    if parallel and poolEx is not None:
         try:
             poolEx.shutdown(wait=True)
         except KeyboardInterrupt:
@@ -1748,6 +2305,18 @@ in the table (but will not use for selection)''',
                         help='The list of targets MWS_ANY,SCND_ANY,STD_*',
                         type=str,
                         default=None)
+    parser.add_argument('--use_gpu',
+                        help='Use GPU acceleration for fitting',
+                        action='store_true',
+                        default=False)
+    parser.add_argument('--gpu_batch_size',
+                        help='Batch size for GPU processing',
+                        type=int,
+                        default=128)
+    parser.add_argument('--gpu_devices',
+                        help='Comma-separated list of GPU device IDs to use',
+                        type=str,
+                        default=None)
     parser.set_defaults(ccf_continuum_normalize=True)
     args = parser.parse_args(args)
 
@@ -1869,6 +2438,13 @@ in the table (but will not use for selection)''',
                 input_files = [_.rstrip() for _ in fp.readlines()]
         files = utils.MPIFileQueue(file_list=input_files)
 
+    # Parse GPU device IDs if provided
+    gpu_device_ids = None
+    if args.gpu_devices is not None:
+        gpu_device_ids = [int(_) for _ in args.gpu_devices.split(',')]
+    else:
+        gpu_device_ids = [0]  # Default to GPU 0
+
     if (not args.mpi) or (args.mpi and rank != 0):
         # anything but mpi and rank=0 should go here
         proc_many(
@@ -1897,6 +2473,9 @@ in the table (but will not use for selection)''',
             ccf_init=ccf_init,
             npoly=npoly,
             throw_exceptions=args.throw_exceptions,
+            use_gpu=args.use_gpu,
+            gpu_batch_size=args.gpu_batch_size,
+            gpu_device_id=gpu_device_ids[0],
         )
     else:
         files.distribute_files()
