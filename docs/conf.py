@@ -17,28 +17,28 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../py/'))
-fp = open('../py/rvspecfit/_version.py', 'w')
-print('version="dev"', file=fp)
-fp.close()
+# This is needed if using local version
+# sys.path.insert(0, os.path.abspath('../py/'))
+# fp = open('../py/rvspecfit/_version.py', 'w')
+# print('version="dev"', file=fp)
+# fp.close()
 import rvspecfit
 
 # -- Project information -----------------------------------------------------
 
 project = 'rvspecfit'
-copyright = '2020, Sergey Koposov'
+copyright = '2025, Sergey Koposov'
 author = 'Sergey Koposov'
 
-master_doc = 'index'  ## see https://github.com/readthedocs/readthedocs.org/issues/2569
+master_doc = 'index'
+# see https://github.com/readthedocs/readthedocs.org/issues/2569
 
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    'recommonmark', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary'
-]
+extensions = ['recommonmark', 'sphinx.ext.autodoc', 'sphinx.ext.autosummary']
 autosummary_generate = False
 
 # Add any paths that contain templates here, relative to this directory.
