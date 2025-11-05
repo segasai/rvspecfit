@@ -38,6 +38,7 @@ def read_config(fname=None, override_options=None):
         current directory is used
     override_options: dictionary, optional
         Update the options
+
     Returns
     -------
     config: frozendict

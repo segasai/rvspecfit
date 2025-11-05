@@ -598,9 +598,11 @@ def get_chisq(specdata,
     espec_systematic: dict or float
         This will be added in quadrature to the error vector when computing
         logl. If it is a dict it must be indexed by the spec setup otherwise
+
         this constant will be used for all spectra.
     outside_penalty: bool
         if true the chi^2 will be penalize for being outside of the grid
+
     Returns
     -------
     ret: float or dictionary

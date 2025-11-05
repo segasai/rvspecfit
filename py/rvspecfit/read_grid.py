@@ -116,9 +116,7 @@ class LogParamMapper:
     Class used to map stellar atmospheric parameters into more suitable
     space used for interpolation
 
-    .. autosummary::
-        forward
-        inverse
+
     """
 
     def __init__(self, log_ids):

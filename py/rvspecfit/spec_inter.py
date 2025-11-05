@@ -197,9 +197,7 @@ class GridInterp:
 class SpecInterpolator:
     """ Spectrum interpolator object
 
-    .. autosummary::
-        eval
-        outsideFlag
+
     """
 
     def __init__(self,
@@ -265,7 +263,8 @@ class SpecInterpolator:
             parameter vector
 
         Returns
-        ret: float
+        -------
+        ret : float
             > 0 if point outside the grid
 
         """

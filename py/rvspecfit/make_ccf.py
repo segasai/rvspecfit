@@ -344,6 +344,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
         The optional mask for the CCF
     maxerr: integer
         The maximum value of error to be masked in units of median(error)
+
     Returns
     -------
     cap_spec: numpy array
