@@ -195,7 +195,12 @@ class GridInterp:
 
 
 class SpecInterpolator:
-    """ Spectrum interpolator object """
+    """ Spectrum interpolator object
+
+    .. autosummary::
+        eval
+        outsideFlag
+    """
 
     def __init__(self,
                  name,

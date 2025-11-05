@@ -115,6 +115,10 @@ class LogParamMapper:
     """
     Class used to map stellar atmospheric parameters into more suitable
     space used for interpolation
+
+    .. autosummary::
+        forward
+        inverse
     """
 
     def __init__(self, log_ids):
@@ -184,7 +188,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
         The dictionary with the map of teff,logg,feh,alpha to keyword names
         in the headers
     mask: string
-        The string how to identify spectral files, i.e. '*/*fits'
+        The string how to identify spectral files, i.e. ``*/*fits``
     extra_params: dict or None
         The dictionary of variable name vs FITS name to read from spectral
         files
@@ -268,12 +272,13 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
     -------
     lam: ndarray
         1-D array of wavelength
-    spec: ndarray
+        spec: ndarray
         1-D array of spectrum
-    Example
-    -------
-    >>> lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,feh=-1,alpha=0.4))
-
+    
+    Examples
+    --------
+    > lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,feh=-1,alpha=0.4))
+    
     """
 
     # We don't look for equality we look around the value with the following

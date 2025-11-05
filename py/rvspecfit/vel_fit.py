@@ -118,6 +118,7 @@ class ParamMapper:
     """
     This class constructs the dictionary with human readable parameters
     out of the vector, as well as taking into account which params are fixed
+
 """
 
     def __init__(self,
@@ -155,6 +156,16 @@ class ParamMapper:
         vsini is optional
         stellar parameters are in the order given by specParams
         and the ones with fixParam are excluded
+        
+        Parameters
+        ----------
+        p0: array
+            Vector with parameter values
+
+        Returns
+        -------
+        ret: dictionary
+            The dict with all the parameter values
         """
         ret = {}
         p0rev = list(p0)[::-1]
