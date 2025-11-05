@@ -39,6 +39,7 @@ master_doc = 'index'  ## see https://github.com/readthedocs/readthedocs.org/issu
 extensions = [
     'recommonmark', 'sphinx.ext.autodoc', 'numpydoc', 'sphinx.ext.autosummary'
 ]
+autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
