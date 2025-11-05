@@ -19,6 +19,8 @@ numpy, scipy, astropy, pyyaml, matplotlib, numdifftools, pandas
 
 Optional: torch, scikit-learn
 
+License: MIT
+
 # Introduction
 
 The code here can perform radial velocity fitting and general spectral fitting

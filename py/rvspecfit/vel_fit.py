@@ -30,8 +30,8 @@ def firstguess(specdata,
         Optional dictionary of options
     config: dict
         Optional dictionary config
-    resolParams: tuple
-        Resolution parameters
+    resolParams: dict
+        dictionary indexed by the spectroscopic setup with resolution matrices
     paramsgrid: dictionary
         (optional) dictionary of template parameters to iterate over
         The default value is
@@ -156,7 +156,7 @@ class ParamMapper:
         vsini is optional
         stellar parameters are in the order given by specParams
         and the ones with fixParam are excluded
-        
+
         Parameters
         ----------
         p0: array
@@ -520,8 +520,8 @@ def process(specdata,
         Extra dictionary with Normal priors on paramaters
         I.e. {'teff':(5000,10)} for N(5000,10) prior on the
         effective temperature
-    resolParams: tuple
-        Tuple of parameters for the resolution of current spectrum.
+    resolParams: dictionary
+        dictionary of matrices for the resolution of current spectrum.
 
     Returns
     -------
