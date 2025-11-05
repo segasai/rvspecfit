@@ -31,7 +31,7 @@ def test_fits():
         spec_fit.SpecData('sdss1', 10**dat['loglam'], dat['flux'], err)
     ]
     rot_params = None
-    resols_params = None
+    resol_params = None
 
     params_list = [[4000, 3, -1, 0], [5000, 3, -1, 0], [6000, 2, -2, 0],
                    [5500, 5, 0, 0]]
@@ -42,8 +42,8 @@ def test_fits():
     res = spec_fit.find_best(specdata,
                              vel_grid,
                              params_list,
-                             rot_params,
-                             resols_params,
+                             rot_params=rot_params,
+                             resol_params=resol_params,
                              options=options,
                              config=config)
     t2 = time.time()
@@ -54,7 +54,7 @@ def test_fits():
     param0 = vel_fit.firstguess(specdata, options=options, config=config)
     resfull = vel_fit.process(specdata,
                               param0,
-                              resols_params,
+                              resolParams=resol_params,
                               options=options,
                               config=config)
     chisquare = np.mean(
@@ -66,8 +66,8 @@ def test_fits():
     ret = spec_fit.get_chisq(specdata,
                              bestv,
                              bestpar,
-                             rot_params,
-                             resols_params,
+                             rot_params=rot_params,
+                             resol_params=resol_params,
                              options=options,
                              config=config,
                              full_output=True)
@@ -78,12 +78,12 @@ def test_fits():
     # Test the fit with the resolution matrix
     rot_params = None
     resol_mat = spec_fit.construct_resol_mat(specdata[0].lam, 50)
-    resols_params = {'sdss1': resol_mat}
+    resol_params = {'sdss1': resol_mat}
     ret = spec_fit.get_chisq(specdata,
                              bestv,
                              bestpar,
                              rot_params,
-                             resol_params=resols_params,
+                             resol_params=resol_params,
                              options=options,
                              config=config,
                              full_output=True)
@@ -91,6 +91,12 @@ def test_fits():
     plt.plot(specdata[0].lam, specdata[0].spec, 'k')
     plt.plot(specdata[0].lam, ret['models'][0], 'r')
     plt.savefig(path + '/plot_sdss_test2.png')
+    # fit again with resolParams
+    resfull = vel_fit.process(specdata,
+                              param0,
+                              resolParams=resol_params,
+                              options=options,
+                              config=config)
     resol_mat = spec_fit.construct_resol_mat(specdata[0].lam, 50)
     specdata = [
         spec_fit.SpecData('sdss1',
@@ -117,7 +123,7 @@ def test_fits():
         specdata,
         bestv,
         bestpar,
-        rot_params,
+        rot_params=rot_params,
         options=options,
         config=config,
     )
@@ -125,14 +131,14 @@ def test_fits():
         specdata,
         bestv,
         bestpar,
-        rot_params,
+        rot_params=rot_params,
         options=options,
         config=config,
         espec_systematic={'sdss1': specdata[0].spec * 0.01})
     ret1 = spec_fit.get_chisq(specdata,
                               bestv,
                               bestpar,
-                              rot_params,
+                              rot_params=rot_params,
                               options=options,
                               config=config,
                               espec_systematic=specdata[0].spec * 0.01)
