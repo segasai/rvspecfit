@@ -204,7 +204,6 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
 
     Parameters
     ----------
-
     spec: numpy
         Spectrum array
     templ: numpy
@@ -219,7 +218,7 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
         uncertainty
 
     Returns
-    --------
+    -------
     chisq: real
         Chi-square of the data
     coeffs: numpy
@@ -270,7 +269,7 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
     given config
 
     Parameters
-    -----------
+    ----------
     spec_setup: string
         The name of the spectroscopic setup
     atm_param: tuple
@@ -449,14 +448,14 @@ def getRVInterpol(lam_templ, templ, log_step=True):
     wavelengths
 
     Parameters
-    -----------
+    ----------
     lam_templ: numpy
         Wavelength array
     templ: numpy
         Spectral array
 
     Returns
-    --------
+    -------
     interpol: scipy.interpolate object
         The object that can be used to evaluate template at any wavelength
     """
@@ -471,7 +470,7 @@ def evalRV(interpol, vel, lams):
     wavelengths
 
     Parameters
-    -----------
+    ----------
     interpol: scipy.interpolate object
         Template interpolator
     vel: real
@@ -480,7 +479,7 @@ def evalRV(interpol, vel, lams):
         Wavelength array
 
     Returns
-    --------
+    -------
     spec: numpy
         Evaluated spectrum
     """

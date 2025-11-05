@@ -21,12 +21,12 @@ def getedgevertices(vec):
     around the data
 
     Parameters
-    -----------
+    ----------
     vec: numpy (Ndim, Npts)
         The array of input points
 
     Returns
-    --------
+    -------
     vec: numpy (Ndim, Nretpts)
         The returned array of surrounding points
     """
@@ -57,7 +57,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     spec_setup.
 
     Parameters
-    -----------
+    ----------
     spec_setup: string
         The spectroscopic configuration
     prefix: string

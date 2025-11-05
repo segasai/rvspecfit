@@ -89,7 +89,7 @@ def pix_integrator(x1, x2, l1, l2, s):
     l2: ndarray
     s: ndarray
 
-    Results
+    Returns
     -------
     ret: tuple of ndarray
         Two weights for the integral (c1,c2) i.e. if the fluxes at x1,x2 are
@@ -128,12 +128,12 @@ class LogParamMapper:
         interpolation. That includes logarithming the teff
 
         Parameters
-        -----------
+        ----------
         vec: numpy array
             The vector of atmospheric parameters i.e. Teff, logg, feh, alpha
 
         Returns
-        ----------
+        -------
         ret: numpy array
             The vector of transformed parameters used in interpolation
         """
@@ -149,13 +149,13 @@ class LogParamMapper:
         log10(teff)
 
         Parameters
-        -----------
+        ----------
         vec: numpy array
             The vector of transformed atmospheric parameters
             log(Teff), logg, feh, alpha
 
         Returns
-        ----------
+        -------
         ret: numpy array
             The vector of original atmospheric parameters.
     """
@@ -314,7 +314,7 @@ def make_rebinner(lam00,
     a given resolution and new wavelength grid
 
     Parameters
-    -----------
+    ----------
     lam00: array
         The input wavelength grid of the templates
     lam: array
@@ -329,7 +329,7 @@ def make_rebinner(lam00,
         The resolution of input templates
 
     Returns
-    --------
+    -------
     The sparse matrix to perform interpolation
     """
     if toair:
@@ -438,8 +438,8 @@ def rebin(lam0, spec0, newlam, resolution):
     spec: ndarray
         Rebinned spectrum
 
-    Example
-    -------
+    Examples
+    --------
     >>> lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,feh=-1,alpha=0.4))
     >>> newlam = np.linspace(4000,9000,4000)
     >>> newspec=read_grid.rebin(lam, spec, newlam, 1800)

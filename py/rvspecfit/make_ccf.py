@@ -169,7 +169,7 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
     That includes padding, apodizing and normalizing by continuum
 
     Parameters
-    -----------
+    ----------
     logl: numpy array
         The array of log wavelengths on which we want to outputted spectra
     lammodel: numpy array
@@ -182,7 +182,7 @@ def preprocess_model(logl, lammodel, model0, vsini=None, ccfconf=None):
         The CCF configuration object
 
     Returns
-    --------
+    -------
 
     xlogl: Numpy array
         The log-wavelength of the resulting processed model0
@@ -290,7 +290,7 @@ def interp_masker(lam, spec, badmask):
     using the value of the closest valid pixel.
 
     Parameters
-    -----------
+    ----------
     lam: numpy array
         The array of wavelengths of pixels
     spec: numpy array
@@ -299,7 +299,7 @@ def interp_masker(lam, spec, badmask):
         The array identifying bad pixels
 
     Returns
-    --------
+    -------
     spec: numpy array
         The array with bad pixels interpolated away
 
@@ -331,7 +331,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     the continuum, apodize and pad
 
     Parameters
-    -----------
+    ----------
     lam: numpy array
         The wavelength vector
     spec0: numpy array
@@ -345,6 +345,7 @@ def preprocess_data(lam, spec0, espec, ccfconf=None, badmask=None, maxerr=10):
     maxerr: integer
         The maximum value of error to be masked in units of median(error)
     Returns
+    -------
     cap_spec: numpy array
         The processed apodized/normalized/padded spectrum
 
@@ -422,7 +423,7 @@ def ccf_executor(spec_setup,
     Prepare the FFT transformations for the CCF
 
     Parameters
-    -----------
+    ----------
     spec_setup: string
         The name of the spectroscopic spec_setup
     ccfconf: CCFConfig

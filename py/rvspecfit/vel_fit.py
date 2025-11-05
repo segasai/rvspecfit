@@ -35,12 +35,15 @@ def firstguess(specdata,
     paramsgrid: dictionary
         (optional) dictionary of template parameters to iterate over
         The default value is
-        paramsgrid = {
-            'logg': [1, 2, 3, 4, 5],
-            'teff': [3000, 5000, 8000, 10000],
-            'feh': [-2, -1, 0],
-            'alpha': [0]
-        }
+
+        .. code-block:: python
+
+            paramsgrid = {
+                'logg': [1, 2, 3, 4, 5],
+                'teff': [3000, 5000, 8000, 10000],
+                'feh': [-2, -1, 0],
+                'alpha': [0]
+            }
     vsinigrid: tuple
         (optional) list of vsinis to consider
 
@@ -522,8 +525,8 @@ def process(specdata,
         of marginalization)
         'chisq_array' -- array of proper chi-squares of the mode
 
-    Example
-    -------
+    Examples
+    --------
 
     >>> ret = process(specdata, {'logg':10, 'teff':30, 'alpha':0, 'feh':-1,
         'vsini':0}, fixParam = ('feh','vsini'),

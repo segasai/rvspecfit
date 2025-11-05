@@ -48,14 +48,14 @@ def get_line_continuum(lam, spec):
     remove away continuum trends in templates
 
     Parameters
-    -----------
+    ----------
     lam: numpy array
         Wavelength vector
     spec: numpy array
         spectrum
 
     Returns
-    --------
+    -------
     cont: numpy array
         Continuum model
 
@@ -100,7 +100,7 @@ def extract_spectrum(param,
     smearing and divide by the continuum
 
     Parameters
-    -----------
+    ----------
     param: dict
         The dictionary of key value pairs of parameters
     dbfile: string
@@ -212,7 +212,7 @@ def process_all(setupInfo,
     parameters
 
     Parameters
-    -----------
+    ----------
     setupInfo: string
         The name of spectral configuration
     parnames: list of strings

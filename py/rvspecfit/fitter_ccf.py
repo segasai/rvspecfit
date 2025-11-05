@@ -21,7 +21,7 @@ def get_ccf_info(spec_setup, config):
     setup
 
     Parameters
-    -----------
+    ----------
     spec_setup: string
         The spectroscopic setup needed
     config: dict
@@ -61,7 +61,7 @@ def fit(specdata, config):
     Process the data by doing cross-correlation with templates
 
     Parameters
-    -----------
+    ----------
     specdata: list of SpecData objects
         The list of data that needs to be fitted from different spectral
         setups.
@@ -69,6 +69,7 @@ def fit(specdata, config):
         The configuration dictionary
 
     Returns
+    -------
     results: dict
         The dictionary with results such as best template parameters,
         best velocity, best vsini.
