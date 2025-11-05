@@ -316,7 +316,7 @@ The ``RVS_WARN`` bitmask indicates potential issues:
 - **64 (BAD_HESSIAN)**: Issue with error estimation (Hessian matrix)
 
 DESI Data Integration
---------------------
+---------------------
 
 File Format Support
 ^^^^^^^^^^^^^^^^^^^

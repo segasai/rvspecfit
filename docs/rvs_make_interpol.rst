@@ -1,5 +1,5 @@
 rvs_make_interpol
-================
+=================
 
 The ``rvs_make_interpol`` command processes stellar template spectra by convolving them to a target resolution and rebinning them to a common wavelength grid. This is the second step in the rvspecfit template preparation pipeline.
 
