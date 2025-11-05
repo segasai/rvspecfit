@@ -14,6 +14,7 @@ import functools  # noqa: E402
 import operator  # noqa: E402
 import logging  # noqa: E402
 import enum  # noqa: E402
+import multiprocessing  # noqa: E402
 from importlib.metadata import version as get_package_version  # noqa: E402
 import concurrent.futures  # noqa: E402
 import astropy.table as atpy  # noqa: E402
@@ -1485,7 +1486,8 @@ def proc_many(files,
                                    None,
                                    start=True)
     if parallel:
-        poolEx = concurrent.futures.ProcessPoolExecutor(nthreads)
+        poolEx = concurrent.futures.ProcessPoolExecutor(
+            nthreads, mp_context=multiprocessing.get_context("spawn"))
     else:
         poolEx = FakeExecutor()
     for f in files:

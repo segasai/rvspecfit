@@ -255,7 +255,8 @@ def preprocess_model_list(lammodels,
         vsinis = [None]
     vsinisList = []
     if nthreads > 1:
-        pool = mp.Pool(nthreads)
+        ctx = mp.get_context('spawn')
+        pool = ctx.Pool(nthreads)
     q = []
     for imodel, m0 in enumerate(models):
         for vsini in vsinis:

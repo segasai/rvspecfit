@@ -269,7 +269,8 @@ def process_all(setupInfo,
     lognorms = np.zeros(nspec)
     if nthreads > 1:
         multi_thread = True
-        pool = mp.Pool(nthreads, initialize_matrix_cache, (mat, lamgrid))
+        ctx = mp.get_context('spawn')
+        pool = ctx.Pool(nthreads, initialize_matrix_cache, (mat, lamgrid))
     else:
         multi_thread = False
         pool = FakePool()

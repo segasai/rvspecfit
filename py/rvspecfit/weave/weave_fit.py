@@ -286,7 +286,8 @@ def proc_many(files,
         parallel = False
 
     if parallel:
-        pool = mp.Pool(nthreads)
+        ctx = mp.get_context('spawn')
+        pool = ctx.Pool(nthreads)
     for f in files:
         res = []
         fname = f.split('/')[-1]
