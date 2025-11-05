@@ -17,12 +17,16 @@ Optional packages:
 - torch (for neural network interpolation)
 - scikit-learn
 
-PHOENIX Library Setup
-~~~~~~~~~~~~~~~~~~~~~
+PHOENIX Library
+~~~~~~~~~~~~~~~
 
 RVSpecFit requires the PHOENIX spectral library v2.0. Download it from:
-https://phoenix.astro.physik.uni-goettingen.de/v2.0/HiResFITS/
+ftp://phoenix.astro.physik.uni-goettingen.de/HiResFITS/
 
 .. code-block:: bash
 
    wget -r -np -l 10 https://phoenix.astro.physik.uni-goettingen.de/data/v2.0/HiResFITS/
+
+
+
+See :doc:`template_preparation` for next steps

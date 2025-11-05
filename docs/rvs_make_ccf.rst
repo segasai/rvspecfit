@@ -116,19 +116,6 @@ Create templates for each DESI channel:
                 --vsinis 0,300 \
                 --prefix ./desi_templates/
 
-High-Resolution Echelle Spectrograph
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code-block:: bash
-
-   rvs_make_ccf --setup echelle \
-                --lambda0 4000 --lambda1 8000 \
-                --step 0.1 \
-                --every 10 \
-                --vsinis 0,5,10,20,50 \
-                --prefix ./echelle_templates/ \
-                --nthreads 16
-
 Without Continuum Normalization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -142,7 +129,7 @@ For applications where continuum normalization is not desired:
                 --nocontinuum \
                 --prefix ./templates/
 
-Fast Processing
+Multi-threading
 ^^^^^^^^^^^^^^^
 
 For quick testing or when computational resources are limited:
@@ -245,32 +232,6 @@ When continuum normalization is enabled (default):
 
 The continuum fitting parameters are automatically optimized based on the wavelength range and spectral resolution.
 
-Memory and Performance
-----------------------
-
-**Memory Usage:**
-- Depends on template grid size and FFT dimensions
-- Typical usage: 1-10 GB for large surveys
-- Scales with: number_templates × number_wavelength_points × number_vsinis
-
-**Processing Time:**
-- Scales with number of templates and wavelength points
-- FFT computation is the most expensive step
-- Parallelized across templates using ``--nthreads``
-
-**Storage Requirements:**
-- FFT files can be large (100s of MB to GB)
-- Storage scales with template count and wavelength range
-
-Quality Control
----------------
-
-To verify CCF template quality:
-
-1. **Coverage Check**: Ensure templates span the required parameter space
-2. **Sampling Uniformity**: Verify ``--every`` provides adequate sampling
-3. **Wavelength Range**: Confirm coverage matches observational data
-4. **Continuum Quality**: Check continuum fits for representative templates
 
 Integration with rvspecfit
 --------------------------

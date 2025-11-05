@@ -27,16 +27,16 @@ Quick Start
 Installation
 ~~~~~~~~~~~~
 
-Install the latest version directly from GitHub:
+Install the latest version from PyPI:
 
 .. code-block:: bash
 
-   pip install https://github.com/segasai/rvspecfit/archive/master.zip
+   pip install rvspecfit
 
 Basic Usage
 ~~~~~~~~~~~
 
-Here's a minimal example of fitting a spectrum:
+Here's a minimal example of fitting a spectrum (but keep in mind that you will need to build the library of templates first).
 
 .. code-block:: python
 
