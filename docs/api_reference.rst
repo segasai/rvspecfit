@@ -23,3 +23,18 @@ This is the API reference for the rvspecfit package.
 
 .. automodule:: rvspecfit.read_grid
    :members:
+
+.. automodule:: rvspecfit.regularize_grid
+   :members:
+
+.. automodule:: rvspecfit.serializer
+   :members:
+
+.. automodule:: rvspecfit.spec_inter
+   :members:
+
+.. automodule:: rvspecfit.spliner
+   :members:
+
+.. automodule:: rvspecfit.utils
+   :members:
