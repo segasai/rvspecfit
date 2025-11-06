@@ -78,7 +78,7 @@ int evaler(double *evalx, int nevalx, int N, double *xs, double *hs, double *As,
   if ((evalx[0] < x0) || (evalx[nevalx - 1] < x0)) {
     return -1;
   }
-  if ((evalx[0] > xlast) || (evalx[nevalx - 1] > xlast)) {
+  if ((evalx[0] >= xlast) || (evalx[nevalx - 1] >= xlast)) {
     return -1;
   }
   if (logstep) {
