@@ -403,8 +403,8 @@ def rotation_kernel(x):
     eps = 0.6  # limb darkening coefficient
     # See https://ui.adsabs.harvard.edu/abs/2011A%26A...531A.143D/abstract
     # x = ln(lam/lam0) *c/vsini
-    return (2 * (1 - eps) * np.sqrt(1 - x**2) + np.pi / 2 * eps *
-            (1 - x**2)) / 2 / np.pi / (1 - eps / 3)
+    return (2 * (1 - eps) * np.sqrt(1 - x**2) + np.pi / 2. * eps *
+            (1 - x**2)) / (np.pi * (1 - eps / 3.))
 
 
 def convolve_vsini(lam_templ, templ, vsini):
