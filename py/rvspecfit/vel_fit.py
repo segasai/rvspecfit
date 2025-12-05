@@ -102,12 +102,13 @@ class VSiniMapper:
         self.min_vsini = min_vsini
         self.max_vsini = max_vsini
 
-    def forward(self, vsini):
-        """ Convert human normal vsini into
-        log-transformed clipped vsini """
+    def to_internal(self, vsini):
+        """ Convert normal vsini into internal scale
+        log-transformed clipped vsini
+        """
         return np.log(np.clip(vsini, self.min_vsini, self.max_vsini))
 
-    def inverse(self, x):
+    def to_vsini(self, x):
         """ Undo the transformation.
         Return proper vsini
         """
@@ -173,7 +174,7 @@ class ParamMapper:
         ret['vel'] = p0rev.pop()
 
         if self.fitVsini:
-            vsini = self.vsiniMapper.inverse(p0rev.pop())
+            vsini = self.vsiniMapper.to_vsini(p0rev.pop())
             ret['vsini'] = vsini
         else:
             if 'vsini' in self.fixParam:
@@ -281,7 +282,7 @@ def _get_simplex_start(best_vel,
 
     # second parameter is vsini
     if fitVsini:
-        startParam.append(vsiniMapper.forward(paramDict0['vsini']))
+        startParam.append(vsiniMapper.to_internal(paramDict0['vsini']))
         std_vec.append(0.1)
 
     for x in specParamNames:
