@@ -434,7 +434,8 @@ def convolve_vsini(lam_templ, templ, vsini):
     xgrid = np.arange(-npts, npts + 1) * lnstep / amp
     good = np.abs(xgrid) <= 1
     kernel = xgrid * 0.
-    kernel[good] = rotation_kernel(xgrid[good])
+    kernel_good = rotation_kernel(xgrid[good])
+    kernel[good] = kernel_good / kernel_good.sum()  # normalize to 1
     # ensure that the lambda is spaced logarithmically
     assert (np.allclose(lam_templ[1] / lam_templ[0],
                         lam_templ[-1] / lam_templ[-2]))
