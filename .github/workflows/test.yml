@@ -29,7 +29,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest
           pip install pytest-cov
-          pip install coveralls
+          pip install coveralls matplotlib
           pip install scikit-learn torch
           pip install wheel
           pip install .
