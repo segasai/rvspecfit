@@ -112,7 +112,7 @@ class VSiniMapper:
         """ Undo the transformation.
         Return proper vsini
         """
-        return np.exp(np.clip(x, self.log_min_vsini, self.log_max_vsini))
+        return np.exp(np.minimum(x, self.log_max_vsini))
 
 
 class ParamMapper:

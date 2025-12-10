@@ -407,6 +407,73 @@ def rotation_kernel(x):
             (1 - x**2)) / (np.pi * (1 - eps / 3.))
 
 
+def get_vsini_kernel(lnstep, vsini):
+    """
+    Computes the discrete convolution kernel for stellar rotation
+    using the Effective Basis method (integration).
+
+    Returns
+    -------
+    kernel : numpy array
+        The normalized, symmetric kernel.
+    """
+    # Kernel half-width in natural log spacing
+    amp = vsini / SPEED_OF_LIGHT
+
+    # Triangle Basis Function: 1 at center, 0 at +/- lnstep
+    def basis_triangle(x):
+        abs_x = abs(x)
+        if abs_x < lnstep:
+            return 1.0 - (abs_x / lnstep)
+        return 0.0
+
+    # Integrand: Kernel(t) * Basis(center - t)
+    def integrand(t, dist_from_center):
+        k_val = rotation_kernel(t / amp)
+        b_val = basis_triangle(dist_from_center - t)
+        return k_val * b_val
+
+    # Determine maximum integer steps needed
+    # The support of the convolution is sum of supports: amp + lnstep
+    # We need m * lnstep < amp + lnstep
+    max_m = int(np.ceil((amp + lnstep) / lnstep))
+
+    weights = []
+
+    # Deterministic loop over required points
+    for m in range(max_m + 1):
+        dist = m * lnstep
+
+        # Integration limits: Intersection of Kernel [-amp, amp]
+        # and Basis [dist-lnstep, dist+lnstep]
+        t_min = max(-amp, dist - lnstep)
+        t_max = min(amp, dist + lnstep)
+
+        if t_min >= t_max:
+            weights.append(0.0)
+        else:
+            val, _ = scipy.integrate.quad(integrand,
+                                          t_min,
+                                          t_max,
+                                          args=(dist, ))
+            weights.append(val)
+
+    # Construct symmetric kernel
+    w_right = np.array(weights)
+    # Filter out trailing zeros if any (optimization)
+    if w_right[-1] == 0:
+        w_right = np.trim_zeros(w_right, 'b')
+
+    w_left = w_right[1:][::-1]
+    kernel_full = np.concatenate((w_left, w_right))
+
+    # Normalize
+    if np.sum(kernel_full) > 0:
+        kernel_full /= np.sum(kernel_full)
+
+    return kernel_full
+
+
 def convolve_vsini(lam_templ, templ, vsini):
     """Convolve the spectrum with the stellar rotation velocity kernel
 
@@ -429,13 +496,8 @@ def convolve_vsini(lam_templ, templ, vsini):
     if vsini == 0:
         return templ
     lnstep = np.log(lam_templ[1] / lam_templ[0])
-    amp = vsini / SPEED_OF_LIGHT
-    npts = np.ceil(amp / lnstep)
-    xgrid = np.arange(-npts, npts + 1) * lnstep / amp
-    good = np.abs(xgrid) <= 1
-    kernel = xgrid * 0.
-    kernel_good = rotation_kernel(xgrid[good])
-    kernel[good] = kernel_good / kernel_good.sum()  # normalize to 1
+    # Get the effective kernel
+    kernel = get_vsini_kernel(lnstep, vsini)
     # ensure that the lambda is spaced logarithmically
     assert (np.allclose(lam_templ[1] / lam_templ[0],
                         lam_templ[-1] / lam_templ[-2]))
