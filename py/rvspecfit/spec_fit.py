@@ -401,18 +401,19 @@ def convolve_resol(spec, resol_matrix):
 
 def _vsini_kernel_primitives(x, eps):
     """
-    Computes the indefinite integrals (primitives) of the rotation kernel functions.
-    
+    Computes the indefinite integrals (primitives) of the rotation kernel
+    functions.
+
     K(x) ~ c1 * sqrt(1-x^2) + c2 * (1-x^2)
     We need primitives for K(x) and x*K(x).
-    
+
     Parameters
     ----------
     x : numpy array
         Coordinates in the kernel domain [-1, 1].
     eps : float
         Limb darkening coefficient.
-        
+
     Returns
     -------
     k0 : numpy array
@@ -472,17 +473,17 @@ def compute_vsini_kernel(R, eps=0.6):
     """
     Computes the discrete convolution kernel for a given broadening R
     (in pixels).
-    
+
     The signal is assumed to be piecewise linear (triangular basis).
     We calculate the weights W_k = Integral[ Lambda(k - R*x) * K(x) ] dx
-    
+
     Parameters
     ----------
     R : float
         Broadening width in pixels: (vsini / c) / step_log_lambda
     eps : float
         Limb darkening coefficient.
-        
+
     Returns
     -------
     kernel : numpy array
@@ -492,51 +493,47 @@ def compute_vsini_kernel(R, eps=0.6):
     # Support of Lambda(k - Rx) is |k - Rx| < 1  =>  Rx - 1 < k < Rx + 1
     # Since x in [-1, 1], max k is roughly ceil(R + 1)
     k_max = int(np.ceil(R + 1))
-    k_indices = np.arange(-k_max, k_max + 1)
 
-    weights = np.zeros_like(k_indices, dtype=float)
+    # Only compute for positive k (including 0)
+    # We will mirror this later
+    k_pos = np.arange(0, k_max + 1)
+    weights_pos = np.zeros_like(k_pos, dtype=float)
 
-    # 1. Left leg of triangle: Lambda = 1 + (k - Rx) = (1+k) - R*x
-    # Valid for -1 < k - Rx < 0  =>  k < Rx < k+1 => k/R < x < (k+1)/R
-    # Intersect with kernel domain [-1, 1]
-    lower = np.clip(k_indices / R, -1, 1)
-    upper = np.clip((k_indices + 1) / R, -1, 1)
-
-    # Integrate ((1+k) - R*x) * K(x)
-    # Slope = -R, Intercept = 1 + k
-    # Only calculate where interval is valid (upper > lower)
+    # 1. Left leg (Rising slope) logic on positive k
+    lower = np.clip(k_pos / R, -1, 1)
+    upper = np.clip((k_pos + 1) / R, -1, 1)
     mask = upper > lower
     if np.any(mask):
-        weights[mask] += _integrate_vsini_kernel_segment(
+        weights_pos[mask] += _integrate_vsini_kernel_segment(
             lower[mask],
             upper[mask],
             slope=-R,
-            intercept=(1 + k_indices[mask]),
+            intercept=(1 + k_pos[mask]),
             eps=eps)
 
-    # 2. Right leg of triangle: Lambda = 1 - (k - Rx) = (1-k) + R*x
-    # Valid for 0 < k - Rx < 1  =>  k-1 < Rx < k => (k-1)/R < x < k/R
-    # Intersect with kernel domain [-1, 1]
-    lower = np.clip((k_indices - 1) / R, -1, 1)
-    upper = np.clip(k_indices / R, -1, 1)
-
+    # 2. Right leg (Falling slope) logic on positive k
+    lower = np.clip((k_pos - 1) / R, -1, 1)
+    upper = np.clip(k_pos / R, -1, 1)
     mask = upper > lower
     if np.any(mask):
-        weights[mask] += _integrate_vsini_kernel_segment(
+        weights_pos[mask] += _integrate_vsini_kernel_segment(
             lower[mask],
             upper[mask],
             slope=R,
-            intercept=(1 - k_indices[mask]),
+            intercept=(1 - k_pos[mask]),
             eps=eps)
 
-    # Normalize exactly to 1 to avoid floating point drift
-    return weights / np.sum(weights)
+    # Construct full symmetric kernel
+    # [w_kmax, ... w_1, w_0, w_1, ... w_kmax]
+    weights = np.concatenate([weights_pos[:0:-1], weights_pos])
+
+    return weights / np.sum(weights)  # renormalize
 
 
 def convolve_vsini(lam_templ, templ, vsini, eps=0.6):
     """Convolve the spectrum with the stellar rotation velocity kernel
     using analytic integration of the piecewise linear spectrum.
-    
+
     Robust for both low (sub-pixel) and high vsini.
 
     Parameters
