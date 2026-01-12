@@ -227,36 +227,50 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     '''
 
     if espec is not None:
-        normspec = spec / espec
+        D = spec / espec
         normtempl = templ / espec
         logl_z = np.log(espec).sum()
     else:
-        normspec = spec
+        D = spec
         normtempl = templ
         logl_z = 0
+    r"""
+    Here we have data vector D divided by errors
+    S model matrix multiplied by different polynomials and divided by errors
+    E are the errors
+    Then the likelihood up to constants is
+    $$ \frac{1}{\Pi_k E_k} \exp{(D-Sa)^T(D-Sa)} $$
+    If we define matrix M = (S^T * S)^{-1}
+    Then
+    $$ log(p) = - \sum_k \log E_k - 1/2 D^T D + 1/2 \log \det M +1/2 v^T M v$$
+    where v = S^T D
+    or in chi^2
+    2 \sum_k E_k - \log \det M + D^T D - v^T M v
+    If we derive the best coefficients
+    a =  M^T v 
+    Alternatively D^T D - v^T M v can be rewritten as as
+    || D - S a ||^2 
+    """
+    ST = normtempl[None, :] * polys
+    # S^T matrix
+    v = ST @ D[:, None]
+    # v= S^T D
 
-    polys1 = normtempl[None, :] * polys
-    # T matrix
-    vector1 = polys1 @ normspec
-    # v= T^T D
-
-    matrix1 = np.dot(polys1, polys1.T)
+    Minv = np.dot(ST, ST.T)
     # M^{-1} matrix
-    u, s, v = scipy.linalg.svd(matrix1, check_finite=False)
-    ldetI = np.sum(np.log(s))
-    # this is the log( determinant of M^{-1})
+    _uu, _ss, _vv = scipy.linalg.svd(Minv, check_finite=False)
+    ldetMinv = np.sum(np.log(_ss))
+    # this is the log(determinant of M^{-1})
 
-    # matrix1 = usv
-    # matrix1 = u @ np.diag(s) @ u.T
-    # matrix1 is the (T^T T)^{-1} matrix
+    # M^{-1} = usv
+    # M^{-1} = u @ np.diag(s) @ v.T
 
-    #  I need to compute vector1.T M vector1
-    #  so I need to invert the matrix1. I can do it using svd
-    v2 = v.T @ (
-        (1. / s)[:, None] * u.T) @ vector1  # this is matrix1^(-1) vector1
-    chisq = -ldetI + 2 * logl_z + np.linalg.norm(normspec - v2 @ polys1)**2
+    # I need to compute coefficients a = M^T v
+    #  so I need to invert the Minv. I can do it using svd
+    a = _vv.T @ ((1. / _ss)[:, None] * _uu.T) @ v  # this is Minv^(-1) v
+    chisq = ldetMinv + 2 * logl_z + np.linalg.norm(D - a.T @ ST)**2
     if get_coeffs:
-        coeffs = v2.flatten()
+        coeffs = a.flatten()
         return chisq, coeffs
     else:
         return chisq
