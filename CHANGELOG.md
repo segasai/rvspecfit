@@ -1,5 +1,6 @@
 Changes
 
+* 26.01 Fix the sign bug with the log(determinant) from marginalization (pointed out by @fcotizelati )
 * 25.10 Update docs
 * 25.10 Switch from fork multiprocessing to spawn
 * 25.06 Fix the bookeeping bug, when the DESI spectra- files are fitted. If the object was selected to be fitted based on it's targeting bits, but it does not satistfy (SPECTYPE='STAR' |3e5*Z|<1500) criteria then previously the RR_Z, RR_SPECTYPE would be null
