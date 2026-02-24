@@ -98,6 +98,7 @@ def fit(specdata, config):
     proc_ivars = {}
     setups = []
     ccf_confs = []
+    total_sse = 0
     if isinstance(specdata, SpecData):
         # if we got a single one put it in the list
         specdata = [specdata]
@@ -121,6 +122,7 @@ def fit(specdata, config):
                                                         ccfconf=ccfconf)
         proc_specs[spec_setup] = proc_spec
         proc_ivars[spec_setup] = proc_ivar
+        total_sse += (proc_spec**2 * proc_ivar).sum()
         spec_fft = np.fft.rfft(proc_spec * proc_ivar)
         ivar_fft = np.fft.rfft(proc_ivar)
 
@@ -181,7 +183,7 @@ def fit(specdata, config):
             # to the same velocity grid
         all_chisqs.append(cur_chisq)
 
-    all_chisqs = np.array(all_chisqs)
+    all_chisqs = np.array(all_chisqs) + total_sse
     best_id = np.argmin(all_chisqs.min(axis=1))
     best_ccf = all_chisqs[best_id]
     best_pix = np.argmin(best_ccf)
