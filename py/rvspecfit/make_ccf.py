@@ -4,6 +4,7 @@ import numpy as np
 import scipy.interpolate
 import scipy.stats
 import sys
+import shlex
 import time
 import logging
 
@@ -420,7 +421,8 @@ def ccf_executor(spec_setup,
                  every=10,
                  vsinis=None,
                  revision='',
-                 nthreads=1):
+                 nthreads=1,
+                 cmdline=''):
     """
     Prepare the FFT transformations for the CCF
 
@@ -484,6 +486,7 @@ def ccf_executor(spec_setup,
     dHash['vsinis'] = vsinis
     dHash['parnames'] = parnames
     dHash['revision'] = revision
+    dHash['cmdline'] = cmdline
 
     serializer.save_dict_to_hdf5(savefile, dHash, allow_pickle=False)
     np.savez(datsavefile, fft=np.array(ffts), fft2=np.array(fft2s))
@@ -497,6 +500,7 @@ def to_power_two(i):
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
+    cmdline = shlex.join([sys.argv[0]] + list(args))
     parser = argparse.ArgumentParser(
         description='Create the Fourier transformed templates')
     parser.add_argument('--prefix',
@@ -571,7 +575,8 @@ def main(args=None):
                  args.every,
                  vsinis,
                  revision=args.revision,
-                 nthreads=args.nthreads)
+                 nthreads=args.nthreads,
+                 cmdline=cmdline)
 
 
 if __name__ == '__main__':

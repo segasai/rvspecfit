@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import shlex
 import time
 import gc
 import rvspecfit
@@ -68,6 +69,7 @@ def get_predictions(myint, Tvecs0, dev, batch):
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
+    cmdline = shlex.join([sys.argv[0]] + list(args))
 
     parser = argparse.ArgumentParser(
         description=
@@ -359,6 +361,7 @@ def main(args=None):
         'nn_file': finalfile,
         'revision': revision,
         'git_rev': git_rev,
+        'cmdline': cmdline,
         'interpolation_type': 'generic'
     }
     serializer.save_dict_to_hdf5(ofname, D)
@@ -370,6 +373,7 @@ def main(args=None):
     DD['vecs'] = vecs
     DD['dats'] = dats,
     DD['vecs_orig'] = vecs_orig
+    DD['cmdline'] = cmdline
     serializer.save_dict_to_hdf5(cur_name, DD)
 
 
