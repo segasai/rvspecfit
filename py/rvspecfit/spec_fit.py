@@ -247,9 +247,9 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     or in chi^2
     2 \sum_k E_k - \log \det M + D^T D - v^T M v
     If we derive the best coefficients
-    a =  M^T v 
+    a =  M^T v
     Alternatively D^T D - v^T M v can be rewritten as as
-    || D - S a ||^2 
+    || D - S a ||^2
     """
     ST = normtempl[None, :] * polys
     # S^T matrix
@@ -506,6 +506,8 @@ def compute_vsini_kernel(R, eps=0.6):
     # Range of integer steps k to cover the kernel
     # Support of Lambda(k - Rx) is |k - Rx| < 1  =>  Rx - 1 < k < Rx + 1
     # Since x in [-1, 1], max k is roughly ceil(R + 1)
+
+    assert R > 0
     k_max = int(np.ceil(R + 1))
 
     # Only compute for positive k (including 0)
@@ -585,6 +587,8 @@ def convolve_vsini(lam_templ, templ, vsini, eps=0.6):
     amp = vsini / SPEED_OF_LIGHT
     R = amp / lnstep
 
+    if R < 1e-9:
+        return templ.copy()
     # 3. Generate Analytical Kernel
     kernel = compute_vsini_kernel(R, eps)
 
