@@ -296,11 +296,7 @@ def proc_onespec(
     fixParam = []
 
     if res['best_vsini'] is not None:
-        paramDict0['vsini'] = np.clip(
-            res['best_vsini'],
-            #res['min_vsini'],
-            config['min_vsini'],
-            config['max_vsini'])
+        paramDict0['vsini'] = res['best_vsini']
 
     fit_res = vel_fit.process(
         specdata,
@@ -403,7 +399,7 @@ def get_rvs_warn(fit_res, outdict, config):
     rverr_thresh = 100
     # If the error is larger than this we warn
 
-    vsini_thresh = 20
+    vsini_thresh = 100
 
     rvs_warn = 0
 
