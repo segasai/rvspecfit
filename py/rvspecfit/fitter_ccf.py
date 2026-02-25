@@ -6,6 +6,9 @@ from rvspecfit.spec_fit import SpecData
 from rvspecfit import serializer
 import logging
 
+# Number of templates processed together in the batched FFT path.
+_CCF_FFT_BATCH_SIZE = 256
+
 
 class CCFCache:
     """ Singleton caching CCF information """
@@ -83,21 +86,19 @@ def fit(specdata, config):
     # number of points on the ccf in the specified velocity range
     vel_grid = np.linspace(-maxvel, maxvel, nvelgrid)
 
-    # these are the dictionaries storing information for all the configurations
-    # that we are fitting
+    # Algorithm outline:
+    # 1) Preprocess each input arm once and cache FFT products needed for CCF.
+    # 2) Loop over template chunks, compute CCFs in batch, interpolate each arm
+    #    to the shared velocity grid, and sum chi-square contributions.
     velstep = {}  # step in the ccf in velocity
-    spec_fftconj = {}  # conjugated fft of the data
-    ivar_fftconj = {}  # conjugated fft of the data
-    vels = {}  # velocity grids
-    subind = {}  # the range of the ccf covering the velocity range of interest
     ccf_dats = {}  # ffts of templates
-    ccf2_dats = {}  # ffts of templates
+    ccf2_dats = {}  # ffts of templates of squared spectra
     ccf_infos = {}  # ccf configurations
     ccf_mods = {}  # the actual template models
     proc_specs = {}  # actual data processed/continuum normalized etc
     proc_ivars = {}
+    setup_states = {}
     setups = []
-    ccf_confs = []
     total_sse = 0
     if isinstance(specdata, SpecData):
         # if we got a single one put it in the list
@@ -111,7 +112,6 @@ def fit(specdata, config):
         (ccf_dats[spec_setup], ccf2_dats[spec_setup], ccf_mods[spec_setup],
          ccf_infos[spec_setup]) = get_ccf_info(spec_setup, config)
         ccfconf = ccf_infos[spec_setup]['ccfconf']
-        ccf_confs.append(ccfconf)
         logl0 = ccfconf['logl0']
         logl1 = ccfconf['logl1']
         npoints = ccfconf['npoints']
@@ -126,8 +126,8 @@ def fit(specdata, config):
         spec_fft = np.fft.rfft(proc_spec * proc_ivar)
         ivar_fft = np.fft.rfft(proc_ivar)
 
-        spec_fftconj[spec_setup] = spec_fft.conj()
-        ivar_fftconj[spec_setup] = ivar_fft.conj()
+        spec_fftconj = spec_fft.conj()
+        ivar_fftconj = ivar_fft.conj()
 
         cur_step = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
         lspec = len(proc_spec)
@@ -148,42 +148,74 @@ def fit(specdata, config):
         cur_ind = cur_ind[::-1]
         # that provides indices that will go from negative
         # to positive velocities
-        subind[spec_setup] = cur_ind
         velstep[spec_setup] = cur_step
-        vels[spec_setup] = cur_vels[cur_ind]
+        cur_sub_vels = cur_vels[cur_ind]
+        if not np.all(np.diff(cur_sub_vels) > 0):
+            raise RuntimeError('Velocity grid for CCF interpolation is invalid')
+        setup_states[spec_setup] = dict(spec_fftconj=spec_fftconj,
+                                        ivar_fftconj=ivar_fftconj,
+                                        ccf_dats=ccf_dats[spec_setup],
+                                        ccf2_dats=ccf2_dats[spec_setup],
+                                        subind=cur_ind,
+                                        vels=cur_sub_vels,
+                                        continuum=ccfconf['continuum'])
+
+    ref_setup = setups[0]
+    ref_info = ccf_infos[ref_setup]
+    for spec_setup in setups[1:]:
+        cur_info = ccf_infos[spec_setup]
+        mismatch = (
+            ref_info['parnames'] != cur_info['parnames']
+            or not np.array_equal(ref_info['params'], cur_info['params'])
+            or not np.array_equal(ref_info['vsinis'], cur_info['vsinis']))
+        if mismatch:
+            raise RuntimeError('The parameters of the CCF templates do not match')
 
     # the logic is the following
     # if array y is shifted by n pixels to the right side wrt x
     # ifft(fft(x)*fft(y).conj) will peak at pixel N-n (0based)
     # or if array is shifted to n pixels to the left it will peak at n (0based)
 
-    nfft = ccf_dats[spec_setup].shape[0]
+    nffts = [setup_states[setup]['ccf_dats'].shape[0] for setup in setups]
+    if len(set(nffts)) != 1:
+        raise RuntimeError('CCF template counts are inconsistent across setups')
+    nfft = nffts[0]
+    nvel = len(vel_grid)
+    all_chisqs = np.zeros((nfft, nvel))
 
-    all_chisqs = []
-    for cur_id in range(nfft):
-        cur_chisq = np.zeros(len(vel_grid))
-        for ii, spec_setup in enumerate(setups):
-            curf = ccf_dats[spec_setup][cur_id, :]
-            curf2 = ccf2_dats[spec_setup][cur_id, :]
-            curccf0 = np.fft.irfft(spec_fftconj[spec_setup] * curf)
-            curccf1 = np.fft.irfft(ivar_fftconj[spec_setup] * curf2)
+    # We evaluate templates in chunks to reduce Python overhead while keeping
+    # memory use bounded. For each arm we compute CCFs for a whole chunk, then
+    # interpolate them onto the common velocity grid and accumulate across arms.
+    for start in range(0, nfft, _CCF_FFT_BATCH_SIZE):
+        stop = min(start + _CCF_FFT_BATCH_SIZE, nfft)
+        slc = slice(start, stop)
+        cur_chisq = np.zeros((stop - start, nvel))
+        for spec_setup in setups:
+            state = setup_states[spec_setup]
+            curf = state['ccf_dats'][slc, :]
+            curf2 = state['ccf2_dats'][slc, :]
+            curccf0 = np.fft.irfft(curf * state['spec_fftconj'][None, :], axis=1)
+            curccf1 = np.fft.irfft(curf2 * state['ivar_fftconj'][None, :], axis=1)
             # chisquare i -2* l * S/E^2 xx T + l^2 1/E^2 xx T^2
             #  l is the multiplier (S-lT)
             # the best value is l = ((S/E^2) xx T)/(1/E^2 xx T^2)
             # Thus  the best chisq is -((S/E^2) xx T)^2/(1/E^2 xx T^2)
             # where xx is the convolution operator
-            if ccf_confs[ii]['continuum']:
+            if state['continuum']:
                 chisq = -2 * curccf0 + curccf1
             else:
                 chisq = (-curccf0**2 / curccf1)
-            cur_chisq += (scipy.interpolate.interp1d(vels[spec_setup],
-                                                     chisq[subind[spec_setup]],
-                                                     kind='linear')(vel_grid))
+            cur_chisq += scipy.interpolate.interp1d(state['vels'],
+                                                    chisq[:, state['subind']],
+                                                    kind='linear',
+                                                    axis=1,
+                                                    assume_sorted=True)(
+                                                        vel_grid)
             # we interpolate all the ccf from every arm
             # to the same velocity grid
-        all_chisqs.append(cur_chisq)
+        all_chisqs[slc, :] = cur_chisq
 
-    all_chisqs = np.array(all_chisqs) + total_sse
+    all_chisqs += total_sse
     best_id = np.argmin(all_chisqs.min(axis=1))
     best_ccf = all_chisqs[best_id]
     best_pix = np.argmin(best_ccf)

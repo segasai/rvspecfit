@@ -471,8 +471,8 @@ def ccf_executor(spec_setup,
                                                    ccfconf,
                                                    vsinis=vsinis,
                                                    nthreads=nthreads)
-    ffts = np.array([np.fft.rfft(x) for x in models])
-    fft2s = np.array([np.fft.rfft(x**2) for x in models])
+    ffts = np.fft.rfft(models, axis=1)
+    fft2s = np.fft.rfft(models**2, axis=1)
     savefile = (oprefix + '/' +
                 get_ccf_info_name(spec_setup, ccfconf['continuum']))
     datsavefile = (oprefix + '/' +
@@ -489,7 +489,7 @@ def ccf_executor(spec_setup,
     dHash['cmdline'] = cmdline
 
     serializer.save_dict_to_hdf5(savefile, dHash, allow_pickle=False)
-    np.savez(datsavefile, fft=np.array(ffts), fft2=np.array(fft2s))
+    np.savez(datsavefile, fft=ffts, fft2=fft2s)
     np.save(modsavefile, np.array(models))
 
 
