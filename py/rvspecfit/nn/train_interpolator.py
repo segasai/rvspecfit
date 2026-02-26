@@ -369,9 +369,9 @@ def main(args=None):
     pred = get_predictions(myint, Tvecs0, train_dev, batch)
     cur_name = f'{directory}/pred_{setup}.h5'
     DD = {}
-    DD['pred'] = pred,
+    DD['pred'] = pred
     DD['vecs'] = vecs
-    DD['dats'] = dats,
+    DD['dats'] = dats
     DD['vecs_orig'] = vecs_orig
     DD['cmdline'] = cmdline
     serializer.save_dict_to_hdf5(cur_name, DD)
