@@ -267,6 +267,11 @@ def main(args=None):
     batch_move = True
     minlr = args.min_learning_rate
     layer_noise = 0
+
+    def loss_func(pred, dat):
+        loss = tofu.l1_loss(pred, dat) / spread0
+        return loss
+
     for i in range(1):
         # previously there were two iterations
         params = myint.parameters()
@@ -296,8 +301,8 @@ def main(args=None):
                 else:
                     Rfinal00 = myint(Tvecs00) * tSD_0 + tD_0
 
-                loss_noised = tofu.l1_loss(Rfinal_noised, Tdat) / spread0
-                loss00 = tofu.l1_loss(Rfinal00, Tdat) / spread0
+                loss_noised = loss_func(Rfinal_noised, Tdat)
+                loss00 = loss_func(Rfinal00, Tdat)
                 if batch_move:
                     torch.autograd.backward(loss_noised)
                     optim.step()
@@ -310,9 +315,9 @@ def main(args=None):
             sched.step(lossAccum00)
             if validation:
                 with torch.inference_mode():
-                    val_loss = tofu.l1_loss(
+                    val_loss = loss_func(
                         myint(Tvecs0[validation_set]) * tSD_0 + tD_0,
-                        Tdat0[validation_set]) / spread0
+                        Tdat0[validation_set])
                     val_loss = val_loss.detach().cpu().numpy()
             else:
                 val_loss = 0
