@@ -247,9 +247,9 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     or in chi^2
     2 \sum_k E_k - \log \det M + D^T D - v^T M v
     If we derive the best coefficients
-    a =  M^T v 
+    a =  M^T v
     Alternatively D^T D - v^T M v can be rewritten as as
-    || D - S a ||^2 
+    || D - S a ||^2
     """
     ST = normtempl[None, :] * polys
     # S^T matrix
@@ -413,48 +413,194 @@ def convolve_resol(spec, resol_matrix):
     return resol_matrix.mat @ spec
 
 
-def rotation_kernel(x):
-    eps = 0.6  # limb darkening coefficient
-    # See https://ui.adsabs.harvard.edu/abs/2011A%26A...531A.143D/abstract
-    # x = ln(lam/lam0) *c/vsini
-    return (2 * (1 - eps) * np.sqrt(1 - x**2) + np.pi / 2. * eps *
-            (1 - x**2)) / (np.pi * (1 - eps / 3.))
+def _vsini_kernel_primitives(x, eps):
+    """
+    Computes the indefinite integrals (primitives) of the rotation kernel
+    functions.
 
-
-def convolve_vsini(lam_templ, templ, vsini):
-    """Convolve the spectrum with the stellar rotation velocity kernel
+    K(x) ~ c1 * sqrt(1-x^2) + c2 * (1-x^2)
+    We need primitives for K(x) and x*K(x).
 
     Parameters
     ----------
+    x : numpy array
+        Coordinates in the kernel domain [-1, 1].
+    eps : float
+        Limb darkening coefficient.
 
+    Returns
+    -------
+    k0 : numpy array
+        Primitive of K(x).
+    k1 : numpy array
+        Primitive of x * K(x).
+    """
+    # Normalize inputs to avoid numerical errors at boundaries
+    x = np.clip(x, -1.0, 1.0)
+
+    # Kernel Normalization factor
+    # Integral of (2*(1-eps)*sqrt(1-x^2) + pi/2 * eps * (1-x^2)) from -1 to 1
+    # = 2*(1-eps)*(pi/2) + (pi/2)*eps*(4/3)
+    # = pi*(1-eps) + 2*pi*eps/3 = pi * (1 - eps/3)
+    norm = np.pi * (1 - eps / 3.0)
+
+    # Coefficients for the terms: sqrt(1-x^2) and (1-x^2)
+    c1 = 2 * (1 - eps) / norm
+    c2 = (np.pi / 2.0) * eps / norm
+
+    # Primitives for term 1: sqrt(1-x^2)
+    # Int(sqrt(1-x^2)) = 0.5 * (x*sqrt(1-x^2) + arcsin(x))
+    # Int(x * sqrt(1-x^2)) = -1/3 * (1-x^2)^(3/2)
+    sqrt_part = np.sqrt(1 - x**2)
+    term1_int0 = 0.5 * (x * sqrt_part + np.arcsin(x))
+    term1_int1 = -1.0 / 3.0 * (1 - x**2) * sqrt_part  # (1-x^2)^(3/2)
+
+    # Primitives for term 2: (1-x^2)
+    # Int(1-x^2) = x - x^3/3
+    # Int(x * (1-x^2)) = x^2/2 - x^4/4
+    term2_int0 = x - (x**3) / 3.0
+    term2_int1 = (x**2) / 2.0 - (x**4) / 4.0
+
+    # Combine
+    k0 = c1 * term1_int0 + c2 * term2_int0
+    k1 = c1 * term1_int1 + c2 * term2_int1
+
+    return k0, k1
+
+
+def _integrate_vsini_kernel_segment(x_a, x_b, slope, intercept, eps):
+    """
+    Calculates Integral_{x_a}^{x_b} (slope * x + intercept) * K(x) dx
+    """
+    # Get primitives at boundaries
+    k0_b, k1_b = _vsini_kernel_primitives(x_b, eps)
+    k0_a, k1_a = _vsini_kernel_primitives(x_a, eps)
+
+    # Definite integrals
+    int_k = k0_b - k0_a  # Integral of K(x)
+    int_xk = k1_b - k1_a  # Integral of x * K(x)
+
+    return slope * int_xk + intercept * int_k
+
+
+def compute_vsini_kernel(R, eps=0.6):
+    """
+    Computes the discrete convolution kernel for a given broadening R
+    (in pixels).
+
+    The signal is assumed to be piecewise linear (triangular basis).
+    We calculate the weights W_k = Integral[ Lambda(k - R*x) * K(x) ] dx
+
+    Parameters
+    ----------
+    R : float
+        Broadening width in pixels: (vsini / c) / step_log_lambda
+    eps : float
+        Limb darkening coefficient.
+
+    Returns
+    -------
+    kernel : numpy array
+        The discrete kernel weights.
+    """
+    # Range of integer steps k to cover the kernel
+    # Support of Lambda(k - Rx) is |k - Rx| < 1  =>  Rx - 1 < k < Rx + 1
+    # Since x in [-1, 1], max k is roughly ceil(R + 1)
+
+    assert R > 0
+    k_max = int(np.ceil(R + 1))
+
+    # Only compute for positive k (including 0)
+    # We will mirror this later
+    k_pos = np.arange(0, k_max + 1)
+    weights_pos = np.zeros_like(k_pos, dtype=float)
+
+    # 1. Left leg (Rising slope) logic on positive k
+    lower = np.clip(k_pos / R, -1, 1)
+    upper = np.clip((k_pos + 1) / R, -1, 1)
+    mask = upper > lower
+    if np.any(mask):
+        weights_pos[mask] += _integrate_vsini_kernel_segment(
+            lower[mask],
+            upper[mask],
+            slope=-R,
+            intercept=(1 + k_pos[mask]),
+            eps=eps)
+
+    # 2. Right leg (Falling slope) logic on positive k
+    lower = np.clip((k_pos - 1) / R, -1, 1)
+    upper = np.clip(k_pos / R, -1, 1)
+    mask = upper > lower
+    if np.any(mask):
+        weights_pos[mask] += _integrate_vsini_kernel_segment(
+            lower[mask],
+            upper[mask],
+            slope=R,
+            intercept=(1 - k_pos[mask]),
+            eps=eps)
+
+    # Construct full symmetric kernel
+    # [w_kmax, ... w_1, w_0, w_1, ... w_kmax]
+    weights = np.concatenate([weights_pos[:0:-1], weights_pos])
+
+    return weights / np.sum(weights)  # renormalize
+
+
+def convolve_vsini(lam_templ, templ, vsini, eps=0.6):
+    """Convolve the spectrum with the stellar rotation velocity kernel
+    using analytic integration of the piecewise linear spectrum.
+
+    Robust for both low (sub-pixel) and high vsini.
+
+    Parameters
+    ----------
     lam_templ: numpy
         The wavelength vector (MUST be spaced logarithmically)
     templ: numpy
         The spectrum vector
-    vsini: real
-        The Vsini velocity
+    vsini: float
+        The Vsini velocity in km/s
+    eps: float
+        Limb darkening coefficient (default 0.6)
 
     Returns
     -------
     spec: numpy
         The convolved spectrum
-
     """
-    if vsini == 0:
-        return templ
-    lnstep = np.log(lam_templ[1] / lam_templ[0])
+    if vsini <= 0:
+        return templ.copy()
+
+    # 1. Verify Logarithmic Spacing
+    # (ratio of adjacent wavelengths should be constant)
+    ratios = lam_templ[1:] / lam_templ[:-1]
+    assert np.allclose(ratios,
+                       ratios[0]), "Wavelength grid must be logarithmic."
+
+    lnstep = np.log(ratios[0])
+
+    # 2. Calculate Broadening in Pixels (R)
+    # x = (v / vsini)
+    # Delta_ln_lam = (v/c)
+    # Broadening width in log-lam space is L = vsini/c
+    # R = L / lnstep
     amp = vsini / SPEED_OF_LIGHT
-    npts = np.ceil(amp / lnstep)
-    xgrid = np.arange(-npts, npts + 1) * lnstep / amp
-    good = np.abs(xgrid) <= 1
-    kernel = xgrid * 0.
-    kernel_good = rotation_kernel(xgrid[good])
-    kernel[good] = kernel_good / kernel_good.sum()  # normalize to 1
-    # ensure that the lambda is spaced logarithmically
-    assert (np.allclose(lam_templ[1] / lam_templ[0],
-                        lam_templ[-1] / lam_templ[-2]))
-    templ1 = scipy.signal.convolve(templ, kernel, mode='same', method='auto')
-    return templ1
+    R = amp / lnstep
+
+    if R < 1e-9:
+        return templ.copy()
+    # 3. Generate Analytical Kernel
+    kernel = compute_vsini_kernel(R, eps)
+
+    # 4. Convolve
+    # standard discrete convolution now works because 'kernel'
+    # represents the integrated overlap weights
+    spec_conv = scipy.signal.convolve(templ,
+                                      kernel,
+                                      mode='same',
+                                      method='auto')
+
+    return spec_conv
 
 
 def getRVInterpol(lam_templ, templ, log_step=True):

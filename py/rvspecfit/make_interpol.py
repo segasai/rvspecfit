@@ -2,6 +2,7 @@ from __future__ import print_function
 import multiprocessing as mp
 import os
 import sys
+import shlex
 import argparse
 import logging
 import importlib
@@ -204,6 +205,7 @@ def process_all(setupInfo,
                 resolution0=None,
                 normalize=True,
                 revision='',
+                cmdline='',
                 nthreads=8,
                 log_parameters=None):
     """
@@ -315,6 +317,7 @@ def process_all(setupInfo,
               mapper_class_name=mapper_class,
               mapper_args=mapper_args,
               revision=revision,
+              cmdline=cmdline,
               lognorms=lognorms,
               log_step=log_step,
               log_spec=log_spec)
@@ -335,6 +338,7 @@ def add_bool_arg(parser, name, default=False, help=None):
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
+    cmdline = shlex.join([sys.argv[0]] + list(args))
     parser = argparse.ArgumentParser(
         description='Create interpolated and convolved spectra from the '
         'input grid.')
@@ -473,6 +477,7 @@ def main(args=None):
                 resolution0=args.resolution0,
                 normalize=args.normalize,
                 revision=args.revision,
+                cmdline=cmdline,
                 nthreads=args.nthreads)
 
 

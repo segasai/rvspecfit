@@ -96,23 +96,24 @@ def firstguess(specdata,
 
 class VSiniMapper:
 
-    def __init__(self, min_vsini, max_vsini):
-        self.log_min_vsini = np.log(min_vsini)
-        self.log_max_vsini = np.log(max_vsini)
-        self.min_vsini = min_vsini
+    def __init__(self, max_vsini):
         self.max_vsini = max_vsini
 
     def to_internal(self, vsini):
         """ Convert normal vsini into internal scale
         log-transformed clipped vsini
         """
-        return np.log(np.clip(vsini, self.min_vsini, self.max_vsini))
+        return np.clip(vsini, 0, self.max_vsini)
 
     def to_vsini(self, x):
         """ Undo the transformation.
         Return proper vsini
         """
-        return np.exp(np.clip(x, self.log_min_vsini, self.log_max_vsini))
+        vsini0 = x
+        vsini = np.clip(vsini0, 0, self.max_vsini)
+        penalty = int(vsini0 < 0) * (vsini - vsini0)**2 + int(
+            vsini0 > self.max_vsini) * (vsini - vsini0)**2
+        return vsini, penalty
 
 
 class ParamMapper:
@@ -170,11 +171,12 @@ class ParamMapper:
         """
         ret = {}
         p0rev = list(p0)[::-1]
-
+        penalty = 0
         ret['vel'] = p0rev.pop()
 
         if self.fitVsini:
-            vsini = self.vsiniMapper.to_vsini(p0rev.pop())
+            vsini, penalty_vsini = self.vsiniMapper.to_vsini(p0rev.pop())
+            penalty += penalty_vsini
             ret['vsini'] = vsini
         else:
             if 'vsini' in self.fixParam:
@@ -192,6 +194,7 @@ class ParamMapper:
             else:
                 ret['params'].append(p0rev.pop())
         assert (len(p0rev) == 0)
+        ret['penalty'] = penalty
         return ret
 
     def get_fitted_params(self):
@@ -250,6 +253,7 @@ def chisq_func(p, args):
             or (~np.isfinite(pdict['params'])).any()):
         return 1e30
     ret = chisq_func0(pdict, args)
+    ret += pdict['penalty']
     return ret
 
 
@@ -283,7 +287,7 @@ def _get_simplex_start(best_vel,
     # second parameter is vsini
     if fitVsini:
         startParam.append(vsiniMapper.to_internal(paramDict0['vsini']))
-        std_vec.append(0.1)
+        std_vec.append(3)
 
     for x in specParamNames:
         if x not in fixParam:
@@ -444,9 +448,13 @@ def get_hess_inv(param_names):
     default_err0 = 0.1
     teff_err0 = 50
     rv_err0 = 1
+    vsini_err0 = 5
     diag = np.zeros(len(param_names)) + default_err0**2
     teff_idx = np.nonzero(np.asarray(param_names) == 'teff')[0][0]
     diag[teff_idx] = teff_err0**2
+    vsini_idx = np.nonzero(np.asarray(param_names) == 'vsini')[0]
+    if len(vsini_idx) == 1:
+        diag[vsini_idx] = vsini_err0**2
     diag[0] = rv_err0**2
     hess_inv0 = np.diag(diag)
     return hess_inv0
@@ -579,7 +587,7 @@ def process(specdata,
             fitVsini = False
         else:
             fitVsini = True
-            vsiniMapper = VSiniMapper(min_vsini, max_vsini)
+            vsiniMapper = VSiniMapper(max_vsini)
 
     t0 = time.time()
 

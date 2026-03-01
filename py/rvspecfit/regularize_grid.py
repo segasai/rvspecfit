@@ -1,5 +1,6 @@
 import sys
 import argparse
+import shlex
 import scipy.stats
 import scipy.interpolate
 import numpy as np
@@ -49,7 +50,8 @@ def converter(path,
               step_feh=None,
               min_alpha=None,
               max_alpha=None,
-              step_alpha=None):
+              step_alpha=None,
+              cmdline=''):
     """
 Read the input spectrum pickle file and convert it
 into the file with gaps filled and smaller step sizes
@@ -144,6 +146,7 @@ into the file with gaps filled and smaller step sizes
     res_spec = np.concatenate(res_spec, axis=0)
     dat['specs'] = res_spec
     dat['vec'] = res_vec
+    dat['cmdline'] = cmdline
 
     serializer.save_dict_to_hdf5(opath, dat)
 
@@ -156,6 +159,7 @@ def check_scipy_version():
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
+    cmdline = shlex.join([sys.argv[0]] + list(args))
     parser = argparse.ArgumentParser(
         description='Regularize and fill gaps in spectral template grids')
     check_scipy_version()
@@ -213,6 +217,7 @@ def main(args=None):
         min_alpha=args.min_alpha,
         max_alpha=args.max_alpha,
         step_alpha=args.step_alpha,
+        cmdline=cmdline,
     )
 
 

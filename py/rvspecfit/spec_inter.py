@@ -282,7 +282,8 @@ class SpecInterpolator:
                                  "Required list of parameters is: " +
                                  (','.join(self.parnames)))
         param = self.mapper.forward(param0)
-        return self.interper(param)
+        spec = self.interper(param)
+        return np.ascontiguousarray(spec, dtype=np.float64)
 
 
 class interp_cache:

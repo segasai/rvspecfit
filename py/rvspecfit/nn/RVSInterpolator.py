@@ -21,10 +21,12 @@ class RVSInterpolator:
             self.device = torch.device(kwargs['device'])
         else:
             self.device = torch.device(device_env)
-        self.nni.load_state_dict(
-            torch.load(kwargs['template_lib'] + '/' + kwargs['nn_file'],
-                       map_location=self.device,
-                       weights_only=True))
+        NNInterpolator.load_checkpoint(self.nni,
+                                       kwargs['template_lib'] + '/' +
+                                       kwargs['nn_file'],
+                                       map_location=self.device,
+                                       allow_legacy=True,
+                                       weights_only=True)
         # self.device = list(self.nni.children())[0][0].pc_layer.weight.device
 
         self.nni.to(self.device)

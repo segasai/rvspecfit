@@ -1,5 +1,6 @@
 import argparse
 import sys
+import shlex
 import numpy as np
 import numpy.random
 import scipy.spatial
@@ -51,7 +52,12 @@ def getedgevertices(vec):
     return positions
 
 
-def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
+def execute(spec_setup,
+            prefix=None,
+            regular=False,
+            perturb=True,
+            revision='',
+            cmdline=''):
     """
     Prepare the triangulation objects for the set of spectral data for a given
     spec_setup.
@@ -163,6 +169,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
     ret_dict['revision'] = revision
     ret_dict['lognorms'] = lognorms
     ret_dict['git_rev'] = git_rev
+    ret_dict['cmdline'] = cmdline
 
     # for triangular/grid I'm allowing pickling
     serializer.save_dict_to_hdf5(savefile, ret_dict, allow_pickle=True)
@@ -173,6 +180,7 @@ def execute(spec_setup, prefix=None, regular=False, perturb=True, revision=''):
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
+    cmdline = shlex.join([sys.argv[0]] + list(args))
     parser = argparse.ArgumentParser(
         description='Create N-D spectral interpolation files')
     parser.add_argument(
@@ -197,7 +205,8 @@ def main(args=None):
     execute(args.setup,
             prefix=args.prefix,
             revision=args.revision,
-            regular=args.regulargrid)
+            regular=args.regulargrid,
+            cmdline=cmdline)
 
 
 if __name__ == '__main__':

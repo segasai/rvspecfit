@@ -34,7 +34,7 @@ jobs:
           pip install wheel
           pip install .
           pip install pytz numba healpy speclite fitsio photutils==1.6.0
-          pip install git+https://github.com/desihub/desiutil@3.2.2
+          pip install --no-build-isolation git+https://github.com/desihub/desiutil@3.2.2
           pip install  --no-build-isolation git+https://github.com/desihub/desitarget@2.7.0
         # for desitarget
       - name: Fetching data

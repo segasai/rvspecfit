@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import shlex
 import time
 import gc
 import rvspecfit
@@ -9,7 +10,8 @@ import torch.nn.functional as tofu
 import sklearn.decomposition as skde
 import numpy as np
 import torch
-from .NNInterpolator import Mapper, NNInterpolator
+from .NNInterpolator import (Mapper, NNInterpolator, save_checkpoint,
+                             load_checkpoint)
 from rvspecfit import serializer
 
 git_rev = rvspecfit.__version__
@@ -37,14 +39,12 @@ def getData(dir, setup, log_ids=[0]):
     return lam, vecs_trans, dats, mapper, vecs, mapper_args, info
 
 
-def getSchedOptim(optim):
-    sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim,
-                                                       factor=0.5,
-                                                       patience=20,
-                                                       eps=1e-9,
-                                                       threshold=1e-5)
-    # sched = torch.optim.lr_scheduler.CosineAnnealingLR(optim,50)
-    return sched
+def getSchedOptim(optim, patience=20):
+    return torch.optim.lr_scheduler.ReduceLROnPlateau(optim,
+                                                      factor=0.5,
+                                                      patience=patience,
+                                                      eps=1e-9,
+                                                      threshold=1e-5)
 
 
 def get_predictions(myint, Tvecs0, dev, batch):
@@ -68,6 +68,7 @@ def get_predictions(myint, Tvecs0, dev, batch):
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
+    cmdline = shlex.join([sys.argv[0]] + list(args))
 
     parser = argparse.ArgumentParser(
         description=
@@ -140,6 +141,17 @@ def main(args=None):
                         type=int,
                         default=100,
                         help='Training batch size')
+    parser.add_argument('--validation_fraction',
+                        type=float,
+                        default=0.05,
+                        help='Validation fraction')
+    parser.add_argument(
+        '--n_subset_data',
+        type=int,
+        default=None,
+        help='Select a small subset of data (useful for testing)')
+    parser.add_argument('--patience', type=int, default=20)
+    parser.add_argument('--num_epochs', type=int, default=1_000_000)
     args = parser.parse_args(args)
     log_ids = [int(_) for _ in (args.log_ids).split(',')]
     setup = args.setup
@@ -182,7 +194,8 @@ def main(args=None):
     lr0 = args.learning_rate0
     # nstack = 1
     batch = args.batch
-    validation_frac = 0.05
+    num_epochs = args.num_epochs
+    validation_frac = args.validation_fraction
     validation = args.validation
     if validation:
         train_set = rstate.uniform(size=len(dats)) > validation_frac
@@ -194,6 +207,10 @@ def main(args=None):
         mask = np.zeros(nspec, dtype=bool)
         mask[mask_ids] = True
         train_set = train_set & (~mask)
+    if args.n_subset_data is not None:
+        train_ids = np.nonzero(train_set)[0]
+        train_set[:] = False
+        train_set[rstate.permutation(train_ids)[:args.n_subset_data]] = True
     print(train_set.sum())
     kwargs = dict(indim=indim,
                   npc=npc,
@@ -211,7 +228,7 @@ def main(args=None):
     if restore:
         if os.path.exists(statefile_path):
             try:
-                myint.load_state_dict(torch.load(statefile_path))
+                load_checkpoint(myint, statefile_path, allow_legacy=True)
                 print('restoring', statefile_path)
             except RuntimeError:
                 print('failed to restore')
@@ -265,11 +282,16 @@ def main(args=None):
     batch_move = True
     minlr = args.min_learning_rate
     layer_noise = 0
+
+    def loss_func(pred, dat):
+        loss = tofu.l1_loss(pred, dat) / spread0
+        return loss
+
     for i in range(1):
         # previously there were two iterations
         params = myint.parameters()
         optim = torch.optim.Adam(params, lr=lr0)
-        sched = getSchedOptim(optim)
+        sched = getSchedOptim(optim, patience=args.patience)
         while True:
             tstart = time.time()
             counter += 1
@@ -294,8 +316,8 @@ def main(args=None):
                 else:
                     Rfinal00 = myint(Tvecs00) * tSD_0 + tD_0
 
-                loss_noised = tofu.l1_loss(Rfinal_noised, Tdat) / spread0
-                loss00 = tofu.l1_loss(Rfinal00, Tdat) / spread0
+                loss_noised = loss_func(Rfinal_noised, Tdat)
+                loss00 = loss_func(Rfinal00, Tdat)
                 if batch_move:
                     torch.autograd.backward(loss_noised)
                     optim.step()
@@ -305,13 +327,16 @@ def main(args=None):
             if not batch_move:
                 torch.autograd.backward(lossAccum_noised / nspec / npix)
                 optim.step()
-            sched.step(lossAccum00)
+            sched.step(lossAccum00.detach())
             if validation:
+                was_training = myint.training
+                myint.train(mode=False)
                 with torch.inference_mode():
-                    val_loss = tofu.l1_loss(
+                    val_loss = loss_func(
                         myint(Tvecs0[validation_set]) * tSD_0 + tD_0,
-                        Tdat0[validation_set]) / spread0
+                        Tdat0[validation_set])
                     val_loss = val_loss.detach().cpu().numpy()
+                myint.train(mode=was_training)
             else:
                 val_loss = 0
             loss_V = lossAccum00.detach().cpu().numpy() / dats.size
@@ -320,12 +345,14 @@ def main(args=None):
                   'lr', curlr, 'time', deltat)
             # lastloss = loss_V
             losses.append(loss_V)
+            if counter >= num_epochs:
+                break
             if curlr < minlr:
                 break
 
             if counter % 32 == 0 and counter > 0:
                 print('saving')
-                torch.save(myint.state_dict(), statefile_path)
+                save_checkpoint(myint, statefile_path)
             deltat = time.time() - tstart
         del Tdat, Tvecs, Tvecs00, rand, Rfinal00, Rfinal_noised
         gc.collect()
@@ -334,7 +361,7 @@ def main(args=None):
         npix, 1) * myint.pc_layer.weight.data[:, :]
     myint.pc_layer.bias.data[:] = tD_0[:] + myint.pc_layer.bias.data[:] * tSD_0
 
-    torch.save(myint.state_dict(), finalfile_path)
+    save_checkpoint(myint, finalfile_path)
 
     if os.path.exists(statefile_path):
         os.unlink(statefile_path)
@@ -359,6 +386,7 @@ def main(args=None):
         'nn_file': finalfile,
         'revision': revision,
         'git_rev': git_rev,
+        'cmdline': cmdline,
         'interpolation_type': 'generic'
     }
     serializer.save_dict_to_hdf5(ofname, D)
@@ -366,10 +394,11 @@ def main(args=None):
     pred = get_predictions(myint, Tvecs0, train_dev, batch)
     cur_name = f'{directory}/pred_{setup}.h5'
     DD = {}
-    DD['pred'] = pred,
+    DD['pred'] = pred
     DD['vecs'] = vecs
-    DD['dats'] = dats,
+    DD['dats'] = dats
     DD['vecs_orig'] = vecs_orig
+    DD['cmdline'] = cmdline
     serializer.save_dict_to_hdf5(cur_name, DD)
 
 

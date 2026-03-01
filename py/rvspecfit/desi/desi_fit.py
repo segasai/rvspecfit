@@ -296,8 +296,7 @@ def proc_onespec(
     fixParam = []
 
     if res['best_vsini'] is not None:
-        paramDict0['vsini'] = np.clip(res['best_vsini'], config['min_vsini'],
-                                      config['max_vsini'])
+        paramDict0['vsini'] = res['best_vsini']
 
     fit_res = vel_fit.process(
         specdata,
@@ -347,6 +346,12 @@ def proc_onespec(
             chisqs_c[s])
     if ccf_init:
         outdict['VRAD_CCF'] = vrad_ccf * auni.km / auni.s
+        if False:
+            outdict['CHISQ_CCF'] = res['best_ccf'].min()
+            outdict['VSINI_CCF'] = res['best_vsini'] * auni.km / auni.s
+            for name1, (name2, unit) in name_mappings.items():
+                if name1 in paramDict0:
+                    outdict[name2 + '_CCF'] = paramDict0[name1] * unit
 
     outdict['RVS_WARN'] = get_rvs_warn(fit_res, outdict, config)
 
@@ -394,7 +399,7 @@ def get_rvs_warn(fit_res, outdict, config):
     rverr_thresh = 100
     # If the error is larger than this we warn
 
-    vsini_thresh = 20
+    vsini_thresh = 100
 
     rvs_warn = 0
 
@@ -911,6 +916,12 @@ def get_column_desc(setups):
         ('CHISQ_C_TOT',
          (np.float64,
           'Total chi-square for all arms for polynomial only fit')),
+        ('CHISQ_CCF', (np.float32, 'Total chi-square from CCF fit')),
+        ('TEFF_CCF', (np.float32, 'Effective temperature from CCF fit')),
+        ('LOGG_CCF', (np.float32, 'Log of surface gravity from CCF fit')),
+        ('FEH_CCF', (np.float32, '[Fe/H] from CCF fit')),
+        ('ALPHAFE_CCF', (np.float32, '[alpha/Fe] from CCF fit')),
+        ('VSINI_CCF', (np.float32, 'Vsini from CCF fit')),
         ('VRAD_CCF', (np.float32, 'Initial velocity from cross-correlation')),
         ('TARGETID', (np.int64, 'DESI targetid')),
         ('EXPID', (np.int64, 'DESI exposure id')),
