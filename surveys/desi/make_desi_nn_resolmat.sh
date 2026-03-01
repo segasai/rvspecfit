@@ -25,7 +25,7 @@ ZRESOL_CCF='x/1.8'
 
 
 VSINIS=0,10,100
-REVISION=v260225_phoenn_resolmat
+REVISION=v260301_phoenn_resolmat
 EVERY=200
 SMOOTH=0.0
 PREFIX=../../..//templ_data/desi/${REVISION}/
