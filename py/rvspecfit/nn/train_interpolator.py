@@ -39,8 +39,11 @@ def getData(dir, setup, log_ids=[0]):
 
 
 def getSchedOptim(optim, patience=20):
-    return torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optim, factor=0.5, patience=patience, eps=1e-9, threshold=1e-5)
+    return torch.optim.lr_scheduler.ReduceLROnPlateau(optim,
+                                                      factor=0.5,
+                                                      patience=patience,
+                                                      eps=1e-9,
+                                                      threshold=1e-5)
 
 
 def get_predictions(myint, Tvecs0, dev, batch):
@@ -146,7 +149,7 @@ def main(args=None):
         type=int,
         default=None,
         help='Select a small subset of data (useful for testing)')
-    parser.add_argument('--patience', type=int, default=50)
+    parser.add_argument('--patience', type=int, default=20)
     parser.add_argument('--num_epochs', type=int, default=1_000_000)
     args = parser.parse_args(args)
     log_ids = [int(_) for _ in (args.log_ids).split(',')]
@@ -323,7 +326,7 @@ def main(args=None):
             if not batch_move:
                 torch.autograd.backward(lossAccum_noised / nspec / npix)
                 optim.step()
-            sched.step(lossAccum00)
+            sched.step(lossAccum00.detach())
             if validation:
                 was_training = myint.training
                 myint.train(mode=False)
