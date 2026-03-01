@@ -38,14 +38,9 @@ def getData(dir, setup, log_ids=[0]):
     return lam, vecs_trans, dats, mapper, vecs, mapper_args, info
 
 
-def getSchedOptim(optim):
-    sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim,
-                                                       factor=0.5,
-                                                       patience=20,
-                                                       eps=1e-9,
-                                                       threshold=1e-5)
-    # sched = torch.optim.lr_scheduler.CosineAnnealingLR(optim,50)
-    return sched
+def getSchedOptim(optim, patience=20):
+    return torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optim, factor=0.5, patience=patience, eps=1e-9, threshold=1e-5)
 
 
 def get_predictions(myint, Tvecs0, dev, batch):
@@ -142,6 +137,17 @@ def main(args=None):
                         type=int,
                         default=100,
                         help='Training batch size')
+    parser.add_argument('--validation_fraction',
+                        type=float,
+                        default=0.05,
+                        help='Validation fraction')
+    parser.add_argument(
+        '--n_subset_data',
+        type=int,
+        default=None,
+        help='Select a small subset of data (useful for testing)')
+    parser.add_argument('--patience', type=int, default=50)
+    parser.add_argument('--num_epochs', type=int, default=1_000_000)
     args = parser.parse_args(args)
     log_ids = [int(_) for _ in (args.log_ids).split(',')]
     setup = args.setup
@@ -184,7 +190,8 @@ def main(args=None):
     lr0 = args.learning_rate0
     # nstack = 1
     batch = args.batch
-    validation_frac = 0.05
+    num_epochs = args.num_epochs
+    validation_frac = args.validation_fraction
     validation = args.validation
     if validation:
         train_set = rstate.uniform(size=len(dats)) > validation_frac
@@ -196,6 +203,10 @@ def main(args=None):
         mask = np.zeros(nspec, dtype=bool)
         mask[mask_ids] = True
         train_set = train_set & (~mask)
+    if args.n_subset_data is not None:
+        train_ids = np.nonzero(train_set)[0]
+        train_set[:] = False
+        train_set[rstate.permutation(train_ids)[:args.n_subset_data]] = True
     print(train_set.sum())
     kwargs = dict(indim=indim,
                   npc=npc,
@@ -276,7 +287,7 @@ def main(args=None):
         # previously there were two iterations
         params = myint.parameters()
         optim = torch.optim.Adam(params, lr=lr0)
-        sched = getSchedOptim(optim)
+        sched = getSchedOptim(optim, patience=args.patience)
         while True:
             tstart = time.time()
             counter += 1
@@ -314,11 +325,14 @@ def main(args=None):
                 optim.step()
             sched.step(lossAccum00)
             if validation:
+                was_training = myint.training
+                myint.train(mode=False)
                 with torch.inference_mode():
                     val_loss = loss_func(
                         myint(Tvecs0[validation_set]) * tSD_0 + tD_0,
                         Tdat0[validation_set])
                     val_loss = val_loss.detach().cpu().numpy()
+                myint.train(mode=was_training)
             else:
                 val_loss = 0
             loss_V = lossAccum00.detach().cpu().numpy() / dats.size
@@ -327,6 +341,8 @@ def main(args=None):
                   'lr', curlr, 'time', deltat)
             # lastloss = loss_V
             losses.append(loss_V)
+            if counter >= num_epochs:
+                break
             if curlr < minlr:
                 break
 
