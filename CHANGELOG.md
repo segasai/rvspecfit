@@ -1,5 +1,6 @@
 Changes
 
+* 26.03 Neural-network interpolator checkpoints are now versioned and validated on load, preventing accidental use of incompatible weights after model-code changes (legacy checkpoints can still be loaded with a warning).
 * 26.02 Improve the VSINI fitting, should provide much more accurate values (change the the threshold for the RVS_WARN flag LARGE_VSINI).
 * 26.02 Batch FFT in fitter_ccf (could provide tiny speedup)
 * 26.02 Save cmdline used to create various products in the hdf5 file
