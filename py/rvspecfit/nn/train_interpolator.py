@@ -10,7 +10,8 @@ import torch.nn.functional as tofu
 import sklearn.decomposition as skde
 import numpy as np
 import torch
-from .NNInterpolator import Mapper, NNInterpolator
+from .NNInterpolator import (Mapper, NNInterpolator, save_checkpoint,
+                             load_checkpoint)
 from rvspecfit import serializer
 
 git_rev = rvspecfit.__version__
@@ -227,7 +228,7 @@ def main(args=None):
     if restore:
         if os.path.exists(statefile_path):
             try:
-                myint.load_state_dict(torch.load(statefile_path))
+                load_checkpoint(myint, statefile_path, allow_legacy=True)
                 print('restoring', statefile_path)
             except RuntimeError:
                 print('failed to restore')
@@ -351,7 +352,7 @@ def main(args=None):
 
             if counter % 32 == 0 and counter > 0:
                 print('saving')
-                torch.save(myint.state_dict(), statefile_path)
+                save_checkpoint(myint, statefile_path)
             deltat = time.time() - tstart
         del Tdat, Tvecs, Tvecs00, rand, Rfinal00, Rfinal_noised
         gc.collect()
@@ -360,7 +361,7 @@ def main(args=None):
         npix, 1) * myint.pc_layer.weight.data[:, :]
     myint.pc_layer.bias.data[:] = tD_0[:] + myint.pc_layer.bias.data[:] * tSD_0
 
-    torch.save(myint.state_dict(), finalfile_path)
+    save_checkpoint(myint, finalfile_path)
 
     if os.path.exists(statefile_path):
         os.unlink(statefile_path)

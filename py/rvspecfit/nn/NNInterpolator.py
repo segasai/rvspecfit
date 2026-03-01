@@ -1,10 +1,20 @@
 import torch.nn as tonn
 import torch.nn.modules.activation as tonnact
+import torch
 from collections import OrderedDict
 import numpy as np
+import warnings
+
+# Identifies our custom torch checkpoint container for NNInterpolator.
+CHECKPOINT_MAGIC = 'rvspecfit.nn_interpolator'
+# Version of checkpoint payload structure (top-level keys/format).
+CHECKPOINT_VERSION = 1
 
 
 class NNInterpolator(tonn.Module):
+    # Version of NNInterpolator architecture semantics.
+    # Bump when code changes make old weights unsafe/incompatible.
+    ARCHITECTURE_VERSION = 1
 
     def __init__(self,
                  indim=None,
@@ -79,6 +89,71 @@ class NNInterpolator(tonn.Module):
         curx = curx.view(-1, self.indim)
         curx = self.pc_layer(self.model(curx))
         return curx
+
+
+def build_checkpoint(model):
+    # Wrapper format: metadata + raw torch state_dict.
+    return dict(checkpoint_magic=CHECKPOINT_MAGIC,
+                checkpoint_version=CHECKPOINT_VERSION,
+                nn_arch_version=model.ARCHITECTURE_VERSION,
+                state_dict=model.state_dict())
+
+
+def _extract_state_dict(model, checkpoint, allow_legacy=False, source='checkpoint'):
+    if isinstance(checkpoint, dict) and 'state_dict' in checkpoint:
+        # 1) Confirm this payload is our checkpoint type.
+        if checkpoint.get('checkpoint_magic') != CHECKPOINT_MAGIC:
+            raise RuntimeError(f'Invalid checkpoint magic in {source}')
+        # 2) Confirm loader understands this checkpoint schema.
+        if checkpoint.get('checkpoint_version') != CHECKPOINT_VERSION:
+            raise RuntimeError(f'Unsupported checkpoint version in {source}')
+        # 3) Confirm weights were produced for compatible NN code.
+        nn_arch_version = checkpoint.get('nn_arch_version')
+        if nn_arch_version != model.ARCHITECTURE_VERSION:
+            raise RuntimeError(
+                f'NNInterpolator architecture version mismatch in {source}: '
+                f'weights={nn_arch_version} code={model.ARCHITECTURE_VERSION}')
+        return checkpoint['state_dict']
+
+    # Legacy format: raw state_dict saved via torch.save(model.state_dict()).
+    if isinstance(checkpoint, dict):
+        if not allow_legacy:
+            raise RuntimeError(
+                f'Legacy NNInterpolator checkpoint format in {source} has no '
+                'version metadata; refusing to load')
+        warnings.warn(
+            f'Loading legacy NNInterpolator checkpoint without version '
+            f'metadata from {source}. Please re-save/retrain to get strict '
+            'compatibility checks.',
+            RuntimeWarning)
+        return checkpoint
+
+    raise RuntimeError(f'Unsupported checkpoint payload in {source}')
+
+
+def save_checkpoint(model, path):
+    torch.save(build_checkpoint(model), path)
+
+
+def load_checkpoint(model,
+                    path,
+                    map_location=None,
+                    allow_legacy=False,
+                    weights_only=True):
+    # `weights_only=True` (newer torch) avoids loading arbitrary pickled code.
+    # Keep a fallback for older torch versions that do not support this kwarg.
+    load_kwargs = {}
+    if map_location is not None:
+        load_kwargs['map_location'] = map_location
+    try:
+        checkpoint = torch.load(path, weights_only=weights_only, **load_kwargs)
+    except TypeError:
+        checkpoint = torch.load(path, **load_kwargs)
+    state_dict = _extract_state_dict(model,
+                                     checkpoint,
+                                     allow_legacy=allow_legacy,
+                                     source=path)
+    model.load_state_dict(state_dict)
 
 
 class Mapper:
