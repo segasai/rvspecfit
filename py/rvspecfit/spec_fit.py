@@ -309,6 +309,7 @@ def getCurTempl(spec_setup, atm_param, rot_params, config):
     curInterp = spec_inter.getInterpolator(spec_setup, config)
     outside = float(curInterp.outsideFlag(atm_param))
     spec = curInterp.eval(atm_param)
+    spec = np.ascontiguousarray(spec, dtype=np.float64)
 
     MAX_VAL = 1e100
     # DO NOT allow spectra that have values larger than MAX_VAL

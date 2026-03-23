@@ -283,7 +283,7 @@ class SpecInterpolator:
                                  (','.join(self.parnames)))
         param = self.mapper.forward(param0)
         spec = self.interper(param)
-        return np.ascontiguousarray(spec, dtype=np.float64)
+        return spec
 
 
 class interp_cache:
