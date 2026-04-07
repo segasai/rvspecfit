@@ -246,7 +246,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     DB.commit()
     DB.execute('create index logg_idx on files(logg)')
     DB.execute('create index teff_idx on files(teff)')
-    DB.execute('create index met_idx on files({name_metallicity})')
+    DB.execute(f'create index met_idx on files({name_metallicity})')
     DB.execute('create index id_idx on files(id)')
 
 
