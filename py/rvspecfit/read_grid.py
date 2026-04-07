@@ -304,7 +304,7 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
     if len(fnames) == 0:
         raise Exception('No spectra found')
 
-    dat = pyfits.getdata(prefix + '/' + fnames[0][0])
+    dat = pyfits.getdata(prefix + '/' + fnames[0][0], memmap=False)
     dat = dat.astype(dat.dtype.newbyteorder('='))  # convert to native
     lams = _get_wave(wavefile)
     return lams, dat
