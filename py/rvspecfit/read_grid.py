@@ -244,6 +244,10 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
                    (f.replace(prefix, ''), id, False) + tuple(curpar.values()))
         id += 1
     DB.commit()
+    DB.execute('create index logg_idx on files(logg)')
+    DB.execute('create index teff_idx on files(teff)')
+    DB.execute('create index met_idx on files({name_metallicity})')
+    DB.execute('create index id_idx on files(id)')
 
 
 @functools.lru_cache(None)
@@ -302,9 +306,14 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
 
     dat = pyfits.getdata(prefix + '/' + fnames[0][0])
     dat = dat.astype(dat.dtype.newbyteorder('='))  # convert to native
-    lams = pyfits.getdata(wavefile)
-    lams = lams.astype(lams.dtype.newbyteorder('='))
+    lams = _get_wave(wavefile)
     return lams, dat
+
+
+@functools.lru_cache(maxsize=None)
+def _get_wave(wavefile):
+    lams = pyfits.getdata(wavefile)
+    return lams.astype(lams.dtype.newbyteorder('='))
 
 
 def make_rebinner(lam00,
