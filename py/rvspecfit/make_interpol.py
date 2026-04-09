@@ -134,10 +134,13 @@ def extract_spectrum(param,
     spec1_phot = read_grid.apply_rebinner(si.mat, spec0_phot)
     spec1 = spec1_phot / si.lamgrid
 
-    normnum = np.median(spec1)
-    spec2 = spec1 / normnum
     if normalize:
-        spec2 = spec2 / get_line_continuum(si.lamgrid, spec2)
+        spec2 = spec1 / get_line_continuum(si.lamgrid, spec1)
+    else:
+        spec2 = spec1
+    normnum = 1
+    # previously I normalized by the median
+    # Now I don't do that anymore
     if log_spec:
         spec2 = np.log(spec2)  # log the spectrum
     if not np.isfinite(spec2).all():
