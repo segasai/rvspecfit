@@ -146,7 +146,6 @@ def extract_spectrum(param,
     if not np.isfinite(spec2).all():
         raise RuntimeError('The spectrum is not finite (has nans or infs) at '
                            'parameter values: %s' % str(param))
-    spec2 = spec2.astype(np.float32)
     return spec2, np.log(normnum)
 
 
@@ -170,6 +169,18 @@ class Resolution:
 def _fetch_all_parameters(dbfile, parnames):
     """
     Read the vector of template parameters corresponding to parnames
+
+    Parameters
+    ----------
+    dbfile: string
+        Path to the sqlite database
+    parnames: list of strings
+        The parameter names of spectra
+
+    Returns
+    -------
+    vec: numpy array
+        The array of parameters
     """
     if not os.path.exists(dbfile):
         raise RuntimeError('The template database file %s does not exist' %
@@ -207,6 +218,7 @@ def process_all(setupInfo,
                 air=False,
                 resolution0=None,
                 normalize=True,
+                float_bits=32,
                 revision='',
                 cmdline='',
                 nthreads=8,
@@ -218,16 +230,37 @@ def process_all(setupInfo,
 
     Parameters
     ----------
-    setupInfo: string
-        The name of spectral configuration
+    setupInfo: tuple
+        The spectral configuration (setup, lambda0, lambda1, resol_func, step, log_step)
     parnames: list of strings
         The parameter names of spectra
-    log_parameters: integer positions of parameters that needs
-        to be log10() for interpolation. I.e. if the first parameter si teff
-        and we want to perform interpolation in log(teff) space
-        this needs to be [0]
+    dbfile: string
+        Path to the sqlite database
+    oprefix: string
+        Output prefix
+    prefix: string
+        Prefix to the data files
+    wavefile: string
+        Path to the file with wavelengths
     air: boolean
         Transform from vacuum to air
+    resolution0: float
+        The resolution of the input grid
+    normalize: boolean
+        Normalize the spectrum
+    float_bits: int
+        32 or 64 bits for the output spectra
+    revision: string
+        The revision of the templates
+    cmdline: string
+        The command line used to run the script
+    nthreads: int
+        The number of threads to use
+    log_parameters: list of integers
+        Integer positions of parameters that needs
+        to be log10() for interpolation. I.e. if the first parameter is teff
+        and we want to perform interpolation in log(teff) space
+        this needs to be [0]
 
     """
     vec = _fetch_all_parameters(dbfile, parnames)
@@ -287,9 +320,9 @@ def process_all(setupInfo,
             if i % max(1, nspec // 100) == 0:
                 print('%d/%d' % (i, nspec))
         specs.append(
-            pool.apply_async(
-                extract_spectrum,
-                (param, dbfile, prefix, wavefile, normalize, log_spec)))
+            pool.apply_async(extract_spectrum,
+                             (param, dbfile, prefix, wavefile),
+                             dict(normalize=normalize, log_spec=log_spec)))
     lam = lamgrid
     for i in range(len(specs)):
         if multi_thread:
@@ -300,6 +333,8 @@ def process_all(setupInfo,
     pool.close()
     pool.join()
     specs = np.array(specs)
+    if float_bits == 32:
+        specs = specs.astype(np.float32)
     lognorms = np.array(lognorms)
 
     if os.path.isdir(oprefix):
@@ -360,6 +395,11 @@ def main(args=None):
     parser.add_argument('--resol',
                         type=float,
                         help='Constant spectral resolution of the new grid')
+    parser.add_argument('--float_bits',
+                        type=int,
+                        default=32,
+                        choices=[32, 64],
+                        help='Cast spectra to 32 or 64 bits')
     parser.add_argument('--revision',
                         type=str,
                         help='The revision of the templates',
@@ -480,6 +520,7 @@ def main(args=None):
                 resolution0=args.resolution0,
                 normalize=args.normalize,
                 revision=args.revision,
+                float_bits=args.float_bits,
                 cmdline=cmdline,
                 nthreads=args.nthreads)
 
