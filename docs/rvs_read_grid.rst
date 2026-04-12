@@ -27,6 +27,9 @@ Required Options
 ``--templdb FILENAME``
     The filename where the SQLite database describing the template library will be stored. Default: ``files.db``
 
+``--update``
+    Update an existing database in place by appending only newly discovered templates (matched by relative filename). By default, existing database files are recreated.
+
 Header Keyword Mapping Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -112,6 +115,18 @@ For templates organized differently:
                  --templdb templates.db \
                  --glob_mask "*.fits"
 
+Update Existing Database with New Files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you add new template FITS files to an existing library, you can append them without rebuilding the database:
+
+.. code-block:: bash
+
+   rvs_read_grid --prefix /data/templates/ \
+                 --templdb templates.db \
+                 --glob_mask "*.fits" \
+                 --update
+
 Output
 ------
 
@@ -132,7 +147,8 @@ The command creates an SQLite database with two main tables:
 Notes
 -----
 
-- The command will overwrite existing database files without warning
+- By default, the command recreates the database file if it already exists
+- Use ``--update`` to keep existing rows and add only new files
 - All FITS files must contain the specified header keywords, or the command will fail
 - The database stores relative paths, so the ``--prefix`` must be used consistently in subsequent commands
 - Templates are assigned sequential integer IDs starting from 0

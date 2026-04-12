@@ -172,6 +172,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
            keywords=None,
            mask=None,
            extra_params=None,
+           update=False,
            name_metallicity=None,
            name_alpha=None):
     """ Create an sqlite database of the templates
@@ -190,11 +191,16 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     extra_params: dict or None
         The dictionary of variable name vs FITS name to read from spectral
         files
+    update: bool
+        If True and the database exists, keep existing rows and append only
+        new files (by relative filename). If False, recreate the database.
     """
-    if os.path.exists(dbfile):
+    db_exists = os.path.exists(dbfile)
+    if db_exists and not update:
         print(f'Overwriting the template database file {dbfile}')
         os.unlink(dbfile)
     DB = sqlite3.connect(dbfile)
+
     file_id = 0
     extra_params_str = ''
     if extra_params is not None:
@@ -205,21 +211,38 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
     else:
         extra_params = {}
 
-    # Create a table listing what grid parameters we have
-    DB.execute('''CREATE TABLE grid_parameters(
-    id int, name varchar, explanation varchar)''')
-    for counter, k in enumerate(
-            itertools.chain(keywords.keys(), extra_params.keys())):
-        DB.execute('INSERT INTO grid_parameters (id, name) values (?, ?)',
-                   (counter, k))
-    DB.execute(f'''CREATE TABLE files (filename varchar,
-        teff real,
-        logg real,
-        {name_metallicity} real,
-        {name_alpha} real,
-        {extra_params_str}
-        id int,
-        bad bool);''')
+    created_new = (not db_exists) or (not update)
+    if created_new:
+        # Create a table listing what grid parameters we have
+        DB.execute('''CREATE TABLE grid_parameters(
+        id int, name varchar, explanation varchar)''')
+        for counter, k in enumerate(
+                itertools.chain(keywords.keys(), extra_params.keys())):
+            DB.execute('INSERT INTO grid_parameters (id, name) values (?, ?)',
+                       (counter, k))
+        DB.execute(f'''CREATE TABLE files (filename varchar,
+            teff real,
+            logg real,
+            {name_metallicity} real,
+            {name_alpha} real,
+            {extra_params_str}
+            id int,
+            bad bool);''')
+    else:
+        # In update mode we append only files that are not yet catalogued.
+        # Also validate the expected columns are present.
+        tabinfo = DB.execute('pragma table_info(files)').fetchall()
+        existing_columns = {_[1] for _ in tabinfo}
+        required_columns = {'filename', 'id', 'bad'}
+        required_columns.update(keywords.keys())
+        required_columns.update(extra_params.keys())
+        missing_columns = required_columns - existing_columns
+        if len(missing_columns) > 0:
+            raise RuntimeError(
+                'Cannot update existing template database because required '
+                f'columns are missing: {sorted(missing_columns)}')
+        file_id = DB.execute('select coalesce(max(id), -1) from files'
+                             ).fetchall()[0][0] + 1
 
     fs = sorted(glob.glob(prefix + mask))
 
@@ -227,7 +250,19 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
         raise Exception(
             "No FITS templates found in the directory specified (using mask %s"
             % mask)
+    existing_files = set()
+    if update and db_exists:
+        existing_files = {
+            _[0] for _ in DB.execute('select filename from files').fetchall()
+        }
+
+    ninserted = 0
+    nskipped = 0
     for f in fs:
+        rel_fname = f.replace(prefix, '')
+        if rel_fname in existing_files:
+            nskipped += 1
+            continue
         hdr = pyfits.getheader(f)
         curpar = {}
         for param, curkey in itertools.chain(keywords.items(),
@@ -241,14 +276,19 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
                  ','.join(curpar.keys()) + ') values (?, ?, ? ' +
                  len(curpar) * ',?' + ' )')
         DB.execute(query,
-                   (f.replace(prefix, ''), file_id, False) +
-                   tuple(curpar.values()))
+                   (rel_fname, file_id, False) + tuple(curpar.values()))
+        existing_files.add(rel_fname)
         file_id += 1
+        ninserted += 1
     DB.commit()
-    DB.execute('create index logg_idx on files(logg)')
-    DB.execute('create index teff_idx on files(teff)')
-    DB.execute(f'create index met_idx on files({name_metallicity})')
-    DB.execute('create index id_idx on files(id)')
+    if created_new:
+        DB.execute('create index logg_idx on files(logg)')
+        DB.execute('create index teff_idx on files(teff)')
+        DB.execute(f'create index met_idx on files({name_metallicity})')
+        DB.execute('create index id_idx on files(id)')
+    if update and db_exists:
+        print(f'Update mode: inserted {ninserted} new templates, '
+              f'skipped {nskipped} existing templates')
 
 
 @functools.lru_cache(None)
@@ -517,6 +557,11 @@ def main(args=None):
         default='files.db',
         help='The filename where the SQLite database describing the '
         'template library will be stored')
+    parser.add_argument('--update',
+                        action='store_true',
+                        default=False,
+                        help='Update existing database by adding only new '
+                        'files; if not set, database is recreated')
     args = parser.parse_args(args)
     keywords = dict(teff=args.keyword_teff, logg=args.keyword_logg)
     keywords[args.name_metallicity] = args.keyword_metallicity
@@ -536,6 +581,7 @@ def main(args=None):
            keywords=keywords,
            mask=args.glob_mask,
            extra_params=extra_params,
+           update=args.update,
            name_metallicity=args.name_metallicity,
            name_alpha=args.name_alpha)
 

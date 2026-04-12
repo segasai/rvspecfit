@@ -231,7 +231,8 @@ def process_all(setupInfo,
     Parameters
     ----------
     setupInfo: tuple
-        The spectral configuration (setup, lambda0, lambda1, resol_func, step, log_step)
+        The spectral configuration (setup, lambda0, lambda1, resol_func,
+                                                    step, log_step)
     parnames: list of strings
         The parameter names of spectra
     dbfile: string
