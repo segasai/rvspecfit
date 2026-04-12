@@ -195,7 +195,7 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
         print(f'Overwriting the template database file {dbfile}')
         os.unlink(dbfile)
     DB = sqlite3.connect(dbfile)
-    id = 0
+    file_id = 0
     extra_params_str = ''
     if extra_params is not None:
         extra_keys = []
@@ -241,8 +241,9 @@ def makedb(prefix='/PHOENIX-ACES-AGSS-COND-2011/',
                  ','.join(curpar.keys()) + ') values (?, ?, ? ' +
                  len(curpar) * ',?' + ' )')
         DB.execute(query,
-                   (f.replace(prefix, ''), id, False) + tuple(curpar.values()))
-        id += 1
+                   (f.replace(prefix, ''), file_id, False) +
+                   tuple(curpar.values()))
+        file_id += 1
     DB.commit()
     DB.execute('create index logg_idx on files(logg)')
     DB.execute('create index teff_idx on files(teff)')
@@ -276,11 +277,11 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
         1-D array of wavelength
         spec: ndarray
         1-D array of spectrum
-    
+
     Examples
     --------
     > lam,spec=read_grid.get_spec(dict(logg=1,teff=5250,feh=-1,alpha=0.4))
-    
+
     """
 
     # We don't look for equality we look around the value with the following
