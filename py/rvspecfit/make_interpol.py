@@ -181,6 +181,8 @@ def _fetch_all_parameters(dbfile, parnames):
     -------
     vec: numpy array
         The array of parameters
+    file_ids: numpy array
+        The array if file ids
     """
     if not os.path.exists(dbfile):
         raise RuntimeError('The template database file %s does not exist' %
@@ -206,7 +208,8 @@ def _fetch_all_parameters(dbfile, parnames):
         where not bad  order by {parname_str}''')
         tab = np.rec.fromrecords(cur.fetchall())
     vec = np.array([tab['f%d' % _] for _ in range(1, len(parnames) + 1)])
-    return vec
+    file_ids = tab['f0']
+    return vec, file_ids
 
 
 def process_all(setupInfo,
@@ -264,7 +267,7 @@ def process_all(setupInfo,
         this needs to be [0]
 
     """
-    vec = _fetch_all_parameters(dbfile, parnames)
+    vec, file_ids = _fetch_all_parameters(dbfile, parnames)
     nspec = vec.shape[1]
     log_spec = True
     i = 0
@@ -359,7 +362,9 @@ def process_all(setupInfo,
               cmdline=cmdline,
               lognorms=lognorms,
               log_step=log_step,
-              log_spec=log_spec)
+              log_spec=log_spec,
+              file_ids=file_ids,
+              dbfile=dbfile)
     serializer.save_dict_to_hdf5(curfname, DD)
 
 
