@@ -13,13 +13,13 @@ jobs:
 
     steps:
       - name: Checkout 
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: System packages
         run: |
           sudo apt install libbz2-dev
           # needed for fitsio... 
       - name: Python setup
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
