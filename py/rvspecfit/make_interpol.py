@@ -5,6 +5,7 @@ import sys
 import shlex
 import argparse
 import logging
+import warnings
 import importlib
 import scipy.constants
 import scipy.optimize
@@ -94,7 +95,7 @@ def extract_spectrum(param,
                      dbfile,
                      prefix,
                      wavefile,
-                     normalize=True,
+                     normalize='linear_continuum',
                      log_spec=True):
     """
     Extract a spectrum of a given parameters then apply the resolution
@@ -110,8 +111,13 @@ def extract_spectrum(param,
         Prefix to the data files
     wavefile: string
         Path to the file with wavelengths
-    normalize: boolean
-        Normalize the spectrum by a linear continuum
+    normalize: string
+        Normalization mode for the spectrum. One of:
+        - 'linear_continuum': divide by a linear (in log) continuum fit
+        - 'median': divide by the median of the spectrum
+        - 'none': no normalization
+        For backward compatibility, boolean values are accepted but
+        deprecated (True maps to 'linear_continuum', False to 'none').
     log_spec: boolean
         If True, take the logarithm of the spectrum
 
@@ -122,6 +128,19 @@ def extract_spectrum(param,
     lognorm: float
         The logarithm of the normalization factor
     """
+    # Backward compatibility: accept boolean values but warn
+    if isinstance(normalize, bool):
+        warnings.warn(
+            'Passing a boolean for normalize is deprecated. '
+            "Use 'linear_continuum', 'median', or 'none' instead.",
+            DeprecationWarning,
+            stacklevel=2)
+        normalize = 'linear_continuum' if normalize else 'none'
+
+    valid_modes = ('none', 'median', 'linear_continuum')
+    if normalize not in valid_modes:
+        raise ValueError(
+            f'normalize must be one of {valid_modes}, got {normalize!r}')
 
     lam, spec0 = read_grid.get_spec(param,
                                     dbfile=dbfile,
@@ -134,13 +153,17 @@ def extract_spectrum(param,
     spec1_phot = read_grid.apply_rebinner(si.mat, spec0_phot)
     spec1 = spec1_phot / si.lamgrid
 
-    if normalize:
+    if normalize == 'linear_continuum':
         spec2 = spec1 / get_line_continuum(si.lamgrid, spec1)
+        normnum = 1
+    elif normalize == 'median':
+        normnum = np.median(spec1)
+        spec2 = spec1 / normnum
     else:
+        # normalize == 'none'
         spec2 = spec1
-    normnum = 1
-    # previously I normalized by the median
-    # Now I don't do that anymore
+        normnum = 1
+
     if log_spec:
         spec2 = np.log(spec2)  # log the spectrum
     if not np.isfinite(spec2).all():
@@ -220,7 +243,7 @@ def process_all(setupInfo,
                 wavefile=None,
                 air=False,
                 resolution0=None,
-                normalize=True,
+                normalize='linear_continuum',
                 float_bits=32,
                 revision='',
                 cmdline='',
@@ -250,8 +273,8 @@ def process_all(setupInfo,
         Transform from vacuum to air
     resolution0: float
         The resolution of the input grid
-    normalize: boolean
-        Normalize the spectrum
+    normalize: string
+        Normalization mode: 'linear_continuum', 'median', or 'none'
     float_bits: int
         32 or 64 bits for the output spectra
     revision: string
@@ -445,10 +468,22 @@ def main(args=None):
                  'log',
                  default=True,
                  help='Generate the spectra in log-wavelength scale')
-    add_bool_arg(parser,
-                 'normalize',
-                 default=True,
-                 help='Normalize the spectra')
+    parser.add_argument(
+        '--normalize',
+        type=str,
+        default='linear_continuum',
+        choices=['none', 'median', 'linear_continuum'],
+        help=('Normalization mode for spectra: '
+              "'linear_continuum' (default) divides by a linear continuum fit, "
+              "'median' divides by the median of the spectrum, "
+              "'none' applies no normalization"))
+    # Deprecated --no-normalize flag kept for backward compatibility
+    parser.add_argument(
+        '--no-normalize',
+        dest='_no_normalize',
+        action='store_true',
+        default=False,
+        help=argparse.SUPPRESS)  # hidden, deprecated
 
     parser.add_argument(
         '--templdb',
@@ -491,6 +526,15 @@ def main(args=None):
               'rather then resolution R=lambda/dlambda'))
 
     args = parser.parse_args(args)
+
+    # Handle deprecated --no-normalize flag
+    if args._no_normalize:
+        warnings.warn(
+            '--no-normalize is deprecated. '
+            "Use '--normalize none' instead.",
+            DeprecationWarning,
+            stacklevel=2)
+        args.normalize = 'none'
 
     if not (args.resol is not None or args.resol_func is not None):
         parser.error('Either --resol or --resol_func is required')
