@@ -677,7 +677,7 @@ def get_chisq_continuum(specdata, options=None):
 
     '''
     npoly = options.get('npoly') or 5
-    rbf = options.get('rbf_continuum') or True
+    rbf = options.get('rbf_continuum', True)
     chisq_array = np.zeros(len(specdata))
     redchisq_array = np.zeros(len(specdata))
     for i, curdata in enumerate(specdata):
@@ -780,7 +780,7 @@ def get_chisq(specdata,
 
     """
     npoly = options.get('npoly') or 5
-    rbf = options.get('rbf_continuum') or True
+    rbf = options.get('rbf_continuum', True)
     chisq_accum = 0
     badchi = 10 * sum([len(_.lam) for _ in specdata])
     if rot_params is not None:

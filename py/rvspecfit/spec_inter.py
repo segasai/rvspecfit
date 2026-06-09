@@ -328,7 +328,7 @@ def getInterpolator(HR, config, warmup_cache=False, cache=None):
         savefile = (config['template_lib'] + '/' +
                     make_nd.INTERPOL_H5_NAME % HR)
         fd = serializer.load_dict_from_hdf5(savefile)
-        log_spec = fd.get('log_spec') or True
+        log_spec = fd.get('log_spec', True)
 
         (templ_lam, parnames) = (fd['lam'], fd['parnames'])
         mapper_module = fd['mapper_module']
