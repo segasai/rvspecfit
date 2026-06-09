@@ -25,7 +25,7 @@ ZRESOL_CCF='x/1.8'
 
 
 VSINIS=0,10,100
-REVISION=v260301_phoenn_resolmat
+REVISION=v260610_phoenn_resolmat
 EVERY=200
 SMOOTH=0.0
 PREFIX=../../..//templ_data/desi/${REVISION}/
@@ -84,12 +84,6 @@ for i in 0 1 2; do {
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
     --revision=$REVISION --no-normalize
 
-    rvs_make_ccf --setup $CURCONF --lambda0 $CURLAM0 --lambda1 $CURLAM1  --every $EVERY \
-    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $CURSTEP \
-    --revision=$REVISION
-    rvs_make_ccf --setup $CURCONF --lambda0 $CURLAM0 --lambda1 $CURLAM1  --every $EVERY \
-    --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $CURSTEP \
-    --revision=$REVISION --nocontinuum
     ) & 
 } ; done 
 wait;
