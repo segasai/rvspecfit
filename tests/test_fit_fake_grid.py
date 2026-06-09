@@ -48,6 +48,7 @@ def test_fake_grid():
 
     print(res['vel'] - v0, res['vel_err'])
     print(res['param'])
+    assert np.abs(res['vel'] - v0) < max(10, 3 * res['vel_err'])
     if True:
         plt.figure(figsize=(6, 2), dpi=300)
         plt.plot(specdata[0].lam, specdata[0].spec, 'k-')
