@@ -57,7 +57,7 @@ for i in 0 1 2; do {
     rvs_make_interpol --nthreads 2 --setup $CURCONF --lambda0 $CURLAM0 --lambda1 $CURLAM1 \
     --resol_func $CURRESOL --step $CURSTEP --templdb ${DBFILE} \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --revision=$REVISION --no-normalize
+    --revision=$REVISION --normalize median
 
     rvs_make_ccf --setup $CURCONF --lambda0 $CURLAM0 --lambda1 $CURLAM1  --every $EVERY \
     --vsinis $VSINIS --prefix ${PREFIX}/ --oprefix=${PREFIX} --step $CURSTEP \
@@ -82,7 +82,7 @@ for i in 0 1 2; do {
     rvs_make_interpol --nthreads 2 --setup $CURCONF --lambda0 $CURLAM0 --lambda1 $CURLAM1 \
     --resol_func $CURRESOL --step $CURSTEP --templdb ${DBFILE} \
     --oprefix ${PREFIX}/ --templprefix $TEMPLPREF --wavefile $WAVEFILE \
-    --revision=$REVISION --no-normalize
+    --revision=$REVISION --normalize median
 
     ) & 
 } ; done 
