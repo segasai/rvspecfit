@@ -281,11 +281,24 @@ def main(args=None):
     deltat = 0
     batch_move = True
     minlr = args.min_learning_rate
-    layer_noise = 0
-
     def loss_func(pred, dat):
         loss = tofu.l1_loss(pred, dat) / spread0
         return loss
+
+    def train_step_compiled(model, optim_local, Tvecs_local, Tdat_local, tSD_0_local, tD_0_local, spread0_local, batch_move_local):
+        if batch_move_local:
+            optim_local.zero_grad()
+
+        Rfinal = model(Tvecs_local) * tSD_0_local + tD_0_local
+        loss = tofu.l1_loss(Rfinal, Tdat_local) / spread0_local
+
+        if batch_move_local:
+            loss.backward()
+            optim_local.step()
+
+        return loss
+
+    fast_train_step = torch.compile(train_step_compiled, mode="reduce-overhead")
 
     for i in range(1):
         # previously there were two iterations
@@ -295,39 +308,25 @@ def main(args=None):
         while True:
             tstart = time.time()
             counter += 1
-            lossAccum00 = 0
-            lossAccum_noised = 0
+            lossAccum = 0
+            lossAccum_tensor = 0
             if not batch_move:
                 optim.zero_grad()
-            for Tdat, Tvecs00 in Tbatchdat:
-                # noise perturbed vectors
-                rand = torch.rand(size=Tvecs00.size())
-                if not batch_on_dev:
-                    rand = rand.to(train_dev)
-                Tvecs = Tvecs00 + rand * layer_noise
+            for Tdat, Tvecs in Tbatchdat:
                 if batch_on_dev:
                     Tdat = Tdat.to(train_dev)
                     Tvecs = Tvecs.to(train_dev)
-                if batch_move:
-                    optim.zero_grad()
-                Rfinal_noised = myint(Tvecs) * tSD_0 + tD_0
-                if layer_noise == 0:
-                    Rfinal00 = Rfinal_noised
-                else:
-                    Rfinal00 = myint(Tvecs00) * tSD_0 + tD_0
+                
+                loss = fast_train_step(myint, optim, Tvecs, Tdat, tSD_0, tD_0, spread0, batch_move)
 
-                loss_noised = loss_func(Rfinal_noised, Tdat)
-                loss00 = loss_func(Rfinal00, Tdat)
-                if batch_move:
-                    torch.autograd.backward(loss_noised)
-                    optim.step()
-
-                lossAccum00 += loss00 * len(Tdat) * npix
-                lossAccum_noised += loss_noised * len(Tdat) * npix
+                lossAccum += loss.item() * len(Tdat) * npix
+                if not batch_move:
+                    lossAccum_tensor = lossAccum_tensor + loss * len(
+                        Tdat) * npix
             if not batch_move:
-                torch.autograd.backward(lossAccum_noised / nspec / npix)
+                torch.autograd.backward(lossAccum_tensor / nspec / npix)
                 optim.step()
-            sched.step(lossAccum00.detach())
+            sched.step(lossAccum)
             if validation:
                 was_training = myint.training
                 myint.train(mode=False)
@@ -339,7 +338,7 @@ def main(args=None):
                 myint.train(mode=was_training)
             else:
                 val_loss = 0
-            loss_V = lossAccum00.detach().cpu().numpy() / dats.size
+            loss_V = lossAccum / dats.size
             curlr = optim.param_groups[0]['lr']
             print('it %d loss %.5f' % (counter, loss_V), 'val %.5f' % val_loss,
                   'lr', curlr, 'time', deltat)
@@ -354,7 +353,9 @@ def main(args=None):
                 print('saving')
                 save_checkpoint(myint, statefile_path)
             deltat = time.time() - tstart
-        del Tdat, Tvecs, Tvecs00, rand, Rfinal00, Rfinal_noised
+
+        if 'Tdat' in locals():
+            del Tdat, Tvecs, loss
         gc.collect()
         torch.cuda.empty_cache()
     myint.pc_layer.weight.data[:, :] = tSD_0.view(
