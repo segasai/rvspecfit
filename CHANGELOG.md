@@ -1,5 +1,7 @@
 Changes
 
+* 26.06 the rbf_continuum False option was not working before
+* 26.06 change the --normalize option for make_interpol. Not it supports median/none/linear_continuum options
 * 26.03 Neural-network interpolator checkpoints are now versioned and validated on load, preventing accidental use of incompatible weights after model-code changes (legacy checkpoints can still be loaded with a warning).
 * 26.02 Improve the VSINI fitting, should provide much more accurate values (change the the threshold for the RVS_WARN flag LARGE_VSINI).
 * 26.02 Batch FFT in fitter_ccf (could provide tiny speedup)
