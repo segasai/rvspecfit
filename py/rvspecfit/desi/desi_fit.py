@@ -1504,7 +1504,7 @@ def proc_many(files,
     for f in files:
         fname = f.split('/')[-1]
         if subdirs:
-            if (len(f.split('/')) > 2):
+            if len(f.split('/')) < 2:
                 logging.warning(
                     f'Invalid file {f}, it needs two be in the format '
                     'dir1/dir2/fname')
