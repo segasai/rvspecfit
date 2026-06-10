@@ -1414,6 +1414,21 @@ class FakeExecutor:
         return FakeFuture(f(*args, **kw))
 
 
+def _setup_logging(log_level, log_filename):
+    """Configure logging for the current process.
+
+    Used both in the main process and as the initializer for
+    ProcessPoolExecutor workers (spawned processes do not inherit
+    the parent's logging configuration).
+    """
+    if log_filename is not None:
+        logging.basicConfig(filename=log_filename,
+                            level=log_level,
+                            force=True)
+    else:
+        logging.basicConfig(level=log_level, force=True)
+
+
 def get_mpi_rank():
     from mpi4py import MPI
     return MPI.COMM_WORLD.Get_rank()
@@ -1443,7 +1458,9 @@ def proc_many(files,
               process_status_file=None,
               use_resolution_matrix=None,
               npoly=None,
-              throw_exceptions=None):
+              throw_exceptions=None,
+              log_level=None,
+              log_filename=None):
     """
     Process many spectral files
 
@@ -1497,8 +1514,14 @@ def proc_many(files,
                                    None,
                                    start=True)
     if parallel:
+        # Pass logging config to worker processes via initializer,
+        # because spawned processes do not inherit the parent's
+        # logging configuration.
         poolEx = concurrent.futures.ProcessPoolExecutor(
-            nthreads, mp_context=multiprocessing.get_context("spawn"))
+            nthreads,
+            mp_context=multiprocessing.get_context("spawn"),
+            initializer=_setup_logging,
+            initargs=(log_level, log_filename))
     else:
         poolEx = FakeExecutor()
     for f in files:
@@ -1780,9 +1803,7 @@ in the table (but will not use for selection)''',
                     'allow for the MPI rank to placed in the filename using %d'
                 )
             log_filename = log_filename % (get_mpi_rank())
-        logging.basicConfig(filename=log_filename, level=log_level, force=True)
-    else:
-        logging.basicConfig(level=log_level, force=True)
+    _setup_logging(log_level, log_filename)
 
     if process_status_file is not None:
         if args.mpi:
@@ -1910,6 +1931,8 @@ in the table (but will not use for selection)''',
             ccf_init=ccf_init,
             npoly=npoly,
             throw_exceptions=args.throw_exceptions,
+            log_level=log_level,
+            log_filename=log_filename,
         )
     else:
         files.distribute_files()
