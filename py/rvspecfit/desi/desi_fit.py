@@ -1780,9 +1780,9 @@ in the table (but will not use for selection)''',
                     'allow for the MPI rank to placed in the filename using %d'
                 )
             log_filename = log_filename % (get_mpi_rank())
-        logging.basicConfig(filename=log_filename, level=log_level)
+        logging.basicConfig(filename=log_filename, level=log_level, force=True)
     else:
-        logging.basicConfig(level=log_level)
+        logging.basicConfig(level=log_level, force=True)
 
     if process_status_file is not None:
         if args.mpi:
