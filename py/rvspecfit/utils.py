@@ -2,7 +2,7 @@ import os
 import yaml
 import logging
 from rvspecfit import frozendict
-
+import threading
 
 def get_default_config():
     """Create a default parameter config dictionary
@@ -109,68 +109,72 @@ def freezeDict(d):
 
 
 class MPIFileQueue:
-
     def __init__(self, file_list=None):
         from mpi4py import MPI
         self.MPI = MPI
         self.comm = MPI.COMM_WORLD
         self.rank = self.comm.Get_rank()
         self.size = self.comm.Get_size()
+        
         self.file_list = file_list if self.rank == 0 else None
-        self.SEND_STATE = 1
-        self.STOP_STATE = 2
-        self.timeout = 3600
         self.REQUEST_CMD = 'file'
+        
+        if self.rank == 0:
+            self.index = 0
+            self.num_files = len(self.file_list)
+            # Lock ensures the thread and the main process don't grab the same file
+            self.lock = threading.Lock() 
+            
+            # Start the background server immediately upon instantiation
+            self.server_thread = threading.Thread(target=self._run_server, daemon=True)
+            self.server_thread.start()
 
-    def distribute_files(self):
-        if self.rank != 0:
-            #  noop
-            return
-        # Only rank 0 manages the file distribution
-        index = 0
-        num_files = len(self.file_list)
-        mode = self.SEND_STATE
-        # We first iterate over file_list
-        # then over .size to send stop messages
-
-        while True:
-            # Receive request for next file
+    def _run_server(self):
+        # This thread ONLY runs on Rank 0 and handles requests from Ranks 1 to N
+        active_remote_workers = self.size - 1
+        
+        while active_remote_workers > 0:
             status = self.MPI.Status()
-
-            self.comm.probe(source=self.MPI.ANY_SOURCE,
-                            tag=self.MPI.ANY_TAG,
-                            status=status)
-            request = self.comm.recv(source=status.source,
-                                     tag=self.MPI.ANY_TAG)
-            if request == self.REQUEST_CMD and mode == self.SEND_STATE:
-                if index < num_files:
-                    self.comm.send(self.file_list[index], dest=status.source)
-                    index += 1
-                if index == num_files:
-                    # we sent out the last file
-                    # now we plan to send the termination command to
-                    # every rank > 0
-                    index = 1
-                    mode = self.STOP_STATE
-            elif request == self.REQUEST_CMD and mode == self.STOP_STATE:
-                self.comm.send(None,
-                               dest=status.source)  # Send a termination signal
-                index += 1
-                if index == self.size:
-                    break
+            self.comm.probe(source=self.MPI.ANY_SOURCE, tag=self.MPI.ANY_TAG, status=status)
+            request = self.comm.recv(source=status.source, tag=self.MPI.ANY_TAG)
+            
+            if request == self.REQUEST_CMD:
+                file_to_send = None
+                
+                # Safely grab the next file
+                with self.lock:
+                    if self.index < self.num_files:
+                        file_to_send = self.file_list[self.index]
+                        self.index += 1
+                        
+                # Send the file (or None if empty) to the requesting rank
+                self.comm.send(file_to_send, dest=status.source)
+                
+                # If we sent None, that remote worker is done
+                if file_to_send is None:
+                    active_remote_workers -= 1
             else:
                 raise RuntimeError('Unsupported message')
 
     def __next__(self):
         if self.rank == 0:
-            # rank 0 does not work. he is the boss
-            raise StopIteration
-        # Other ranks request and receive files
-        self.comm.send(self.REQUEST_CMD, dest=0)
-        file_name = self.comm.recv(source=0, tag=self.MPI.ANY_TAG)
-        if file_name is None:
-            raise StopIteration  # No more files, terminate
-        return file_name
+            # Rank 0's main thread acts as a worker, pulling locally.
+            # No MPI overhead and no risk of self-messaging deadlocks.
+            with self.lock:
+                if self.index < self.num_files:
+                    val = self.file_list[self.index]
+                    self.index += 1
+                    return val
+                else:
+                    raise StopIteration
+        else:
+            # Ranks > 0 request via MPI
+            self.comm.send(self.REQUEST_CMD, dest=0)
+            file_name = self.comm.recv(source=0, tag=self.MPI.ANY_TAG)
+            if file_name is None:
+                raise StopIteration
+            return file_name
 
     def __iter__(self):
         return self
+    

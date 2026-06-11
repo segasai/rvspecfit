@@ -1903,9 +1903,8 @@ in the table (but will not use for selection)''',
                 input_files = [_.rstrip() for _ in fp.readlines()]
         files = utils.MPIFileQueue(file_list=input_files)
 
-    if (not args.mpi) or (args.mpi and rank != 0):
-        # anything but mpi and rank=0 should go here
-        proc_many(
+
+    proc_many(
             files,
             output_dir,
             output_tab_prefix,
@@ -1934,8 +1933,6 @@ in the table (but will not use for selection)''',
             log_level=log_level,
             log_filename=log_filename,
         )
-    else:
-        files.distribute_files()
 
 
 if __name__ == '__main__':
