@@ -1333,66 +1333,6 @@ def proc_desi_wrapper(*args, **kwargs):
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
 
 
-class FileQueue:
-    """ This is a class that can work as an iterator
-    Here we can either provide the list of files or the file with the list
-    of files or use it as queue, where we pick up the top file, remove the
-    line from the file and move on"""
-
-    def __init__(self, file_list=None, file_from=None, queue=False):
-        if file_list is not None:
-            self.file_list = file_list
-            self.file_from = None
-            self.queue = False
-        elif file_from is not None:
-            if not queue:
-                self.file_list = []
-                with open(file_from, 'r') as fp:
-                    for ll in fp:
-                        self.file_list.append(ll.rstrip())
-            else:
-                self.file_list = None
-                self.file_from = file_from
-                self.queue = queue
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.file_list is not None:
-            if len(self.file_list) > 0:
-                return self.file_list.pop(0)
-            else:
-                raise StopIteration
-        else:
-            return self.read_next()
-
-    def read_next(self):
-        import socket
-        lockname = self.file_from + '.%s.%d.lock' % (socket.gethostname(),
-                                                     os.getpid())
-        wait_time = 1
-        max_waits = 1000
-        for i in range(max_waits):
-            try:
-                os.rename(self.file_from, lockname)
-            except FileNotFoundError:
-                time.sleep(np.random.uniform(wait_time, 1.5 * wait_time))
-                continue
-            try:
-                with open(lockname, 'r') as fp1:
-                    ll = fp1.readlines()
-                if len(ll) == 0:
-                    raise StopIteration
-                ret = ll[0].rstrip()
-                with open(lockname, 'w') as fp1:
-                    fp1.writelines(ll[1:])
-                return ret
-            finally:
-                os.rename(lockname, self.file_from)
-
-        logging.warning('Cannot read next file due to lock')
-        raise StopIteration
 
 
 class FakeFuture:
@@ -1894,7 +1834,7 @@ in the table (but will not use for selection)''',
         # only in the case of mpi and rank>=1
         input_files = None
     if not args.mpi:
-        files = FileQueue(file_list=input_files,
+        files = utils.FileQueue(file_list=input_files,
                           file_from=input_file_from,
                           queue=queue_file)
     else:
@@ -1903,36 +1843,43 @@ in the table (but will not use for selection)''',
                 input_files = [_.rstrip() for _ in fp.readlines()]
         files = utils.MPIFileQueue(file_list=input_files)
 
-
-    proc_many(
-            files,
-            output_dir,
-            output_tab_prefix,
-            output_mod_prefix,
-            figure_dir=figure_dir,
-            figure_prefix=args.figure_prefix,
-            nthreads=nthreads,
-            config_fname=config_fname,
-            fit_targetid=fit_targetid,
-            objtypes=objtypes,
-            doplot=doplot,
-            subdirs=args.subdirs,
-            minsn=minsn,
-            process_status_file=process_status_file,
-            expid_range=(minexpid, maxexpid),
-            skipexisting=args.skipexisting,
-            fitarm=fitarm,
-            cmdline=cmdline,
-            zbest_select=zbest_select,
-            zbest_include=zbest_include,
-            ccf_continuum_normalize=ccf_continuum_normalize,
-            use_resolution_matrix=args.resolution_matrix,
-            ccf_init=ccf_init,
-            npoly=npoly,
-            throw_exceptions=args.throw_exceptions,
-            log_level=log_level,
-            log_filename=log_filename,
-        )
+    try:
+        proc_many(
+                files,
+                output_dir,
+                output_tab_prefix,
+                output_mod_prefix,
+                figure_dir=figure_dir,
+                figure_prefix=args.figure_prefix,
+                nthreads=nthreads,
+                config_fname=config_fname,
+                fit_targetid=fit_targetid,
+                objtypes=objtypes,
+                doplot=doplot,
+                subdirs=args.subdirs,
+                minsn=minsn,
+                process_status_file=process_status_file,
+                expid_range=(minexpid, maxexpid),
+                skipexisting=args.skipexisting,
+                fitarm=fitarm,
+                cmdline=cmdline,
+                zbest_select=zbest_select,
+                zbest_include=zbest_include,
+                ccf_continuum_normalize=ccf_continuum_normalize,
+                use_resolution_matrix=args.resolution_matrix,
+                ccf_init=ccf_init,
+                npoly=npoly,
+                throw_exceptions=args.throw_exceptions,
+                log_level=log_level,
+                log_filename=log_filename,
+            )
+    finally:
+        # In MPI mode, wait for the server thread on rank 0 to finish
+        # serving all remote workers before proceeding to exit.
+        # Must be in finally so an exception doesn't leave the non-daemon
+        # server thread (and thus rank 0) alive forever.
+        if args.mpi:
+            files.shutdown()
 
 
 if __name__ == '__main__':
