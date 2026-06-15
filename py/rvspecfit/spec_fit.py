@@ -7,6 +7,7 @@ import scipy.constants as sci_con
 import scipy.sparse
 import scipy.signal
 import collections
+import logging
 
 from rvspecfit import frozendict
 from rvspecfit import utils
