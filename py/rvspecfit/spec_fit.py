@@ -336,8 +336,11 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
     if (not get_coeffs and espec is not None
             and _get_chisq0_numba_chol_resid is not None):
         try:
-            return float(
+            ret= float(
                 _get_chisq0_numba_chol_resid(spec, templ, polys, espec))
+            if np.isfinite(ret):
+                # if not we go svd route
+                return ret
         except Exception:
             # Cholesky can fail for rare trial points with a non-positive or
             # ill-conditioned continuum normal matrix.  Preserve existing
@@ -957,7 +960,14 @@ def get_chisq(specdata,
             red_chisq_array.append(cur_true_chisq / cur_npix)
 
         if not np.isfinite(float(cur_chisq)):
-            raise RuntimeError(
+            if outside > 0 and np.isfinite (evalTempl).all():
+                logging.warning('Not finite chi-square for template outside of the grid but with finite spectrum')
+                # this can happen if the spectrum has numerically large values
+                # affecting numerical stability
+                # this was observed once for 20mill spectra
+                continue
+            else:
+                raise RuntimeError(
                 f'The log(likelihood) value is not finite'
                 f'when processing spectral configuration {name}\n'
                 f'velocity {vel}, atm parameters {atm_params}')
