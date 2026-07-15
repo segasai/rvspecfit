@@ -521,6 +521,28 @@ def filter_fibermap(fibermapT, DT, objtypes=None):
     return types_subset
 
 
+def fiberstatus_select(fibermap):
+    """
+    Return the subset of sources with 'good' fiberstatus
+    
+    """
+    # ONLY select good fiberstatus ones
+    good_fiberstatus_bits = np.array(
+        [3, 20], dtype=int)  # RESTRICTED | VARIABLE are allowed
+    good_fiberstatus = np.sum(1 << good_fiberstatus_bits)
+    # 8 is Positioner has restricted reach (but might still be on valid target)
+    # 20 is VARIABLE object
+    # https://github.com/desihub/desispec/blob/main/py/desispec/maskbits.py
+    if 'FIBERSTATUS' in fibermap.columns.names:
+        fiberstatus_column = 'FIBERSTATUS'
+    elif 'COADD_FIBERSTATUS' in fibermap.columns.names:
+        fiberstatus_column = 'COADD_FIBERSTATUS'
+    else:
+        raise Exception('Fiberstatus column not found')
+    col = fibermap[fiberstatus_column]
+    return (col & good_fiberstatus) == col
+
+
 def select_fibers_to_fit(fibermap,
                          sns,
                          zbest_path=None,
@@ -579,15 +601,8 @@ def select_fibers_to_fit(fibermap,
     if "EXPID" in fibermap.columns.names:
         subset = subset & (fibermap["EXPID"] > mine) & (fibermap['EXPID']
                                                         <= maxe)
-    # ONLY select good fiberstatus ones
-    good_fiberstatus = [0, 8]
-    # 8 is Positioner has restricted reach (but might still be on valid target)
-    # https://desidatamodel.readthedocs.io/en/latest/bitmasks.html
-    if 'FIBERSTATUS' in fibermap.columns.names:
-        subset = subset & np.isin(fibermap['FIBERSTATUS'], good_fiberstatus)
-    elif 'COADD_FIBERSTATUS' in fibermap.columns.names:
-        subset = subset & np.isin(fibermap['COADD_FIBERSTATUS'],
-                                  good_fiberstatus)
+    # select good fiberstatus fibers
+    subset = subset & fiberstatus_select(fibermap)
 
     # Exclude skys and bad but include anything else
     subset = subset & (fibermap['OBJTYPE'] != 'SKY') & (fibermap['OBJTYPE']
