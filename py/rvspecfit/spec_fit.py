@@ -7,11 +7,17 @@ import scipy.constants as sci_con
 import scipy.sparse
 import scipy.signal
 import collections
+import logging
 
 from rvspecfit import frozendict
 from rvspecfit import utils
 from rvspecfit import spec_inter
 from rvspecfit import spliner
+
+try:
+    from numba import njit
+except ImportError:
+    njit = None
 
 # in kms
 SPEED_OF_LIGHT = sci_con.speed_of_light / 1e3
@@ -194,38 +200,59 @@ def get_basis(specdata, npoly, rbf=True):
     return get_poly_basis(lam, npoly, rbf=rbf)
 
 
-def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
-    '''
-    Get the chi-square values for the vector of velocities and grid of
-    templates after marginalizing over continuum
-    If espec is not provided we assume data and template are already normalized
-    Importantly the returned chi-square is not the true chi-square, but instead
-    the -2*log(L)
+if njit is not None:
 
-    Parameters
-    ----------
-    spec: numpy
-        Spectrum array
-    templ: numpy
-        The template
-    polys: numpy
-        The continuum polynomials
-    get_coeffs: boolean (optional)
-        If true return the coefficients of polynomials
-    espec: numpy (optional)
-        If specified, this is the error vector. If not specified, then it is
-        assumed that spectrum and template are already divided by the
-        uncertainty
+    @njit(cache=True)
+    def _get_chisq0_numba_chol_resid(spec, templ, polys, espec):
+        """Fast continuum marginalization for the common weighted case.
 
-    Returns
-    -------
-    chisq: real
-        Chi-square of the data
-    coeffs: numpy
-        The polynomial coefficients (optional)
+        This is algebraically the same weighted least-squares continuum solve
+        as the SVD implementation below.  It differs only in the factorization
+        used for the small positive-definite normal matrix.
+        """
+        # D is the data vector divided by pixel uncertainties.  ST is the
+        # transposed design matrix: each row is template * continuum_basis_i,
+        # also divided by pixel uncertainties.
+        D = spec / espec
+        ST = polys * (templ / espec)
 
-    '''
+        # Normal equations for the best continuum coefficients:
+        #
+        #   Minv * a = v
+        #   Minv = ST @ ST.T
+        #   v = ST @ D
+        #
+        # The original implementation solves this with SVD.  For a well-posed
+        # weighted least-squares problem Minv is symmetric positive-definite,
+        # so Cholesky gives the same mathematical solution faster.  If that
+        # assumption fails numerically, the Python wrapper catches the Cholesky
+        # error and falls back to the original SVD path.
+        v = ST @ D
+        Minv = ST @ ST.T
+        chol = np.linalg.cholesky(Minv)
 
+        # Solve Minv * a = v through the Cholesky factors:
+        #   Minv = chol @ chol.T
+        #   chol * y = v
+        #   chol.T * a = y
+        y = np.linalg.solve(chol, v)
+        a = np.linalg.solve(chol.T, y)
+
+        # log(det(Minv)) is 2 * sum(log(diag(chol))).  The likelihood formula
+        # uses the same residual norm as the SVD implementation, rather than
+        # the slightly faster D.T D - v.T a quadratic form, to minimize
+        # numerical changes in optimizer trajectories.
+        ldetMinv = 0.0
+        for i in range(Minv.shape[0]):
+            ldetMinv += 2.0 * np.log(chol[i, i])
+        resid = D - a @ ST
+        return ldetMinv + 2.0 * np.log(espec).sum() + resid @ resid
+
+else:
+    _get_chisq0_numba_chol_resid = None
+
+
+def _get_chisq0_svd(spec, templ, polys, get_coeffs=False, espec=None):
     if espec is not None:
         D = spec / espec
         normtempl = templ / espec
@@ -274,6 +301,57 @@ def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
         return chisq, coeffs
     else:
         return chisq
+
+
+def get_chisq0(spec, templ, polys, get_coeffs=False, espec=None):
+    '''
+    Get the chi-square values for the vector of velocities and grid of
+    templates after marginalizing over continuum
+    If espec is not provided we assume data and template are already normalized
+    Importantly the returned chi-square is not the true chi-square, but instead
+    the -2*log(L)
+
+    Parameters
+    ----------
+    spec: numpy
+        Spectrum array
+    templ: numpy
+        The template
+    polys: numpy
+        The continuum polynomials
+    get_coeffs: boolean (optional)
+        If true return the coefficients of polynomials
+    espec: numpy (optional)
+        If specified, this is the error vector. If not specified, then it is
+        assumed that spectrum and template are already divided by the
+        uncertainty
+
+    Returns
+    -------
+    chisq: real
+        Chi-square of the data
+    coeffs: numpy
+        The polynomial coefficients (optional)
+
+    '''
+    if (not get_coeffs and espec is not None
+            and _get_chisq0_numba_chol_resid is not None):
+        try:
+            ret= float(
+                _get_chisq0_numba_chol_resid(spec, templ, polys, espec))
+            if np.isfinite(ret):
+                # if not we go svd route
+                return ret
+        except Exception:
+            # Cholesky can fail for rare trial points with a non-positive or
+            # ill-conditioned continuum normal matrix.  Preserve existing
+            # robustness and coefficient behavior through the SVD path.
+            pass
+    return _get_chisq0_svd(spec,
+                           templ,
+                           polys,
+                           get_coeffs=get_coeffs,
+                           espec=espec)
 
 
 @functools.lru_cache(100)
@@ -677,7 +755,7 @@ def get_chisq_continuum(specdata, options=None):
 
     '''
     npoly = options.get('npoly') or 5
-    rbf = options.get('rbf_continuum') or True
+    rbf = options.get('rbf_continuum', True)
     chisq_array = np.zeros(len(specdata))
     redchisq_array = np.zeros(len(specdata))
     for i, curdata in enumerate(specdata):
@@ -780,7 +858,7 @@ def get_chisq(specdata,
 
     """
     npoly = options.get('npoly') or 5
-    rbf = options.get('rbf_continuum') or True
+    rbf = options.get('rbf_continuum', True)
     chisq_accum = 0
     badchi = 10 * sum([len(_.lam) for _ in specdata])
     if rot_params is not None:
@@ -883,7 +961,14 @@ def get_chisq(specdata,
             red_chisq_array.append(cur_true_chisq / cur_npix)
 
         if not np.isfinite(float(cur_chisq)):
-            raise RuntimeError(
+            if outside > 0 and np.isfinite (evalTempl).all():
+                logging.warning('Not finite chi-square for template outside of the grid but with finite spectrum')
+                # this can happen if the spectrum has numerically large values
+                # affecting numerical stability
+                # this was observed once for 20mill spectra
+                continue
+            else:
+                raise RuntimeError(
                 f'The log(likelihood) value is not finite'
                 f'when processing spectral configuration {name}\n'
                 f'velocity {vel}, atm parameters {atm_params}')

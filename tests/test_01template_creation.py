@@ -1,5 +1,6 @@
 import subprocess
 import pathlib
+import shlex
 import rvspecfit.make_nd
 import rvspecfit.read_grid
 import rvspecfit.make_ccf
@@ -18,7 +19,9 @@ def run_script(script):
     pipe = subprocess.Popen(script, stdout=subprocess.PIPE)
     stdout = pipe.stdout.read().decode()
     for l in stdout.split('\n'):
-        args = l.split(' ')
+        args = shlex.split(l)
+        if not args:
+            continue
         script_name = args[0].split('/')[-1]
         if script_name == 'rvs_make_nd':
             rvspecfit.make_nd.main(args[1:])
