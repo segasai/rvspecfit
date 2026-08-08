@@ -1,0 +1,144 @@
+This is set of files for SDSS processing
+
+make_sdss.sh -- is the script that prepares the template libraries
+
+sdss_fit.py is the main program that fits the data
+Usage: sdss_fit.py [-h] [--no_threads NO_THREADS] [--config CONFIG]
+                   [--input_files INPUT_FILES]
+                   [--input_file_from INPUT_FILE_FROM]
+                   [--teff_nprior_means TEFF_NPRIOR_MEAN]
+                   [--teff_nprior_mean_from TEFF_NPRIOR_MEAN_FROM]
+                   [--teff_nprior_stdevs TEFF_NPRIOR_STDEVS]
+                   [--teff_nprior_stdev_from TEFF_NPRIOR_STDEV_FROM]
+                   [--lg_g_nprior_means LG_G_NPRIOR_MEANS]
+                   [--lg_g_nprior_mean_from LG_G_NPRIOR_MEAN_FROM]
+                   [--lg_g_nprior_stdevs LG_G_NPRIOR_STDEVS]
+                   [--lg_g_nprior_stdev_from LG_G_NPRIOR_STDEV_FROM]
+                   [--fe_h_nprior_means FE_H_NPRIOR_MEANS]
+                   [--fe_h_nprior_mean_from FE_H_NPRIOR_MEAN_FROM]
+                   [--fe_h_nprior_stdevs FE_H_NPRIOR_STDEVS]
+                   [--fe_h_nprior_stdev_from FE_H_NPRIOR_STDEV_FROM]
+                   [--alpha_nprior_means alpha_NPRIOR_MEANS]
+                   [--alpha_nprior_mean_from alpha_NPRIOR_MEAN_FROM]
+                   [--alpha_nprior_stdevs alpha_NPRIOR_STDEVS]
+                   [--alpha_nprior_stdev_from alpha_NPRIOR_STDEV_FROM]
+                   [--queue_file QUEUE_FILE] [--setup SETUP]
+                   [--output_dir OUTPUT_DIR] [--targetid TARGETID]
+                   [--targetid_file_from TARGETID_FILE_FROM]
+                   [--npoly NPOLY]
+                   [--output_tab_prefix OUTPUT_TAB_PREFIX]
+                   [--output_mod_prefix OUTPUT_MOD_PREFIX]
+                   [--fig_dir FIG_DIR] [--fig_prefix FIG_PREFIX]
+                   [--log LOG] [--log_level LOG_LEVEL]
+                   [--param_init PARAM_INIT]
+                   [--proc_status_file PROC_STATUS_FILE]
+                   [--overwrite] [--vers] [--skipexisting] [--doplot]
+                   [--no_ccf_continuum_normalize] [--no_subdirs]
+                   [--throw_exceptions]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --no_threads NO_THREADS
+                        Number of threads for the fits
+  --config CONFIG       The filename of the configuration file
+  --input_files INPUT_FILES
+                        Space separated list of spectral files to process
+  --input_file_from INPUT_FILE_FROM
+                        Read the list of spectral files from the text
+                        file
+  --teff_nprior_means TEFF_NPRIOR_MEAN
+                        Space separated list of means of normal priors
+                        of effective temperature in Kelvin for each star
+                        to process
+  --teff_nprior_mean_from TEFF_NPRIOR_MEAN_FROM
+                        Read the list of means of normal priors of
+                        effective temperature in Kelvin for each star
+                        from the text file
+  --teff_nprior_stdevs TEFF_NPRIOR_STDEVS
+                        Space separated list of standard deviations of
+                        normal priors of effective temperature in Kelvin
+                        for each star to process
+  --teff_nprior_stdev_from TEFF_NPRIOR_STDEV_FROM
+                        Read the list of standard deviations of normal
+                        priors of effective temperature in Kelvin for
+                        each star from the text file
+  --lg_g_nprior_means LG_G_NPRIOR_MEANS
+                        Space separated list of means of normal priors of
+                        logarithm of surface gravity fo each star to
+                        process
+  --lg_g_nprior_mean_from LG_G_NPRIOR_MEAN_FROM
+                        Read the list of means of normal priors of
+                        logarithm of surface gravity for each star from
+                        the text file
+  --lg_g_nprior_stdevs LG_G_NPRIOR_STDEVS
+                        Space separated list of standard deviations of
+                        normal priors of logarithm of surface gravity for
+                        each star to process
+  --lg_g_nprior_stdev_from LG_G_NPRIOR_STDEV_FROM
+                        Read the list of standard deviations of normal
+                        priors of logarithm of surface gravity for each
+                        star from the text file
+  --fe_h_nprior_means FE_H_NPRIOR_MEANS
+                        Space separated list of means of normal priors of
+                        [Fe/H] for each star to process
+  --fe_h_nprior_mean_from FE_H_NPRIOR_MEAN_FROM
+                        Read the list of means of normal priors of [Fe/H]
+                        for each star from the text file
+  --fe_h_nprior_stdevs FE_H_NPRIOR_STDEVS
+                        Space separated list of standard deviations of
+                        normal priors of [Fe/H] for each star to process
+  --fe_h_nprior_stdev_from FE_H_NPRIOR_STDEV_FROM
+                        Read the list of standard deviations of normal
+                        priors of [Fe/H] for each star from the text file
+  --alpha_nprior_means alpha_NPRIOR_MEANS
+                        Space separated list of means of normal priors of
+                        [alpha/Fe] for each star to process
+  --alpha_nprior_mean_from alpha_NPRIOR_MEAN_FROM
+                        Read the list of means of normal priors of
+                        [alpha/Fe] for each star from the text file
+  --alpha_nprior_stdevs alpha_NPRIOR_STDEVS
+                        Space separated list of standard deviations of
+                        normal priors of [alpha/Fe] for each star to
+                        process
+  --alpha_nprior_stdev_from alpha_NPRIOR_STDEV_FROM
+                        Read the list of standard deviations of normal
+                        priors of [alpha/Fe] for each star from the text
+                        file
+  --queue_file QUEUE_FILE
+                        If the input file list is a queue where we delete
+                        entries as soon as we picked up a file
+  --setup SETUP         The name of the setup
+  --output_dir OUTPUT_DIR
+                        Output directory for the tables
+  --targetid TARGETID   Fit only a given targetid
+  --targetid_file_from TARGETID_FILE_FROM
+                        Fit only a given targetids from a given file
+  --npoly NPOLY
+  --output_tab_prefix OUTPUT_TAB_PREFIX
+                        Prefix of output table files
+  --output_mod_prefix OUTPUT_MOD_PREFIX
+                        Prefix of output model files
+  --fig_dir FIG_DIR     Path for the fit figures, i.e., fig_folder/
+  --fig_prefix FIG_PREFIX
+                        Prefix for the fit figures, i.e., im
+  --log LOG             Log filename
+  --log_level LOG_LEVEL DEBUG/INFO/WARNING/ERROR/CRITICAL
+  --param_init PARAM_INIT
+                        How the initial parameters/line-of-sight velocity
+                        are initialized
+  --proc_status_file PROC_STATUS_FILE
+                        The name of the file where I put the names of
+                        successfully processed files
+  --overwrite           If enabled, the code will overwrite the existing
+                        products. Otherwise, it will skip them.
+  --vers                Output the version of the software
+  --skipexisting        If enabled, the code will completely skip if
+                        there are existing products
+  --doplot              Make plots
+  --no_ccf_continuum_normalize
+                        Do not normalize by the continuum when doing CCF
+  --no_subdirs
+                        Do not create the subdirectories in the output
+                        dir
+  --throw_exceptions    If this option is set, the code will not protect
+                        against exceptions inside rvspecfit
