@@ -2,7 +2,7 @@ import numpy as np
 import scipy.optimize
 import scipy.interpolate
 from rvspecfit import make_ccf
-from rvspecfit.spec_fit import SpecData
+from rvspecfit.spec_fit import SpecData, SPEED_OF_LIGHT
 from rvspecfit import serializer
 import logging
 
@@ -129,7 +129,10 @@ def fit(specdata, config):
         spec_fftconj = spec_fft.conj()
         ivar_fftconj = ivar_fft.conj()
 
-        cur_step = (np.exp((logl1 - logl0) / npoints) - 1) * 3e5
+        # the CCF grid is linspace(logl0, logl1, npoints), so the
+        # per-pixel log-lambda step is (logl1 - logl0) / (npoints - 1)
+        cur_step = (np.exp(
+            (logl1 - logl0) / (npoints - 1)) - 1) * SPEED_OF_LIGHT
         lspec = len(proc_spec)
         # Importantly this has to be length of the spectrum rather than
         # length of the fft since we are using rfft
