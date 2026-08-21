@@ -96,7 +96,8 @@ def extract_spectrum(param,
                      prefix,
                      wavefile,
                      normalize='linear_continuum',
-                     log_spec=True):
+                     log_spec=True,
+                     file_id=None):
     """
     Extract a spectrum of a given parameters then apply the resolution
     smearing and divide by the continuum
@@ -120,6 +121,10 @@ def extract_spectrum(param,
         deprecated (True maps to 'linear_continuum', False to 'none').
     log_spec: boolean
         If True, take the logarithm of the spectrum
+    file_id: int
+        If provided, the template is fetched by its id in the files
+        table rather than by matching parameter values (avoids
+        ambiguity between templates with nearly identical parameters)
 
     Returns
     -------
@@ -145,7 +150,8 @@ def extract_spectrum(param,
     lam, spec0 = read_grid.get_spec(param,
                                     dbfile=dbfile,
                                     prefix=prefix,
-                                    wavefile=wavefile)
+                                    wavefile=wavefile,
+                                    file_id=file_id)
     # Here I assume that the input spectrum is in erg/wavelength
     # I will now convert into number of photons before convolving
     # with the resolution vector
@@ -299,7 +305,8 @@ def process_all(setupInfo,
     templ_lam, spec = read_grid.get_spec(par0,
                                          dbfile=dbfile,
                                          prefix=prefix,
-                                         wavefile=wavefile)
+                                         wavefile=wavefile,
+                                         file_id=file_ids[0])
     mapper_module = 'rvspecfit.read_grid'
     mapper_class = 'LogParamMapper'
     mapper_args = (log_parameters, )
@@ -340,7 +347,7 @@ def process_all(setupInfo,
         multi_thread = False
         pool = FakePool()
         initialize_matrix_cache(mat, lamgrid)
-    for curvec in vec.T:
+    for cur_id, curvec in zip(file_ids, vec.T):
         i += 1
         param = dict(zip(parnames, curvec))
         if not multi_thread:
@@ -349,7 +356,9 @@ def process_all(setupInfo,
         specs.append(
             pool.apply_async(extract_spectrum,
                              (param, dbfile, prefix, wavefile),
-                             dict(normalize=normalize, log_spec=log_spec)))
+                             dict(normalize=normalize,
+                                  log_spec=log_spec,
+                                  file_id=int(cur_id))))
     lam = lamgrid
     for i in range(len(specs)):
         if multi_thread:

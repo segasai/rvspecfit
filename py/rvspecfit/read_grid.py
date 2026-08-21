@@ -297,7 +297,7 @@ def _get_dbconn(dbfile):
     return conn
 
 
-def get_spec(params, dbfile=None, prefix=None, wavefile=None):
+def get_spec(params, dbfile=None, prefix=None, wavefile=None, file_id=None):
     """ Returns individual spectra for a given spectral parameters
 
     Parameters
@@ -310,6 +310,11 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
         The prefix path to templates
     wavefile: string
         The filename of fits file with the wavelength vector
+    file_id: int
+        If provided, the template is retrieved by its id in the files
+        table and params is not used for the lookup. This avoids the
+        ambiguity of value matching when the grid contains rows closer
+        than the matching tolerance in every parameter.
 
     Returns
     -------
@@ -324,17 +329,19 @@ def get_spec(params, dbfile=None, prefix=None, wavefile=None):
 
     """
 
-    # We don't look for equality we look around the value with the following
-    # deltas
-
-    query = '''select filename from files where '''
-    for ii, (k, v) in enumerate(params.items()):
-        pad = 0.01
-        v1 = v - pad
-        v2 = v + pad
-        if ii > 0:
-            query += ' and '
-        query += (f' {k} between {v1} and {v2} ')
+    if file_id is not None:
+        query = f'select filename from files where id = {int(file_id)}'
+    else:
+        # We don't look for equality we look around the value with the
+        # following deltas
+        query = '''select filename from files where '''
+        for ii, (k, v) in enumerate(params.items()):
+            pad = 0.01
+            v1 = v - pad
+            v2 = v + pad
+            if ii > 0:
+                query += ' and '
+            query += (f' {k} between {v1} and {v2} ')
 
     conn = _get_dbconn(dbfile)
     cur = conn.cursor()
