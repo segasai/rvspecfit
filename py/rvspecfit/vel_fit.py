@@ -100,14 +100,15 @@ class VSiniMapper:
         self.max_vsini = max_vsini
 
     def to_internal(self, vsini):
-        """ Convert normal vsini into internal scale
-        log-transformed clipped vsini
+        """ Convert normal vsini into internal scale:
+        vsini clipped to [0, max_vsini]
         """
         return np.clip(vsini, 0, self.max_vsini)
 
     def to_vsini(self, x):
         """ Undo the transformation.
-        Return proper vsini
+        Return the tuple of proper (clipped) vsini and a quadratic
+        chi-square penalty for internal values outside [0, max_vsini]
         """
         vsini0 = x
         vsini = np.clip(vsini0, 0, self.max_vsini)
