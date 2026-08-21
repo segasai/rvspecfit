@@ -5,7 +5,6 @@ import math
 import itertools
 import numpy as np
 import scipy.optimize
-import numdifftools as ndf
 from rvspecfit import spec_fit
 from rvspecfit import spec_inter
 
@@ -461,6 +460,123 @@ def get_hess_inv(param_names):
     return hess_inv0
 
 
+def _hessian_sample_scales(fun,
+                           x0,
+                           f0,
+                           scales0,
+                           target_lo=0.5,
+                           target_hi=4.5,
+                           maxiter=15):
+    """
+    Find per-parameter step sizes at which 0.5*chi^2 grows by O(1)
+    with respect to the best-fit point (i.e. steps comparable to the
+    parameter uncertainties). These set the sampling scale for the
+    quadratic fit of the log-likelihood surface. Sampling at that scale
+    (rather than at infinitesimal steps) is essential, because the
+    interpolated templates make chi^2 rough on small scales (kinks for
+    linear interpolation, wiggles for neural networks) and only the
+    curvature at the uncertainty scale determines the error bars.
+
+    Parameters
+    ----------
+    fun: function
+        Function returning 0.5*chi^2
+    x0: ndarray
+        The best-fit parameter vector
+    f0: float
+        fun(x0)
+    scales0: ndarray
+        Initial guesses of the step sizes
+    target_lo, target_hi: float
+        Acceptable range of the 0.5*chi^2 increase at the returned step
+    maxiter: int
+        Maximum number of bisection/growth iterations per parameter
+
+    Returns
+    -------
+    scales: ndarray
+        The vector of per-parameter sampling steps
+    """
+    ndim = len(x0)
+    scales = np.array(scales0, dtype=float)
+    for i in range(ndim):
+        curh = scales[i]
+        for _ in range(maxiter):
+            delt = np.zeros(ndim)
+            delt[i] = curh
+            df1, df2 = fun(x0 + delt) - f0, fun(x0 - delt) - f0
+            df = max(df1, df2)
+            if not np.isfinite(df) or df > target_hi:
+                curh = curh / 2.
+            elif df < target_lo:
+                # too small a change; this also protects against
+                # locally flat directions
+                curh = curh * 3.
+            else:
+                break
+        scales[i] = curh
+    return scales
+
+
+def _quadratic_hessian(fun, x0, f0, scales):
+    """
+    Estimate the Hessian of fun (0.5*chi^2) at x0 by least-squares
+    fitting a full quadratic form (with linear terms, since x0 is not
+    exactly at the minimum) to function values sampled at the provided
+    per-parameter scales. The stencil has 4 points per parameter axis
+    (+-1, +-1/2 of the scale) and 4 points per parameter pair, giving
+    a ~3x redundancy over the number of quadratic-form coefficients that
+    averages down the small-scale roughness of the chi^2 surface.
+
+    Parameters
+    ----------
+    fun: function
+        Function returning 0.5*chi^2
+    x0: ndarray
+        The best-fit parameter vector
+    f0: float
+        fun(x0)
+    scales: ndarray
+        Per-parameter sampling steps (from _hessian_sample_scales)
+
+    Returns
+    -------
+    hessian: 2d ndarray
+        The estimated Hessian matrix
+    """
+    ndim = len(x0)
+    pairs = [(i, j) for i in range(ndim) for j in range(i + 1, ndim)]
+    deltas = []
+    for i in range(ndim):
+        for fac in [-1., -0.5, 0.5, 1.]:
+            delt = np.zeros(ndim)
+            delt[i] = fac * scales[i]
+            deltas.append(delt)
+    # cross terms; 1/sqrt(2) keeps these points at a similar
+    # chi^2 distance from the center as the on-axis ones
+    cross_fac = 1. / np.sqrt(2.)
+    for i, j in pairs:
+        for s1 in [-1., 1.]:
+            for s2 in [-1., 1.]:
+                delt = np.zeros(ndim)
+                delt[i] = cross_fac * s1 * scales[i]
+                delt[j] = cross_fac * s2 * scales[j]
+                deltas.append(delt)
+    deltas = np.array(deltas)
+    yvec = np.array([fun(x0 + _) for _ in deltas]) - f0
+    cols = [deltas[:, i] for i in range(ndim)]
+    cols += [0.5 * deltas[:, i]**2 for i in range(ndim)]
+    cols += [deltas[:, i] * deltas[:, j] for i, j in pairs]
+    design = np.array(cols).T
+    coeff = np.linalg.lstsq(design, yvec, rcond=None)[0]
+    hessian = np.zeros((ndim, ndim))
+    for i in range(ndim):
+        hessian[i, i] = coeff[ndim + i]
+    for k, (i, j) in enumerate(pairs):
+        hessian[i, j] = hessian[j, i] = coeff[2 * ndim + k]
+    return hessian
+
+
 def _uncertainties_from_hessian(hessian):
     """
     Take the hessian and return the uncertainties vector and
@@ -703,24 +819,32 @@ def process(specdata,
     def hess_func_wrap(p):
         return hess_func(p, best_param_TMP, args)
 
-    hess_step = [{
-        'vsini': 1 / 100,
-        'logg': 0.1 / 100,
-        'feh': 0.1 / 100,
-        'alpha': .01 / 100,
-        'teff': 1 / 100,
-        'vrad': 1 / 100,
-    }[_] for _ in specParamNames]
-    hess_step_gen = ndf.MinStepGenerator(base_step=hess_step)
+    # starting scales for the Hessian sampling-scale search;
+    # set to typical (median) parameter uncertainties, so that for most
+    # objects the scale search converges in about one iteration
+    hess_scales0 = np.array([{
+        'vsini': 10.,
+        'logg': 0.07,
+        'feh': 0.03,
+        'alpha': 0.015,
+        'teff': 15.,
+        'vrad': 1.,
+    }.get(_) or 0.1 for _ in specParamNames])
+    x0_hess = np.array([ret['param'][_] for _ in specParamNames])
+    f0_hess = hess_func_wrap(x0_hess)
     for i in range(2):
-        # perform two iterations if there is an issue
-        hessian = ndf.Hessian(hess_func_wrap, step=hess_step_gen)(
-            [ret['param'][_] for _ in specParamNames])
+        hess_scales = _hessian_sample_scales(hess_func_wrap, x0_hess, f0_hess,
+                                             hess_scales0)
+        hessian = _quadratic_hessian(hess_func_wrap, x0_hess, f0_hess,
+                                     hess_scales)
         diag_err, covar_mat, bad_hessian = _uncertainties_from_hessian(hessian)
-        if bad_hessian:
-            hess_step_gen = None
-            logging.warning(
-                'Performing two iterations of hessian determination')
+        if not bad_hessian:
+            break
+        # if the Hessian is bad, retry once sampling at a 3x smaller scale
+        hess_scales0 = hess_scales / 3.
+        if i == 0:
+            logging.warning('The Hessian was bad; retrying the Hessian '
+                            'determination at a smaller sampling scale')
 
     ret['param_err'] = dict(zip(specParamNames, diag_err))
     ret['param_covar'] = covar_mat
