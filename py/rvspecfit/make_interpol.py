@@ -337,7 +337,15 @@ def process_all(setupInfo,
                                   toair=air,
                                   resolution0=resolution0)
 
-    specs = []
+    if float_bits == 32:
+        spec_dtype = np.float32
+    elif float_bits == 64:
+        spec_dtype = np.float64
+    else:
+        raise ValueError('float_bits must be 32 or 64, got %s' %
+                         str(float_bits))
+    specs = np.empty((nspec, len(lamgrid)), dtype=spec_dtype)
+    results = []
     lognorms = np.zeros(nspec)
     if nthreads > 1:
         multi_thread = True
@@ -353,25 +361,23 @@ def process_all(setupInfo,
         if not multi_thread:
             if i % max(1, nspec // 100) == 0:
                 print('%d/%d' % (i, nspec))
-        specs.append(
+        results.append(
             pool.apply_async(extract_spectrum,
                              (param, dbfile, prefix, wavefile),
                              dict(normalize=normalize,
                                   log_spec=log_spec,
                                   file_id=int(cur_id))))
     lam = lamgrid
-    for i in range(len(specs)):
+    for i in range(len(results)):
         if multi_thread:
             if i % max(1, nspec // 100) == 0:
                 print('%d/%d' % (i, nspec))
-        specs[i], lognorms[i] = specs[i].get()
+        specs[i], lognorms[i] = results[i].get()
+        # release the worker result as soon as it is stored
+        results[i] = None
 
     pool.close()
     pool.join()
-    specs = np.array(specs)
-    if float_bits == 32:
-        specs = specs.astype(np.float32)
-    lognorms = np.array(lognorms)
 
     if os.path.isdir(oprefix):
         pass
