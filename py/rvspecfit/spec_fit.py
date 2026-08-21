@@ -889,7 +889,13 @@ def get_chisq(specdata,
             chisq_accum += 1000 * badchi
             chisq_array.append(np.nan)
             red_chisq_array.append(np.nan)
-            models.append(np.zeros(len(curdata.lam)) + np.nan)
+            nan_model = np.zeros(len(curdata.lam)) + np.nan
+            models.append(nan_model)
+            raw_models.append(nan_model)
+            if curdata.badmask is not None:
+                npix_array.append(int((~curdata.badmask).sum()))
+            else:
+                npix_array.append(len(curdata.lam))
             continue
         else:
             if outside_penalty:
