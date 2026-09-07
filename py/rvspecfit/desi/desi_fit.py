@@ -1158,15 +1158,17 @@ def proc_desi(fname,
     if use_resolution_matrix:
         sig0s = {}
         for s in setups:
+            cur_val = 0.5  # default value
             if config is not None:
-                if ('lsf_sigma0_angstrom' not in config
-                        or s not in config['lsf_sigma0_angstrom']):
-                    cur_val = 0.5  # default value
+                lsf_conf = config.get('lsf_sigma0_angstrom')
+                if lsf_conf is None or (isinstance(lsf_conf, dict)
+                                        and s not in lsf_conf):
                     logging.warning('sigma0 of the templates is not specified '
                                     f'for setup {s} using {cur_val}')
                 else:
-                    cur_val = config['lsf_sigma0_angstrom'][s]
-                sig0s[s] = cur_val
+                    cur_val = lsf_conf[s] if isinstance(lsf_conf,
+                                                        dict) else lsf_conf
+            sig0s[s] = cur_val
     else:
         sig0s = None
 
@@ -1348,8 +1350,6 @@ def proc_desi_wrapper(*args, **kwargs):
 proc_desi_wrapper.__doc__ = proc_desi.__doc__
 
 
-
-
 class FakeFuture:
     # this is a fake Future object designed for easier switching
     # to single thread operations when debugging
@@ -1377,9 +1377,7 @@ def _setup_logging(log_level, log_filename):
     the parent's logging configuration).
     """
     if log_filename is not None:
-        logging.basicConfig(filename=log_filename,
-                            level=log_level,
-                            force=True)
+        logging.basicConfig(filename=log_filename, level=log_level, force=True)
     else:
         logging.basicConfig(level=log_level, force=True)
 
@@ -1850,8 +1848,8 @@ in the table (but will not use for selection)''',
         input_files = None
     if not args.mpi:
         files = utils.FileQueue(file_list=input_files,
-                          file_from=input_file_from,
-                          queue=queue_file)
+                                file_from=input_file_from,
+                                queue=queue_file)
     else:
         if input_files is None:
             with open(input_file_from, 'r') as fp:
@@ -1860,34 +1858,34 @@ in the table (but will not use for selection)''',
 
     try:
         proc_many(
-                files,
-                output_dir,
-                output_tab_prefix,
-                output_mod_prefix,
-                figure_dir=figure_dir,
-                figure_prefix=args.figure_prefix,
-                nthreads=nthreads,
-                config_fname=config_fname,
-                fit_targetid=fit_targetid,
-                objtypes=objtypes,
-                doplot=doplot,
-                subdirs=args.subdirs,
-                minsn=minsn,
-                process_status_file=process_status_file,
-                expid_range=(minexpid, maxexpid),
-                skipexisting=args.skipexisting,
-                fitarm=fitarm,
-                cmdline=cmdline,
-                zbest_select=zbest_select,
-                zbest_include=zbest_include,
-                ccf_continuum_normalize=ccf_continuum_normalize,
-                use_resolution_matrix=args.resolution_matrix,
-                ccf_init=ccf_init,
-                npoly=npoly,
-                throw_exceptions=args.throw_exceptions,
-                log_level=log_level,
-                log_filename=log_filename,
-            )
+            files,
+            output_dir,
+            output_tab_prefix,
+            output_mod_prefix,
+            figure_dir=figure_dir,
+            figure_prefix=args.figure_prefix,
+            nthreads=nthreads,
+            config_fname=config_fname,
+            fit_targetid=fit_targetid,
+            objtypes=objtypes,
+            doplot=doplot,
+            subdirs=args.subdirs,
+            minsn=minsn,
+            process_status_file=process_status_file,
+            expid_range=(minexpid, maxexpid),
+            skipexisting=args.skipexisting,
+            fitarm=fitarm,
+            cmdline=cmdline,
+            zbest_select=zbest_select,
+            zbest_include=zbest_include,
+            ccf_continuum_normalize=ccf_continuum_normalize,
+            use_resolution_matrix=args.resolution_matrix,
+            ccf_init=ccf_init,
+            npoly=npoly,
+            throw_exceptions=args.throw_exceptions,
+            log_level=log_level,
+            log_filename=log_filename,
+        )
     finally:
         # In MPI mode, wait for the server thread on rank 0 to finish
         # serving all remote workers before proceeding to exit.
