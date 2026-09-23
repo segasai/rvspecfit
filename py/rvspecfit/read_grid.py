@@ -422,10 +422,16 @@ def make_rebinner(lam00,
         else:
             rightstep = leftstep
         cursig = sigs[i]
-        curl0 = curlam - thresh * cursig
-        curl1 = curlam + thresh * cursig
+        l1 = curlam - leftstep
+        l2 = curlam + rightstep
+        # these are the edges of the pixel we will integrate over
+
+        curl0 = l1 - thresh * cursig
+        curl1 = l2 + thresh * cursig
         # these are the boundaries in wavelength that will potentially
-        # contribute to the current pixel
+        # contribute to the current pixel. They must be measured from
+        # the pixel edges rather than the pixel centre, otherwise
+        # for pixels wider than the LSF we lose flux
 
         left = np.searchsorted(lam0, curl0) - 1
         right = np.searchsorted(lam0, curl1)
@@ -446,9 +452,6 @@ def make_rebinner(lam00,
         # these are neighboring pixels in the input template
         # we'll assume linear interpolation inbetween values on those
 
-        l1 = curlam - leftstep
-        l2 = curlam + rightstep
-        # these are the edges of the pixel we will integrate over
         coeff1, coeff2 = pix_integrator(x1, x2, l1, l2, cursig)
         curstep = (leftstep + rightstep)
         ys.append(i + curx * 0)
