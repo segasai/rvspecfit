@@ -12,6 +12,7 @@ import itertools  # noqa: E402
 import traceback  # noqa: E402
 import functools  # noqa: E402
 import operator  # noqa: E402
+import collections.abc  # noqa: E402
 import logging  # noqa: E402
 import enum  # noqa: E402
 import multiprocessing  # noqa: E402
@@ -1166,13 +1167,14 @@ def proc_desi(fname,
             cur_val = 0.5  # default value
             if config is not None:
                 lsf_conf = config.get('lsf_sigma0_angstrom')
-                if lsf_conf is None or (isinstance(lsf_conf, dict)
-                                        and s not in lsf_conf):
+                # config is frozen, so this is a frozendict (a Mapping),
+                # not a dict
+                is_map = isinstance(lsf_conf, collections.abc.Mapping)
+                if lsf_conf is None or (is_map and s not in lsf_conf):
                     logging.warning('sigma0 of the templates is not specified '
                                     f'for setup {s} using {cur_val}')
                 else:
-                    cur_val = float(lsf_conf[s] if isinstance(lsf_conf, dict
-                                                              ) else lsf_conf)
+                    cur_val = float(lsf_conf[s] if is_map else lsf_conf)
             sig0s[s] = cur_val
     else:
         sig0s = None
