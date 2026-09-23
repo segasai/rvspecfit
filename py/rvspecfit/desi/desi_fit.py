@@ -1174,7 +1174,6 @@ def proc_desi(fname,
 
     timers.append(time.time())
     rets = []
-    nfibers_good = 0
     for (cur_rr_z, cur_rr_spectype, cur_rr_subtype,
          cur_seqid) in zip(rr_z, rr_spectype, rr_subtype, seqid_to_fit):
         # collect data
@@ -1206,7 +1205,6 @@ def proc_desi(fname,
                 f'Giving up on fitting spectra for row {cur_fibermap_row}')
             rets.append((FakeFuture([None, None]), extra_info))
             continue
-        nfibers_good += 1
         cur_brick, cur_targetid = cur_fibermap_row[
             'BRICKID'], cur_fibermap_row['TARGETID']
         if doplot:
@@ -1221,9 +1219,11 @@ def proc_desi(fname,
     timers.append(time.time())
 
     # This will store best-fit model data
+    # one row per fitted fiber (including the ones we gave up on)
+    # so that the rows match RVTAB and FIBERMAP
     models = {}
     for curs in setups:
-        models['desi_' + curs] = np.zeros((nfibers_good, npixels[curs]),
+        models['desi_' + curs] = np.zeros((len(rets), npixels[curs]),
                                           dtype=np.float32)
     versions = None
     for ii, (r, extra_info) in enumerate(rets):
@@ -1281,6 +1281,8 @@ def proc_desi(fname,
     outmod_hdus += [fibermap_subset_hdu]
 
     assert (len(fibermap_subset_hdu.data) == len(outtab))
+    for curs in setups:
+        assert (len(models['desi_' + curs]) == len(outtab))
     outtab_hdus = [
         pyfits.PrimaryHDU(header=get_prim_header(versions=versions,
                                                  config=config,
