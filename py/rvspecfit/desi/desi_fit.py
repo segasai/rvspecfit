@@ -1171,8 +1171,8 @@ def proc_desi(fname,
                     logging.warning('sigma0 of the templates is not specified '
                                     f'for setup {s} using {cur_val}')
                 else:
-                    cur_val = lsf_conf[s] if isinstance(lsf_conf,
-                                                        dict) else lsf_conf
+                    cur_val = float(lsf_conf[s] if isinstance(lsf_conf, dict
+                                                              ) else lsf_conf)
             sig0s[s] = cur_val
     else:
         sig0s = None
