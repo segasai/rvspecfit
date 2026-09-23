@@ -621,6 +621,11 @@ def select_fibers_to_fit(fibermap,
 
     # compute the subset based on TARGET types
     fibermapT = atpy.Table(fibermap)
+    if DT is None and objtypes is not None:
+        logging.warning(
+            'desitarget is not available, so the selection by target types '
+            f'({",".join(objtypes)}) cannot be applied and is ignored. '
+            'Targets will not be selected by type.')
     if DT is not None and objtypes is not None:
         selecting_by_type = True
         types_subset = filter_fibermap(fibermapT, DT, objtypes=objtypes)
